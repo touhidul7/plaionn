@@ -1,0 +1,1 @@
+I’ve added game scheduling. League admins can set up venues and rinks, schedule matchups, and reschedule or cancel games. The system checks for overlapping team and rink bookings, and draft games stay private until published to league members.

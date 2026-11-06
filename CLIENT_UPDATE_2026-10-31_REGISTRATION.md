@@ -1,0 +1,1 @@
+I?ve added player registration. Players can apply for a season and track their application, while league admins can set registration dates and approve or reject applications. Next, I?m working on waivers and document acceptance.

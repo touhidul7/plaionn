@@ -1,0 +1,1 @@
+Phase 1 is progressing. The dashboard, league setup, and team creation are built. I’ve now added the season settings panel for league admins to manage rules, roster limits, registration dates, and fees. Next are player rosters and scheduling.

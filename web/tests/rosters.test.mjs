@@ -1,0 +1,73 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {PGlite} from '@electric-sql/pglite';
+import {rosterSchema,playerSchema} from '../src/lib/roster-schema.ts';
+
+const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
+const league=id(1),other=id(2),admin=id(3),viewer=id(4),season=id(5),division=id(6);
+test('roster input accepts optional jersey zero and validates player identity and revisions',()=>{
+ const form={team_entry_id:id(9),player_id:id(10),jersey_number:'0',position:'G',status:'active',revision:'0'};
+ assert.equal(rosterSchema.parse(form).jersey_number,0);
+ assert.equal(rosterSchema.parse({...form,jersey_number:''}).jersey_number,null);
+ for(const change of [{jersey_number:'100'},{jersey_number:'-1'},{jersey_number:'2.5'},{position:'invalid'},{status:'eligible'},{revision:'-1'},{player_id:'not-an-id'}]) assert.equal(rosterSchema.safeParse({...form,...change}).success,false);
+ assert.equal(playerSchema.parse({display_name:'  Alex Mercer  '}).display_name,'Alex Mercer');
+ assert.equal(playerSchema.safeParse({display_name:' '}).success,false);
+});
+test('rosters enforce capacity, unique active jerseys, history, stale revisions, and private access',async()=>{
+ const db=new PGlite();
+ try{
+  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);
+  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+  grant usage on schema auth,public to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
+  for(const name of ['202610260001_league_foundation.sql','202610270001_season_settings.sql','202610280001_rosters.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
+  await db.query('insert into auth.users values($1),($2)',[admin,viewer]);
+  await db.query("insert into leagues(id,name) values($1,'Other League')",[other]);
+  await db.query("insert into league_memberships values($1,$2,'commissioner'),($1,$3,'player')",[league,admin,viewer]);
+  await db.query("insert into seasons(id,league_id,name) values($1,$2,'Winter')",[season,league]);
+  await db.query("insert into divisions(id,league_id,season_id,name) values($1,$2,$3,'Premier')",[division,league,season]);
+  await db.exec('set role authenticated');
+  await db.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);
+  await db.query("select create_team_with_entry($1,$2,'Northline HC')",[league,division]);
+  const entry=(await db.query('select id from team_entries')).rows[0].id;
+  const players=[];
+  for(const name of ['Alex Mercer','Alex Mercer','Sam Chen']) players.push((await db.query('select create_league_player($1,$2) as id',[league,name])).rows[0].id);
+  assert.notEqual(players[0],players[1],'same names must not merge identities');
+  const save=(player,jersey,status='active',revision=0)=>db.query('select save_roster_member($1,$2,$3,$4,$5,$6) as revision',[entry,player,jersey,'F',status,revision]);
+  await assert.rejects(save(players[0],19),e=>e.message==='ROSTER_NOT_CONFIGURED');
+  await db.query(`insert into season_settings(season_id,league_id,roster_limit,period_count,period_minutes,clock_mode,win_points,tie_points,loss_points,overtime_loss_points,billing_model,currency,team_fee_cents,player_fee_cents)
+  values($1,$2,2,3,20,'stop',2,1,0,1,'both','CAD',0,0)`,[season,league]);
+  await save(players[0],19);
+  await assert.rejects(save(players[1],19),e=>e.code==='23505');
+  assert.equal((await db.query('select count(*)::int as n from roster_audit')).rows[0].n,1,'failed additions must not leave an audit success record');
+  await save(players[1],20);
+  await assert.rejects(save(players[2],21),e=>e.message==='ROSTER_FULL');
+  await assert.rejects(db.query('update season_settings set roster_limit=1 where season_id=$1',[season]),e=>e.message==='ROSTER_LIMIT_BELOW_CURRENT');
+  await save(players[0],19,'inactive',1);
+  await save(players[2],19);
+  await assert.rejects(save(players[0],18,'inactive',1),e=>e.message==='ROSTER_STALE');
+  await assert.rejects(save(players[0],18,'active',2),e=>e.message==='ROSTER_FULL');
+  assert.equal((await db.query("select count(*)::int as n from roster_memberships where status='inactive'")).rows[0].n,1);
+  const audit=await db.query('select actor_id,previous_record,new_record from roster_audit');
+  assert.ok(audit.rows.some(r=>r.previous_record?.status==='active'&&r.new_record.status==='inactive'));
+  assert.ok(audit.rows.every(r=>r.actor_id===admin));
+  await assert.rejects(db.query("update roster_memberships set status='inactive'"),e=>e.code==='42501');
+  await assert.rejects(db.query('delete from roster_audit'),e=>e.code==='42501');
+  await db.query("select set_config('request.jwt.claim.sub',$1,false)",[viewer]);
+  assert.equal((await db.query('select * from players')).rows.length,0);
+  assert.equal((await db.query('select * from roster_memberships')).rows.length,0);
+  await assert.rejects(save(players[2],21,'inactive',1),e=>e.code==='42501');
+  await assert.rejects(db.query("select create_league_player($1,'Intruder')",[league]),e=>e.code==='42501');
+  await db.exec('reset role');
+  await db.query("insert into league_memberships values($1,$2,'commissioner')",[other,viewer]);
+  await db.exec('set role authenticated');
+  await assert.rejects(save(players[2],21,'inactive',1),e=>e.code==='42501');
+  assert.equal((await db.query('select * from roster_audit')).rows.length,0);
+  const outsider=(await db.query("select create_league_player($1,'Other Player') as id",[other])).rows[0].id;
+  await db.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);
+  await assert.rejects(save(outsider,30,'inactive'),e=>e.code==='42501');
+  await db.exec('reset role;set role anon');
+  await assert.rejects(db.query('select * from players'),e=>e.code==='42501');
+  await assert.rejects(save(players[0],1),e=>e.code==='42501');
+ }finally{await db.close();}
+});

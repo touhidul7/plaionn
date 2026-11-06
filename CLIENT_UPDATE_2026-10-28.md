@@ -1,0 +1,1 @@
+I’ve added player roster management. League admins can create player profiles, add players to teams, update jersey numbers and positions, and mark players inactive while keeping their history. Roster limits and duplicate jersey checks are also in place. Next is scheduling.
