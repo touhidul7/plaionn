@@ -25,7 +25,7 @@ test('schedule enforces conflicts, draft privacy, revisions, cancellation, and t
   await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
   grant usage on schema auth,public to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
-  for(const name of ['202610260001_league_foundation.sql','202610270001_season_settings.sql','202610280001_rosters.sql','202610280002_scheduling.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
+  for(const name of ['202610260001_league_foundation.sql','202610270001_season_settings.sql','202610280001_rosters.sql','202610280002_scheduling.sql','202611120001_schedule_inventory_generator.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
   await db.query('insert into auth.users values($1),($2)',[admin,viewer]);
   await db.query("insert into leagues(id,name) values($1,'Other League')",[other]);
   await db.query("insert into league_memberships values($1,$2,'commissioner'),($1,$3,'player')",[league,admin,viewer]);

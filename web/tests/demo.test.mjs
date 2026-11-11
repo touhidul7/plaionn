@@ -5,10 +5,13 @@ import {PGlite} from '@electric-sql/pglite';
 test('demo setup requires a confirmed reviewer, reruns without duplicates, and protects scored matchups',async()=>{
  const db=new PGlite();
  try{
-  await db.exec(`create role anon;create role authenticated;create schema auth;
+  await db.exec(`create role anon;create role authenticated;create schema auth;create schema storage;
    create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
+   create table storage.buckets(id text primary key,name text not null,public boolean not null,file_size_limit bigint,allowed_mime_types text[]);
+   create table storage.objects(bucket_id text not null,name text not null,primary key(bucket_id,name));
    create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
-   grant usage on schema auth,public to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;`);
+   grant usage on schema auth,public,storage to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;
+   grant select,insert,delete on storage.objects to authenticated;`);
   const dir=new URL('../supabase/migrations/',import.meta.url);
   for(const file of (await readdir(dir)).filter(f=>f.endsWith('.sql')).sort()) await db.exec(await readFile(new URL(file,dir),'utf8'));
   const script=(await readFile(new URL('../supabase/demo/client-preview.sql',import.meta.url),'utf8')).replaceAll('REPLACE_WITH_CLIENT_EMAIL','reviewer@example.test');
@@ -26,6 +29,9 @@ test('demo setup requires a confirmed reviewer, reruns without duplicates, and p
   const roster=(await db.query('select * from list_game_score_roster($1)',[game.id])).rows;
   assert.equal(roster.length,6);
   const player=roster.find(p=>p.team_entry_id===game.home_entry_id);
+  assert.equal(player.eligible,false,'demo roster is not eligible until registration and waiver requirements are met');
+  await db.query("select grant_player_eligibility_override((select id from roster_memberships where player_id=$1),'Client preview scoring override')",[player.player_id]);
+  assert.equal((await db.query('select eligible from list_game_score_roster($1) where player_id=$2',[game.id,player.player_id])).rows[0].eligible,true);
   await db.query("select add_game_event($1,gen_random_uuid(),'goal',$2,1,600,$3,null,null,null)",[game.id,game.home_entry_id,player.player_id]);
   await assert.rejects(db.query("select save_scheduled_game($1,$2,$3,$4,$5,$6,60,'scheduled',1,'Swap teams')",[game.id,game.league_id,game.away_entry_id,game.home_entry_id,game.rink_id,game.starts_at]),e=>e.message==='SCORED_MATCHUP_LOCKED');
   assert.equal((await db.query('select * from games')).rows[0].home_entry_id,game.home_entry_id);

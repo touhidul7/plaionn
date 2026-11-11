@@ -1,5 +1,6 @@
 -- Run manually in Supabase SQL Editor after ALL migrations.
--- First create/confirm the client's account in Supabase Auth.
+-- First create the client account. With Confirm Email disabled, Supabase
+-- automatically confirms new signups; no email-link step is needed.
 -- Replace the email below. This grants commissioner access ONLY to this demo league.
 -- No passwords, auth bypass, resets, or deletions. Reruns preserve edited demo records.
 begin;

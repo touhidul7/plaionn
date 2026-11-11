@@ -13,7 +13,7 @@ The HTML is a standalone concept with sample data and simulated interactions. It
 
 Track delivery in [TODO.md](TODO.md). Update both documents when scope changes.
 
-Implementation update (2026-11-04): User confirmed responsive website/PWA first and authorized a test league. The application in `web/` now uses Supabase-only league queries/mutations with sign-in and membership checks. Hosted activation remains blocked: the configured project host currently fails DNS resolution, so confirm the active URL/key pair before migration/import. Season settings now include commissioner-configurable, audited standings tiebreaker order; application of the migration and standings calculation remain pending. Earlier local test records are preserved for import. See [CLIENT_INPUTS.md](CLIENT_INPUTS.md) for outstanding client information and the current delivery update.
+Implementation update (2026-11-04; expanded 2026-11-09): User confirmed responsive website/PWA first and authorized a test league. The application in `web/` now uses Supabase-only league queries/mutations with sign-in and membership checks. Season settings include commissioner-configurable, audited standings tiebreakers; local result approval and standings are now implemented in migration `202611130001_game_results_standings.sql`. Hosted migration and authenticated workflow verification remain pending. Earlier local test records are preserved for import. See [CLIENT_INPUTS.md](CLIENT_INPUTS.md) for outstanding client information and the current delivery update.
 
 ## 2. Product goals
 
@@ -106,7 +106,7 @@ User clarification: rules and fees are configured through league/season panels. 
 - Venues, rinks, available ice blocks, game scheduling, changes, cancellations, and conflict detection.
 - Officials' assignments and basic availability handling.
 - Configurable game formats, point allocations, tiebreakers, forfeits, and approval policies.
-- Later: optimized scheduling, ice contracts/utilization, certification tracking, payroll exports, advanced discipline/appeals, support CRM, and renewal campaigns.
+- Later: optimized scheduling, certification tracking, payroll exports, advanced discipline/appeals, support CRM, and renewal campaigns.
 
 ### Payments and accounting
 
@@ -287,3 +287,19 @@ Officials assignment is implemented as the next scheduling slice: commissioner c
 ### Registration implementation update - 2026-10-31
 
 The new-profile registration slice now supports deliberate season publication, inclusive UTC windows, applications from signed-in accounts without membership, account-owned global profiles, commissioner decisions, applicant withdrawal, and private audit history. Approval adds league membership and a player association; roster assignment/payment/waiver/eligibility remain separate. Existing-profile claiming and application edits/resubmission are not included in this slice. Thirteen local tests and production compilation pass; hosted/browser acceptance is pending. Next slice: league-managed waiver document versions and player acceptance.
+
+### Documents and consent implementation update - 2026-11-09
+
+Commissioners can upload season-specific PDF waivers and codes of conduct to a private Storage bucket. Each replacement creates an immutable version; applicants can read only current published documents during an open registration or versions associated with their own application. Registration requires the current waiver and all current document versions, and records the typed name, acceptance time, version, and SHA-256 hash computed in the server action. Public-profile, filming, and marketing choices are stored separately and default to No. This is evidence capture, not legal approval or advice. Migration `202611090001_documents_consents.sql` is present in the hosted project; browser acceptance remains pending. Client-approved document text and consent-withdrawal workflow remain outstanding.
+
+### Player eligibility and real-data readiness update - 2026-11-09
+
+Eligibility is implemented locally: active roster membership, approved season registration, and acceptance of all current required documents are required to score. Commissioners can grant and revoke reasoned overrides with retained audit history; scoring events are protected by a database trigger. Commissioner roster screens show reasons/history, and scorekeeping disables ineligible player selections. Existing commissioners can create a separate tenant in the app through migration `202611110001_league_provisioning.sql`; a guarded owner-run script removes only the exact seeded tenant after replacement commissioner access is verified. Local migration, cleanup, typecheck, build, and lint tests pass. The hosted public schema check reports Auth HTTP 200 and 23/26 expected private tables; `game_events`, `game_event_voids`, and `player_eligibility_overrides` are missing, so hosted score/eligibility testing is blocked until authorized migrations are applied. No client roster or operational data was supplied/imported, and no hosted rows have been deleted.
+
+### Schedule workflow update - 2026-11-09
+
+The supplied workbook is sample data and a fairness dashboard, not a scheduler; the product blueprint is the broader source of truth. Locally implemented a commissioner workflow for division-scoped rink inventory, required/optional slots, early/prime/late tiers, blackouts, preferred weeknights, round-robin draft generation, maximum weekly games, minimum rest, hard conflict checks, fairness-weighted placement, and explicit audited publishing. Generated games stay private drafts until reviewed. The search is bounded and fairness is heuristic, not a globally optimal solver. The Schedule page analyzes saved data with team summaries, opponent matrices, tier/arena/weekly-load distributions, required-slot utilization, and validation warnings for conflicts, blackout dates, rest, weekly limits, and matchup completeness. Commissioners can record rink/date-specific ice contracts, audit slot assignment changes, cancel only unassigned contracts, and view purchased/allocated/scheduled/draft/unused hours with estimated costs by currency. A league-member live-score page polls a privacy-limited RPC response every three seconds and recovers from missed updates. Migrations `202611120001_schedule_inventory_generator.sql`, `202611140001_ice_contracts_utilization.sql`, and `202611150001_live_scoreboard.sql` are local-only; migration 16 still needs to be applied before the live page works against hosted Supabase.
+
+### Results approval and standings update - 2026-11-09
+
+The app now has a game-result workflow: assigned timekeepers submit scores calculated from the event log; a different assigned referee or commissioner must approve. Unreviewed and correction-state results are excluded from standings. Approved results can be reopened with a reason, which removes them from the table until the corrected event log is resubmitted and independently approved. The Standings page calculates wins/ties/losses/overtime losses, goals, penalty minutes, configured points, and the configured tiebreak sequence for every division in a selected season. Migration `202611130001_game_results_standings.sql` is new/local-only. Local PGlite tests cover authorization, score verification, audit history, correction locking, and standings inclusion/exclusion; hosted migration and separate-role browser acceptance remain pending.

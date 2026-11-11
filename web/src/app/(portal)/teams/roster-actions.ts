@@ -1,7 +1,7 @@
 "use server";
 import {revalidatePath} from "next/cache";
 import {getLeagueContext} from "@/lib/supabase/session";
-import {playerSchema,rosterSchema} from "@/lib/roster-schema";
+import {playerSchema,rosterSchema,eligibilityOverrideSchema,eligibilityRevocationSchema} from "@/lib/roster-schema";
 export type RosterState={error:boolean;message:string;revision:number};
 export async function createPlayer(previous:RosterState,form:FormData):Promise<RosterState>{
  const parsed=playerSchema.safeParse(Object.fromEntries(form));
@@ -40,4 +40,35 @@ export async function saveRoster(previous:RosterState,form:FormData):Promise<Ros
   return {error:false,message:"Roster saved. Roster status does not replace waiver, payment, or game-eligibility checks.",revision:Number(data)};
  }catch{return {...previous,error:true,message:"Unable to save this change. Please try again."};}
 }
-
+export async function grantEligibilityOverride(previous:RosterState,form:FormData):Promise<RosterState>{
+ const parsed=eligibilityOverrideSchema.safeParse(Object.fromEntries(form));
+ if(!parsed.success) return {...previous,error:true,message:"Enter a reason between 3 and 500 characters."};
+ const {supabase,canManage}=await getLeagueContext();
+ if(!canManage) return {...previous,error:true,message:"Commissioner access is required."};
+ const {error}=await supabase.rpc("grant_player_eligibility_override",{
+  target_roster_membership:parsed.data.roster_membership_id,change_reason:parsed.data.reason,
+ });
+ if(error){
+  const message=error.message==="PLAYER_ALREADY_ELIGIBLE"?"This player already meets the current eligibility requirements.":error.message==="PLAYER_NOT_ACTIVE_ON_TEAM"?"Only active roster members can receive an override.":"The override could not be saved. Check commissioner access and database setup.";
+  return {...previous,error:true,message};
+ }
+ revalidatePath(`/teams/${parsed.data.team_entry_id}`);
+ revalidatePath("/schedule","layout");
+ return {error:false,message:"Eligibility override recorded with an audit reason.",revision:previous.revision};
+}
+export async function revokeEligibilityOverride(previous:RosterState,form:FormData):Promise<RosterState>{
+ const parsed=eligibilityRevocationSchema.safeParse(Object.fromEntries(form));
+ if(!parsed.success) return {...previous,error:true,message:"Enter a reason between 3 and 500 characters."};
+ const {supabase,canManage}=await getLeagueContext();
+ if(!canManage) return {...previous,error:true,message:"Commissioner access is required."};
+ const {error}=await supabase.rpc("revoke_player_eligibility_override",{
+  target_override:parsed.data.override_id,change_reason:parsed.data.reason,
+ });
+ if(error){
+  const message=error.message==="OVERRIDE_ALREADY_REVOKED"?"This override was already revoked. Reload the page.":"The override could not be revoked. Check commissioner access and database setup.";
+  return {...previous,error:true,message};
+ }
+ revalidatePath(`/teams/${parsed.data.team_entry_id}`);
+ revalidatePath("/schedule","layout");
+ return {error:false,message:"Eligibility override revoked and retained in history.",revision:previous.revision};
+}

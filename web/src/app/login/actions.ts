@@ -19,12 +19,14 @@ export async function authenticate(_state:AuthState,form:FormData):Promise<AuthS
   if(mode==="signup") {
    const siteUrl=appOrigin(process.env.NEXT_PUBLIC_APP_URL,process.env.NODE_ENV==="production");
    const result=await supabase.auth.signUp({email,password,options:{emailRedirectTo:new URL("/auth/callback",siteUrl).href}});
-   if(result.error) return {error:true,message:result.error.status===429?"Too many attempts. Please wait before trying again.":"Account creation could not be completed. Check the Supabase configuration or try again later."};
+   if(result.error) return {error:true,message:result.error.status===429?"Too many attempts. Please wait before trying again.":"Could not create your account. If you already have an account, try signing in."};
    signedIn=!!result.data.session;
-   if(!signedIn) return {error:false,message:"If registration is available for this email, a confirmation message will arrive. Follow it in this browser, then sign in."};
+   // Confirm Email is disabled for this deployment. Supabase should return a
+   // session immediately; never treat a user record alone as authenticated.
+   if(!signedIn) return {error:true,message:"We could not sign you in automatically. Try signing in with your email and password. If that fails, contact your league administrator."};
   } else {
    const result=await supabase.auth.signInWithPassword({email,password});
-   if(result.error) return {error:true,message:result.error.status===429?"Too many attempts. Please wait before trying again.":"Sign-in failed. Check your email/password and email confirmation. The project connection must also be configured."};
+   if(result.error) return {error:true,message:result.error.status===429?"Too many attempts. Please wait before trying again.":"Sign-in failed. Check your email and password, or contact your league administrator."};
    signedIn=!!result.data.session;
   }
  } catch { return {error:true,message:"The sign-in service is unavailable. Please try again later."}; }

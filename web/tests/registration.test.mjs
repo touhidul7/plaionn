@@ -2,34 +2,49 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,readdir} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
-import {registrationSchema,decisionSchema,publicationSchema} from '../src/lib/registration-schema.ts';
+import {registrationSchema,documentUploadSchema,decisionSchema,publicationSchema} from '../src/lib/registration-schema.ts';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 test('registration forms validate applicant, decision, and publication fields',()=>{
- const valid={season_id:id(5),display_name:' Alex Mercer ',position:'G'};
+ const valid={season_id:id(5),display_name:' Alex Mercer ',position:'G',document_ids:[id(30)],signer_name:'Alex Mercer',consent_public_profile:'no',consent_filming:'yes',consent_marketing:'no'};
  assert.equal(registrationSchema.parse(valid).display_name,'Alex Mercer');
  for(const change of [{season_id:'x'},{display_name:' '},{position:'invalid'}]) assert.equal(registrationSchema.safeParse({...valid,...change}).success,false);
+ assert.equal(documentUploadSchema.safeParse({season_id:id(5),document_id:id(30),document_type:'waiver',title:'Player waiver',object_path:`${id(1)}/${id(5)}/${id(30)}.pdf`,file_name:'waiver.pdf'}).success,true);
+ assert.equal(documentUploadSchema.safeParse({season_id:id(5),document_id:id(30),document_type:'unknown',title:'x',object_path:'x',file_name:'x'}).success,false);
  assert.equal(decisionSchema.safeParse({registration_id:id(20),revision:1,decision:'approved',reason:'Accepted'}).success,true);
  assert.equal(decisionSchema.safeParse({registration_id:id(20),revision:0,decision:'eligible',reason:'x'}).success,false);
  assert.equal(publicationSchema.safeParse({season_id:id(5),revision:1,enabled:'false'}).success,true);
 });
 test('registration is opt-in, owned, private, reviewed and audited without automatic roster eligibility',async()=>{
  const db=new PGlite();
- const league=id(1),other=id(2),admin=id(3),applicant=id(4),season=id(5),second=id(6),stranger=id(7),otherAdmin=id(8);
+ const league=id(1),other=id(2),admin=id(3),applicant=id(4),season=id(5),second=id(6),stranger=id(7),otherAdmin=id(8),closedSeason=id(9);
  try{
   await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);
+   create schema storage;create table storage.buckets(id text primary key,name text not null,public boolean not null,file_size_limit bigint,allowed_mime_types text[]);
+   create table storage.objects(bucket_id text not null,name text not null,primary key(bucket_id,name));alter table storage.objects enable row level security;
    create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
-   grant usage on schema auth,public to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
+   grant usage on schema auth,public,storage to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;
+   grant select,insert,delete on storage.objects to authenticated;`);
   const dir=new URL('../supabase/migrations/',import.meta.url);
   for(const name of (await readdir(dir)).filter(n=>n.endsWith('.sql')).sort()) await db.exec(await readFile(new URL(name,dir),'utf8'));
+  const verification=await readFile(new URL('../supabase/verify-client-preview.sql',import.meta.url),'utf8');
+  assert.deepEqual((await db.query(verification)).rows,[],'the full local schema passes the deployment verification SQL');
+  const bucket=(await db.query("select public,file_size_limit,allowed_mime_types from storage.buckets where id='league-documents'")).rows[0];
+  assert.equal(bucket.public,false);
+  assert.equal(bucket.file_size_limit,10485760);
+  assert.deepEqual(bucket.allowed_mime_types,['application/pdf']);
   await db.query('insert into auth.users(id) values($1),($2),($3),($4)',[admin,applicant,stranger,otherAdmin]);
   await db.query("insert into leagues(id,name) values($1,'Second League')",[other]);
   await db.query("insert into league_memberships values($1,$2,'commissioner'),($3,$4,'commissioner')",[league,admin,other,otherAdmin]);
-  await db.query("insert into seasons(id,league_id,name) values($1,$2,'Winter'),($3,$2,'Spring')",[season,league,second]);
+  await db.query("insert into seasons(id,league_id,name) values($1,$2,'Winter'),($3,$2,'Spring'),($4,$2,'Closed')",[season,league,second,closedSeason]);
   const as=user=>db.query("select set_config('request.jwt.claim.sub',$1,false)",[user]);
   await db.exec('set role authenticated');await as(admin);
   for(const seasonId of [season,second]) await db.query(`insert into season_settings(season_id,league_id,roster_limit,period_count,period_minutes,clock_mode,win_points,tie_points,loss_points,overtime_loss_points,billing_model,currency,team_fee_cents,player_fee_cents)
    values($1,$2,20,3,20,'stop',2,1,0,1,'both','CAD',0,0)`,[seasonId,league]);
-  const submit=(seasonId=season,name='Alex Mercer')=>db.query("select submit_registration($1,$2,'F') as id",[seasonId,name]);
+  const documentsBySeason=new Map();
+  const submit=(seasonId=season,name='Alex Mercer',position='F',documents=documentsBySeason.get(seasonId))=>db.query(
+   "select submit_registration($1,$2,$3,$4,$5,$6,$7,$8) as id",
+   [seasonId,name,position,documents,'Alex Mercer',false,true,false]
+  );
   await assert.rejects(db.query('select set_registration_open($1,true,1)',[season]),e=>e.message==='REGISTRATION_DATES_REQUIRED');
   await as(applicant);
   assert.equal((await db.query('select * from open_registration_seasons()')).rows.length,0);
@@ -42,7 +57,30 @@ test('registration is opt-in, owned, private, reviewed and audited without autom
   }
   await as(applicant);
   assert.equal((await db.query('select * from open_registration_seasons()')).rows.length,2,'same-day UTC inclusive window');
-  await assert.rejects(db.query("select submit_registration($1,'Alex Mercer','INVALID')",[season]),e=>e.code==='23514');
+  await assert.rejects(submit(),e=>e.message==='REGISTRATION_DOCUMENTS_REQUIRED');
+  await as(admin);
+  const addDocument=async(seasonId,documentId,type,title)=>{
+   const path=`${league}/${seasonId}/${documentId}.pdf`;
+   await db.query("insert into storage.objects(bucket_id,name) values('league-documents',$1)",[path]);
+   assert.equal((await db.query('select public.can_read_document_object($1) as allowed',[path])).rows[0].allowed,true,'commissioner can verify an uploaded file before publishing it');
+   const result=await db.query('select create_season_document($1,$2,$3,$4,$5,$6,$7,$8) as version',
+    [seasonId,documentId,type,title,path,type+'.pdf',100,'a'.repeat(64)]);
+   return result.rows[0].version;
+  };
+  await addDocument(season,id(30),'waiver','Player waiver');
+  await addDocument(season,id(31),'code_of_conduct','Code of conduct');
+  await addDocument(second,id(32),'waiver','Player waiver');
+  await addDocument(closedSeason,id(34),'waiver','Closed-season waiver');
+  documentsBySeason.set(season,[id(30),id(31)]);
+  documentsBySeason.set(second,[id(32)]);
+  assert.equal(await addDocument(second,id(33),'waiver','Updated player waiver'),2,'each upload creates an immutable version');
+  await assert.rejects(submit(second,'Spring Applicant','F',[id(32)]),e=>e.message==='REGISTRATION_DOCUMENTS_STALE');
+  documentsBySeason.set(second,[id(33)]);
+  await as(applicant);
+  assert.equal((await db.query('select * from season_documents')).rows.length,4,'applicants can read open-season documents');
+  await assert.rejects(db.query("insert into storage.objects(bucket_id,name) values('league-documents',$1)",[`${league}/${season}/${id(34)}.pdf`]),e=>e.code==='42501');
+  await assert.rejects(db.query("update season_documents set title='Changed'"),e=>e.code==='42501');
+  await assert.rejects(submit(season,'Alex Mercer','INVALID'),e=>e.code==='23514');
   assert.equal((await db.query('select * from players')).rows.length,0,'invalid application rolls back profile');
   const request=(await submit()).rows[0].id;
   const profile=(await db.query('select * from players')).rows[0];
@@ -57,6 +95,8 @@ test('registration is opt-in, owned, private, reviewed and audited without autom
   await as(stranger);
   assert.equal((await db.query('select * from player_registrations')).rows.length,0);
   assert.equal((await db.query('select * from registration_audit')).rows.length,0);
+  assert.equal((await db.query('select * from registration_document_acceptances')).rows.length,0);
+  assert.equal((await db.query('select * from registration_consents')).rows.length,0);
   assert.equal((await db.query('select * from players')).rows.length,0);
   await assert.rejects(decide(request,'withdrawn'),e=>e.code==='42501');
   const strangerRequest=(await submit()).rows[0].id;
@@ -64,10 +104,22 @@ test('registration is opt-in, owned, private, reviewed and audited without autom
   assert.notEqual(strangerProfile.id,profile.id,'matching names never claim another person');
   await as(otherAdmin);
   assert.equal((await db.query('select * from player_registrations')).rows.length,0);
+  assert.equal((await db.query('select * from season_documents where season_id=$1',[closedSeason])).rows.length,0,'other-league administrators cannot read closed-season documents');
+  await assert.rejects(db.query("insert into storage.objects(bucket_id,name) values('league-documents',$1)",[`${league}/${season}/${id(35)}.pdf`]),e=>e.code==='42501');
   await assert.rejects(decide(request,'approved'),e=>e.code==='42501');
   await as(admin);
   assert.equal((await db.query('select * from player_registrations')).rows.length,3);
   assert.equal((await db.query('select * from players')).rows.length,2,'commissioner can review applicant profiles');
+  const acceptances=await db.query('select document_id,document_version,document_sha256,signer_name from registration_document_acceptances where registration_id=$1',[request]);
+  assert.equal(acceptances.rows.length,2);
+  assert.ok(acceptances.rows.every(row=>row.signer_name==='Alex Mercer'&&row.document_sha256==='a'.repeat(64)));
+  assert.equal((await db.query("select count(*)::int as count from registration_consents where registration_id=$1",[request])).rows[0].count,3);
+  assert.deepEqual((await db.query("select consent_type,granted from registration_consents where registration_id=$1 order by consent_type",[request])).rows,
+   [{consent_type:'filming',granted:true},{consent_type:'marketing',granted:false},{consent_type:'public_profile',granted:false}]);
+  assert.ok((await db.query("select consent_version,consent_text from registration_consents where registration_id=$1",[request])).rows.every(row=>row.consent_version===1&&row.consent_text.length>10));
+  const protectedFile=await db.query("delete from storage.objects where name=$1",[`${league}/${season}/${id(30)}.pdf`]);
+  assert.equal(protectedFile.rowCount,0,'published and accepted documents cannot be removed from Storage');
+  await assert.rejects(db.query("update registration_document_acceptances set signer_name='Changed'"),e=>e.code==='42501');
   await assert.rejects(decide(request,'approved',9),e=>e.message==='REGISTRATION_STALE');
   await decide(request,'approved');
   await assert.rejects(decide(request,'approved'),e=>e.message==='REGISTRATION_STALE');
@@ -90,6 +142,9 @@ test('registration is opt-in, owned, private, reviewed and audited without autom
   await assert.rejects(submit(second),e=>e.message==='REGISTRATION_CLOSED');
   await db.exec('reset role;set role anon');
   await assert.rejects(db.query('select * from open_registration_seasons()'),e=>e.code==='42501');
+  await assert.rejects(db.query('select * from season_documents'),e=>e.code==='42501');
+  await assert.rejects(db.query('select * from registration_document_acceptances'),e=>e.code==='42501');
+  await assert.rejects(db.query('select * from registration_consents'),e=>e.code==='42501');
   await assert.rejects(submit(),e=>e.code==='42501');
  }finally{await db.close();}
 });

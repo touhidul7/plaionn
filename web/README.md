@@ -1,8 +1,8 @@
-# Current deployment review - 2026-11-06
+# Current deployment review - 2026-11-09
 
 Client preview setup: [Vercel deployment guide](../VERCEL_DEPLOYMENT.md), [client walkthrough](../CLIENT_TEST_GUIDE.md), [review findings](../APP_REVIEW_2026-11-06.md).
 
-All 18 local tests, production build/TypeScript and lint pass. Supabase Auth responds successfully; 20/22 private tables exist, with scoring tables missing. Apply the missing migrations and configure the deployment/accounts before client use. Historical verification entries below describe their stated dates, not current release readiness.
+The hosted schema checker was rerun on 2026-11-09 after the user-reported migrations: Auth HTTP 200; all 34 expected private tables exist and deny anonymous access. Authenticated workflows still need verification. The existing Client Demo is persistent seed data, not real league data.
 
 # PLAIONN Hockey — Phase 1 application
 
@@ -25,27 +25,33 @@ Configure the matching Project URL and either `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_
 
 Follow [Supabase setup](supabase/README.md) to apply the schema, restore the existing test team, configure confirmation redirects, and grant the intended test account a commissioner membership.
 
-Current verification (2026-11-04): the public key and all 20 tables deployed before the scoring slice were verified. The new game-events migration has not been applied to hosted Supabase; the updated connection checker expects 22 tables and will report those two missing tables until deployment.
+The historical public-key probe (2026-11-09) found 23/26 tables before schedule inventory was added; the latest checker run found 34/34 expected private tables. See migration status in [Supabase setup](supabase/README.md).
 
 The app no longer reads or writes local PGlite data. It uses authenticated Supabase queries and RLS, and does not fall back to local storage on a failed request. The original local database remains untouched for recovery.
 
 ## Current functionality
 
-- Scheduling at /schedule: commissioner venue/rink setup, venue-local time entry, draft/scheduled/cancelled fixtures, same-division matchups, overlap checks, audited rescheduling/cancellation, and stale revision protection. Drafts reserve teams/rinks but are hidden from ordinary league members; scheduled and cancelled fixtures are visible to members. Conflicts are scoped to a league, not a shared physical arena across tenants.
+- Scheduling at /schedule: commissioner venue/rink and division-scoped ice-slot inventory, required/optional slots, early/prime/late tiers, team blackout dates, round-robin draft generation, maximum weekly games, minimum rest, preferred weeknights, fairness heuristics, audited review/publish, manual fixture controls, and saved-data fairness/validation dashboards for team load, opponent matrix, time tiers, arenas, weekly loads, required inventory, blackout dates, conflicts, rest, and round-robin completeness. Generated games remain commissioner-only drafts until reviewed and explicitly published. Commissioners can explicitly replace unpublished generated drafts; old drafts are cancelled and audited, while published games and manual fixtures are protected. Commissioners can record rink/date-specific ice purchases, link/unlink inventory slots with an audit reason, cancel unassigned contracts, and review purchased, allocated, scheduled, draft, unallocated, overallocated, and unused hours with CAD/USD proportional cost estimates. The user reports applying migrations `202611120001_schedule_inventory_generator.sql` and `202611140001_ice_contracts_utilization.sql`; the latest read-only checker found all expected tables. Authenticated commissioner workflows still need testing.
+
+- Final results and standings: assigned timekeepers submit scores computed from the event log; a different assigned referee or commissioner must approve before the result counts. Approved-only standings include configured points, ordered season tiebreakers, goals, overtime losses, and penalty minutes. Reopening or returning a result removes it from standings until correction and independent reapproval. The user reports migration `202611130001_game_results_standings.sql` has been applied; the latest schema check verifies expected tables, while authenticated workflows remain unverified.
 
 - Commissioner roster management at /teams/[entryId]: create unclaimed player profiles, select existing league players, add/edit jersey numbers and positions, and deactivate/reactivate entries with retained history. Active roster limits, unique active jerseys, stale edits, and league isolation are checked by database functions. This is not player registration or game-eligibility approval. Captain access/identity claiming remain pending.
 
-- Assigned-official scorekeeping at /schedule/[gameId]/scorekeeping: timekeepers and commissioners can record provisional goals and penalties against active game rosters; season settings bound periods and clock readings. Scoring events are retry-safe. Referees and commissioners can void incorrect entries with a required reason while retaining the original record. This does not finalize game results, provide offline entry, broadcast live updates, or calculate standings.
+- Assigned-official scorekeeping at /schedule/[gameId]/scorekeeping: timekeepers and commissioners can record provisional goals and penalties against active game rosters; season settings bound periods and clock readings. Scoring events are retry-safe. Referees and commissioners can void incorrect entries with a required reason while retaining the original record. The same page supports submission, independent result approval, and reasoned correction. Every scheduled fixture has a league-member Live score page that polls saved events every three seconds, including event recovery after reconnect and voided-event exclusion. Apply local-only migration `202611150001_live_scoreboard.sql` before using the live page. Offline entry and push-based low-latency broadcasts remain incomplete.
+- Player eligibility: an active roster member also needs approved season registration and acceptance of all current required documents. Commissioners can grant/revoke reasoned overrides; event writes enforce eligibility in the database. The local implementation is not usable against the currently connected hosted schema until the scoring and eligibility migrations are applied.
+- Existing commissioners can create a separate league from My account after applying `202611110001_league_provisioning.sql`. The new league is selected immediately; existing league records are untouched. This lets the demo tenant remain isolated until a replacement is ready.
 
-- Season settings at /league/settings: roster limits, registration dates, periods/clock mode, standings points and ordered tiebreakers, billing models, CAD/USD fees, commissioner write access, audit history, and revision conflict protection. Apply the second migration and `202611040001_standings_tiebreakers.sql` before using the new setting. Roster enforcement, standings calculation, and invoicing remain separate upcoming features.
+- Season settings at /league/settings: roster limits, registration dates, periods/clock mode, standings points and ordered tiebreakers, billing models, CAD/USD fees, commissioner write access, audit history, and revision conflict protection. Apply the settings and tiebreaker migrations before using the settings form.
 
 - Sign-in/signup forms, email-confirmation callback, local sign-out, and cookie refresh proxy.
+- Commissioner-managed season PDF waiver/code-of-conduct versions in private Supabase Storage; player applications require the current waiver and record typed-name acceptance with the file hash and version.
+- Separate public-profile, filming, and marketing consent records, all defaulting to No. Consent withdrawal and downstream preference enforcement remain incomplete.
 - Verified user and league membership checks before league reads and mutations.
 - League selection for accounts with multiple memberships.
 - Commissioner-only season/division creation and atomic team-plus-entry creation through Supabase.
 - Dashboard and directory read Supabase; roles without commissioner access do not see creation forms.
-- Password recovery, privileged-account MFA, invitations, richer roles, payments, final-result approval, and official standings remain incomplete.
-- PWA/offline scoring, live score broadcasts, purchased ice inventory, schedule notifications, and public fan schedule access remain incomplete.
+- Password recovery, privileged-account MFA, invitations, richer roles, and production payments remain incomplete.
+- PWA/offline scoring, push-based live broadcasts, schedule notifications, and public fan access outside authenticated league members remain incomplete.
 
 ## Verification
 
@@ -53,7 +59,7 @@ Scheduling checks (2026-10-28): nine tests pass; typecheck/build pass; anonymous
 
 2026-10-28: all seven tests passed, covering roster limits, identical-name separation, private access, jersey conflicts, history, stale edits, and limits below occupancy. Typecheck/build passed. An unauthenticated roster request returned HTTP 307 to /login without exposing the form. Hosted/browser checks remain pending; Data API configuration still returns HTTP 401.
 
-2026-11-04: standings tiebreaker and provisional scoring migration tests pass; the full serial test suite, typecheck, and production build pass. Hosted migration/browser checks remain pending.
+2026-11-09: the document/consent migration was confirmed by the user as applied to hosted Supabase. A read-only probe now reports Auth HTTP 200 and 23/26 expected private tables; scoring and eligibility remain missing. Local eligibility and hosted-workflow verification are in progress.
 
 2026-11-04: assigned-official provisional scoring and audit-preserving corrections added in `202611040002_game_events.sql`. The hosted project was previously verified through 20 tables; this latest migration is not deployed. Local UI checks and hosted authenticated workflows remain pending.
 
@@ -64,7 +70,7 @@ npm.cmd run build
 npm.cmd run supabase:check
 ```
 
-The 16-test local suite, type checking, and production compilation pass. Lint reports one pre-existing unused-variable warning in `tests/season-settings.test.mjs`. HTTP checks verified the login page and sign-in redirects without exposing team data. The export import dry run restored one season, one division, one team, and one entry.
+The new scheduler has local PGlite coverage for inventory, tenant/commissioner guards, blackout and required-slot validation, round-robin generation, draft review, publishing, and audit history. Hosted migration and real-account workflow checks remain pending.
 
 Still required: hosted migration verification, real signup/login/confirmation/session-refresh/sign-out testing, successful remote create/read checks, browser layout/form checks, and two-user/two-league hosted authorization tests.
 

@@ -21,8 +21,14 @@ export function startInUtc(local:string,zone:string){
 export function localGameTime(utc:string,zone:string){
  return Temporal.Instant.from(utc).toZonedDateTimeISO(zone).toPlainDateTime().toString({smallestUnit:"minute"});
 }
+export function iceSlotTimes(localStart:string,localEnd:string,zone:string){
+ if(!Temporal.PlainDateTime.from(localStart).toPlainDate().equals(Temporal.PlainDateTime.from(localEnd).toPlainDate())) throw new Error("An ice slot must start and end on the same local date.");
+ const startsAt=startInUtc(localStart,zone),endsAt=startInUtc(localEnd,zone);
+ const duration=Date.parse(endsAt)-Date.parse(startsAt);
+ if(duration<15*60_000||duration>360*60_000) throw new Error("Ice slots must be between 15 minutes and 6 hours.");
+ return {startsAt,endsAt,localDate:Temporal.PlainDateTime.from(localStart).toPlainDate().toString()};
+}
 export type Venue={id:string;name:string;address:string;time_zone:string};
 export type Rink={id:string;name:string;venue_id:string};
 export type Entry={id:string;team_id:string;division_id:string;label:string};
 export type Game={id:string;home_entry_id:string;away_entry_id:string;rink_id:string;starts_at:string;ends_at:string;status:"draft"|"scheduled"|"cancelled";revision:number};
-

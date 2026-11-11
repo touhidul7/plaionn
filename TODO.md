@@ -1,7 +1,7 @@
 # PLAIONN Hockey — Delivery Checklist
 
-Last updated: 2026-11-06
-Project status: Phase 1 in progress. Client-preview deployment preparation verified locally; scoring migrations, Vercel setup, demo provisioning, and hosted acceptance pending. Not a completed Phase 1 release.
+Last updated: 2026-11-09
+Project status: Phase 1 in progress. The app persists to the configured Supabase project; existing PLAIONN Client Demo records are fictional seed data and are not real league data. Hosted schema check (2026-11-09, after user-reported migrations): Auth HTTP 200; all 34 expected private tables exist and deny anonymous access. Authenticated workflow and browser verification remain pending. No production data was changed or demo data removed.
 Contract scope: All phases confirmed by the user on 2026-10-26.
 Delivery sequence: Complete and verify Phase 1 → prepare handoff for the user to send to the client → continue Phases 2–4.
 Plan: [PROJECT_PLAN.md](PROJECT_PLAN.md)
@@ -35,6 +35,39 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 - [ ] Complete hosted commissioner/player/official smoke tests and authenticated mobile/tablet checks.
 - [ ] Share deployed URL, private login details and client guide. No deployment performed by this review.
 
+## Real-data workflow readiness - 2026-11-09
+
+- [x] Confirm the application reads/writes through Supabase; it has no local application-data fallback.
+- [x] Clarify in the app and client guide that records are persistent and the existing Client Demo is seed data, not a local mock or real league data.
+- [x] Recheck the configured hosted project's public schema: Auth HTTP 200; 23/26 tables exist and deny anonymous access. Missing: `game_events`, `game_event_voids`, and `player_eligibility_overrides`.
+- [ ] Confirm the connected Supabase project is an authorized staging environment before entering personal participant data; confirm backup/approval before any production use.
+- [ ] Preserve the demo until replacement access is verified; create/populate the actual league, season, division, teams, approved roster, venue, schedule, and approved documents from owner-provided data.
+- [x] Add safe in-app creation of a separate league for existing commissioners; migration `202611110001_league_provisioning.sql` gives the creator commissioner access without modifying existing tenants. Hosted apply and authenticated verification remain pending.
+- [ ] Add secure role onboarding/invitations for commissioners, officials, and other league roles; officials currently need membership provisioning before assignment.
+- [x] Apply missing scoring and eligibility/scheduling/results/ice-contract migrations to the intended hosted project; read-only schema checker now reports 34/34 tables and anonymous denial (2026-11-09).
+- [x] Add an authenticated league-member live scoreboard that refreshes saved event data every 3 seconds, handles reconnect/visibility, and excludes voided events; migration `202611150001_live_scoreboard.sql` is new/local-only.
+- [ ] Apply migration `202611150001_live_scoreboard.sql` to the authorized hosted project, then verify commissioner/member access and two-account live updates.
+- [ ] Complete the real registration → commissioner review → team placement → current-document acceptance → eligibility → assigned-official scoring/correction journey using separate role accounts.
+- [ ] Obtain the actual roster/schedule and league policy files, or enter them through the app; no real league dataset was supplied or imported.
+- [x] Prepare a guarded cleanup script for only the exact seeded tenant ID/name; it refuses cleanup until the same commissioner has a verified separate league. No hosted deletion was run. Storage objects require separate exact-prefix cleanup in the Storage UI.
+- [ ] Back up the project, create/verify the actual league, remove only the demo tenant using `web/supabase/demo/remove-client-preview.sql`, and remove its private Storage folder. Preserve all Auth accounts, other leagues, and user-owned profiles.
+
+## Schedule workflow implementation — 2026-11-09
+
+- [x] Inspect the sample scheduling workbook and the product blueprint. The workbook is a sample fairness dashboard, not an optimizer; the blueprint additionally calls for preferred nights and conflict detection.
+- [x] Add division-scoped rink ice-slot inventory with local-time handling, required/optional slots, early/prime/late tiers, and team blackout dates.
+- [x] Add bounded round-robin draft generation with weekly limits, minimum rest, preferred weeknights, blackout/existing-booking constraints, fairness heuristics, commissioner-only drafts, explicit audited publishing, and confirmed replacement of unpublished generated drafts.
+- [x] Test generator constraints, DST handling, database authorization, required slots, opponent counts, draft privacy, replacement and published-schedule protection, and publish audit with local unit/PGlite tests.
+- [x] User applied the schedule inventory migration; read-only checker verifies its tables exist and deny anonymous access (2026-11-09). Authenticated commissioner workflow remains to be tested.
+- [x] Run all local tests, typecheck, lint, production build, and diff whitespace check; all passed.
+- [ ] Test this workflow with a signed-in commissioner in the authorized staging project after verifying migrations.
+- [x] Add real-data schedule team summary, opponent matrix, time-tier/arena/weekly-load dashboards, inventory utilization, and validation warnings for conflicts, rest, blackouts, weekly caps, and round-robin completeness.
+- [x] Add commissioner-only rink/date-scoped purchased ice contracts, audited slot assignment/unassignment, cancellation with reason, scheduled/draft/unused-hour reporting, and estimated currency-specific costs.
+- [x] Test contract authorization, date/rink matching, cancellation safeguards, audit history, and utilization/cost calculations with local PGlite and unit tests.
+- [x] User applied the ice-contract migration; read-only checker verifies all expected private tables exist and deny anonymous access (2026-11-09). Commissioner workflow testing remains pending.
+- [x] Implement the separate game-result approval workflow and official points standings locally: event-log-derived scores, independent referee/commissioner review, reasoned corrections/reopening, and approved-results-only standings using season points/tiebreakers. User reports migration `202611130001_game_results_standings.sql` applied; signed-in acceptance remains.
+- [x] User applied the result/standings migration; read-only checker verifies its tables exist and deny anonymous access (2026-11-09). Separate timekeeper/referee workflow testing remains pending.
+
 ## 0. Planning and client decisions
 
 - [x] Review client blueprint and supplied desktop/mobile design references.
@@ -49,7 +82,7 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 - [ ] Confirm scoring devices and target browsers for rink testing.
 - [x] Choose authorized development league name: PLAIONN Test Hockey League.
 - [ ] Confirm billing model, merchant ownership, payment plans, refunds, and financial visibility.
-- [ ] Build admin-managed document upload/versioning and player acceptance; leagues provide their own approved content when using the software.
+- [x] Build admin-managed PDF document upload/versioning and player acceptance; leagues provide their own approved content when using the software. Hosted migration and browser verification remain pending.
 - [ ] Support optional historical imports; use test data during development. Existing team/player data is not required.
 - [ ] Agree staffing, budget, milestones, and release estimates after scope validation.
 
@@ -100,7 +133,7 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 - [ ] IN PROGRESS — Season/division/team creation and directory now use Supabase with verified-user/commissioner checks; hosted authenticated checks, migration/import reconciliation, and editing remain. User confirmed the earlier local team-creation flow worked.
 - [ ] IN PROGRESS — Season settings panel implements roster limits, registration dates, period/clock format, standings point values, and team/player fees. Hosted/browser verification and downstream enforcement remain pending.
 - [x] Implement/test season-settings migration with commissioner-only writes, tenant isolation, exact fee storage, date/bounds validation, audit history, and stale-update protection (2026-10-27).
-- [ ] IN PROGRESS — Venue/rink creation and venue time zones implemented; purchased ice availability/inventory and hosted/browser checks remain.
+- [x] Implemented venue/rink creation, venue time zones, ice inventory, and commissioner-only contract purchase, assignment, cancellation, utilization, and cost workflows locally; hosted migration and browser checks remain.
 - [ ] IN PROGRESS — Game creation/editing, draft/scheduled/cancelled states, revision protection, and reasoned changes implemented; hosted/browser verification remains.
 - [x] Implement/test database conflict detection for overlapping team/rink bookings within a league, including drafts, cancelled-slot release, and back-to-back bookings (2026-10-28).
 - [x] Implement/test official overlap checks on assignment, rescheduling, and reinstatement, including cross-league bookings for the same account (2026-10-31).
@@ -108,9 +141,9 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 - [ ] Verify officials workflows against hosted Supabase and in authenticated browser sessions.
 - [ ] IN PROGRESS — Scheduled games are visible to league members; drafts remain commissioner-only. Rescheduling/cancellation retains audit history. Notifications and public fan schedule access remain pending.
 - [x] Implement/test venue-local time conversion and rejection of missing/ambiguous daylight-saving times; database stores UTC instants.
-- [ ] IN PROGRESS — Commissioner assignment UI supports one timekeeper and two referee slots; private crew reads are limited to commissioners and assigned officials on published games. Role onboarding/invitations and score approval remain pending.
+- [ ] IN PROGRESS — Commissioner assignment UI supports one timekeeper and two referee slots; private crew reads are limited to commissioners and assigned officials on published games. Role onboarding/invitations remain pending.
 - [x] Add commissioner-configurable, audited standings tiebreaker priority (wins, head-to-head points, goal difference, goals scored, fewest penalty minutes); local validation and database constraints verified.
-- [ ] Implement remaining configurable overtime/tie handling and consume season rules in standings calculations.
+- [x] Implement tracked regulation/overtime/shootout/tie decisions and standings calculations using configured points and tiebreakers; user reports migration applied and the hosted table check passes.
 - [ ] Define handling for forfeits, abandoned games, no-shows, and retroactive adjustments.
 
 ## 5. Registration, documents, and rosters — Phase 1
@@ -126,10 +159,13 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 - [x] Add player profile creation and team roster forms for jersey number, position, and status; typecheck/build pass. Hosted UI execution remains a separate pending check.
 - [ ] Verify player creation and roster add/edit/deactivation through authenticated Supabase and browser sessions after migration deployment.
 - [ ] IN PROGRESS — Jersey numbers, positions, and team-entry memberships are implemented and locally tested; hosted persistence verification remains pending.
-- [ ] Implement versioned waivers and signature evidence tied to the accepted document.
-- [ ] Implement separate registration, public-profile, filming, and marketing consent where required.
-- [ ] Expose document status/history and authorized download.
-- [ ] Implement eligibility checks and audited authorized overrides.
+- [x] Implement versioned waivers/conduct PDFs and typed-name acceptance evidence tied to exact document hashes and versions. Typed-name records are not a claim of legal approval.
+- [x] Record registration, public-profile, filming, and marketing consent separately, defaulting optional permissions to No.
+- [x] Expose document history, applicant acceptance history, and authorized private downloads.
+- [x] Implement season eligibility checks, reasoned commissioner overrides/revocations, retained audit history, and a database scoring guard in migration `202611100001_player_eligibility.sql`; hosted deployment and authenticated acceptance remain pending.
+- [x] Display eligibility status and override controls on commissioner rosters; prevent selecting ineligible scorers/assists in scorekeeping. Hosted UI acceptance remains pending.
+- [x] Pass local eligibility/scoring/provisioning/cleanup migration tests, all 20 tests, TypeScript, production build, and lint.
+- [ ] Apply scoring/eligibility migrations to hosted Supabase and test the full journey with real accounts.
 - [ ] Implement roster import with validation, preview, and error reporting.
 - [ ] Verify complete registration-to-eligible-roster journey.
 
@@ -156,7 +192,8 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 - [x] Persist event identity, recording timestamps, and idempotent retry keys; reject conflicting duplicate submissions.
 - [x] Implement referee/commissioner correction by voiding with a reason while preserving the original event.
 - [x] Show a provisional score derived from non-voided game events; box score and player-stat projections remain.
-- [ ] Broadcast live updates with reconnect/recovery behavior.
+- [x] Add a league-member live scoreboard with three-second polling, reconnect state, background-tab throttling, persisted event recovery, and voided-event exclusion. Hosted migration and two-account browser verification remain.
+- [ ] Add lower-latency push-based live broadcasts and verify delivery/reconnect latency under rink network conditions.
 - [x] Verify local policy/migration tests for assignment roles, active-roster actors, assists, clock/period bounds, retries, corrections, and immutable history.
 - [ ] Verify two independent clients see the same persisted live game.
 - [ ] Verify corrections reverse/update all affected projections.
@@ -231,7 +268,7 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 - [ ] Add playoff setup and progression.
 - [ ] Build league CMS, sponsor placements, and campaign reporting.
 - [ ] Add jersey sizing, orders, customization, and merchandise collection.
-- [ ] Add advanced ice inventory/contracts, cancellations, utilization, and cost reporting.
+- [x] Implemented purchased ice contracts, audited slot assignment, cancellation safeguards, and utilization/cost reporting locally; hosted migration and commissioner browser verification remain.
 - [ ] Add constraint-based schedule generation and fairness review.
 - [ ] Add officials' availability/certifications and payroll exports.
 - [ ] Add discipline, suspensions, appeals, and authorized evidence workflows.
@@ -281,6 +318,11 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 | Network expansion | Incomplete | Later phase |
 
 ## Change log
+
+- 2026-11-09: Added an authenticated league-member live scoreboard backed by a minimal security-definer RPC and automatic three-second polling, including hidden-tab throttling and reconnect state. Local PGlite test verifies member authorization, scheduled-game-only access, void exclusion, scoring, and limited event fields. Migration `202611150001_live_scoreboard.sql` must be applied before hosted use; two-account verification remains.
+- 2026-11-09: Added commissioner-only PDF upload/versioning in private Supabase Storage, a mandatory current waiver before registration, typed-name acceptance records tied to immutable document versions and SHA-256 hashes, and separate opt-in public-profile/filming/marketing consent records. All 18 local tests, typecheck, production build, and lint pass. Hosted migration/Storage/browser acceptance, league-supplied approved content, consent withdrawal, and eligibility remain pending.
+
+- 2026-11-06: User disabled Supabase Confirm Email. Signup already accepts the returned session and redirects to My account; updated signup/sign-in messages and deployment instructions to remove email-confirmation steps. A missing session remains an error; commissioner membership is still explicitly assigned.
 
 - 2026-11-06: Audited user-added scoring and tiebreaker work and prepared client-preview deployment. All 18 local tests, production build, TypeScript and lint pass. Added Vercel config, Node 22 pin, environment preflight, demo seed/verification SQL, scored-matchup guard, deployment guide and client walkthrough. Fixed score-entry role display and selectors; preserved existing user data. Hosted public probe confirms 20/22 tables (scoring tables absent). Desktop login visually inspected; protected routes redirect in production-mode HTTP checks. Remote migrations, Vercel deployment, reviewer setup and authenticated acceptance remain unchecked.
 

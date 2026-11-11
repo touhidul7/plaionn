@@ -38,6 +38,9 @@ export const gameScoreRosterMemberSchema=z.object({
  display_name:z.string(),
  position:z.string(),
  jersey_number:z.number().int().nullable(),
+ eligible:z.boolean(),
+ eligibility_reason:z.string(),
+ override_reason:z.string().nullable(),
 });
-export type GameScoreRosterMember={team_entry_id:string;player_id:string;display_name:string;position:string;jersey_number:number|null};
+export type GameScoreRosterMember={team_entry_id:string;player_id:string;display_name:string;position:string;jersey_number:number|null;eligible:boolean;eligibility_reason:string;override_reason:string|null};
 export type GameEvent={id:string;client_event_id:string;event_kind:"goal"|"penalty";team_entry_id:string;period:number;clock_seconds_remaining:number;player_id:string;assist_one_id:string|null;assist_two_id:string|null;penalty_minutes:number|null;recorded_by:string;recorded_at:string};

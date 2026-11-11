@@ -5,6 +5,7 @@ with required_tables(name) as (values
  ('season_settings'),('season_settings_audit'),('players'),('league_players'),
  ('roster_memberships'),('roster_audit'),('venues'),('rinks'),('games'),('schedule_audit'),
  ('game_officials'),('official_assignment_audit'),('player_registrations'),('registration_audit'),
+ ('season_documents'),('registration_document_acceptances'),('registration_consents'),('player_eligibility_overrides'),
  ('game_events'),('game_event_voids')
 ), issues as (
  select 'Missing table or disabled RLS: '||r.name as issue from required_tables r
@@ -17,10 +18,30 @@ with required_tables(name) as (values
  select 'Missing scored-matchup trigger'
  where not exists(select 1 from pg_catalog.pg_trigger where tgname='scored_matchup_guard' and tgrelid=to_regclass('public.games') and tgenabled<>'D')
  union all
+ select 'Missing private league-documents Storage bucket'
+ where not exists(select 1 from storage.buckets where id='league-documents' and not public and file_size_limit=10485760 and allowed_mime_types=array['application/pdf'])
+ union all
+ select 'Storage objects RLS is not enabled'
+ where not exists(select 1 from pg_catalog.pg_class where oid=to_regclass('storage.objects') and relrowsecurity)
+ union all
+ select 'Missing Storage policy: '||policy_name from (values
+ ('league_documents_read'),('league_documents_upload'),('league_documents_cleanup')
+ ) p(policy_name) where not exists(
+  select 1 from pg_catalog.pg_policies
+  where schemaname='storage' and tablename='objects' and policyname=p.policy_name
+ )
+ union all
  select 'Missing RPC: '||signature from (values
  ('public.open_registration_seasons()'),
- ('public.submit_registration(uuid,text,text)'),
+ ('public.submit_registration(uuid,text,text,uuid[],text,boolean,boolean,boolean)'),
  ('public.decide_registration(uuid,text,integer,text)'),
+ ('public.create_season_document(uuid,uuid,text,text,text,text,integer,text)'),
+ ('public.can_view_season_documents(uuid)'),
+ ('public.check_player_eligibility(uuid,uuid,uuid)'),
+ ('public.list_team_eligibility(uuid)'),
+ ('public.grant_player_eligibility_override(uuid,text)'),
+ ('public.revoke_player_eligibility_override(uuid,text)'),
+ ('public.create_league(text)'),
  ('public.save_game_official(uuid,uuid,text,uuid,integer,text)'),
  ('public.list_game_score_roster(uuid)'),
  ('public.add_game_event(uuid,uuid,text,uuid,integer,integer,uuid,uuid,uuid,integer)'),

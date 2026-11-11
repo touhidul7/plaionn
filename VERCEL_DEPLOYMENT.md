@@ -1,11 +1,11 @@
 # Client preview deployment
 
-Reviewed: 2026-11-06. This is a Phase 1 progress preview, not the completed Phase 1 release.
+Reviewed: 2026-11-09. This is a Phase 1 progress preview, not the completed Phase 1 release.
 
 ## Current readiness
 
 - Source includes league setup, season settings/tiebreaker configuration, rosters, scheduling, officials, player registration/review, and provisional scoring/corrections.
-- Live public-key check: Auth HTTP 200; 20/22 private tables present and denying anonymous access. `game_events` and `game_event_voids` are missing from the configured Supabase project.
+- The latest hosted probe (2026-11-09) found Auth HTTP 200 and 23/26 expected private tables. The document/consent migration is present; game scoring and player-eligibility tables are missing. The existing Client Demo is persistent seed data, not a local mock or real league dataset.
 - The Vercel project/domain and reviewer accounts have not been configured by this review. No deployment has been made.
 - Hosted authenticated workflows require a final smoke test before sharing with the client.
 
@@ -24,10 +24,17 @@ Full order for a fresh database:
 7. `202611040001_standings_tiebreakers.sql`
 8. `202611040002_game_events.sql`
 9. `202611060001_scored_matchup_guard.sql`
+10. `202611090001_documents_consents.sql`
+11. `202611100001_player_eligibility.sql`
+12. `202611110001_league_provisioning.sql`
 
-For the current project, the scoring migration is definitely missing. Check whether the tiebreaker column already exists before applying migration 7; then apply 8 and 9. All files are under `web/supabase/migrations/`.
+For the current project, the 2026-11-09 probe found the document tables but not `game_events`, `game_event_voids`, or `player_eligibility_overrides`. Check the live schema before applying anything; never rerun a table-creation migration that is already present. Check whether the tiebreaker column exists before applying migration 7, then apply only the missing migrations in order. Migration 12 enables a current commissioner to create a separate tenant without changing existing leagues. All files are under `web/supabase/migrations/`.
 
-Afterwards run the read-only verification SQL again: expect **zero issue rows**. From `web`, run `npm run supabase:check`: expect Auth HTTP 200 and **22/22** private tables. These checks do not prove authenticated policies or email delivery work.
+Afterwards run the read-only verification SQL again: expect **zero issue rows**. From `web`, run `npm run supabase:check`: expect Auth HTTP 200 and **26/26** private tables. These checks do not prove authenticated policies or email delivery work.
+
+## 1a. Replace the seeded demo league safely
+
+After applying migration 12, sign in with the existing commissioner account and create the actual league from **My account**. Verify that account can open the new league before cleanup. Back up the project, then remove only the private Storage folder `60000000-0000-4000-8000-000000000001/` in the Storage UI and run `web/supabase/demo/remove-client-preview.sql` in SQL Editor. The script verifies both the exact demo tenant ID/name and that the same commissioner has membership in another league; it preserves Auth accounts, other tenants, and user-owned player profiles. Do not run it before creating and verifying the replacement league.
 
 ## 2. Import into Vercel
 
@@ -72,11 +79,11 @@ Under Authentication > URL Configuration:
 - Redirect URL: `https://YOUR-VERCEL-PROJECT.vercel.app/auth/callback`
 - Keep the localhost callback only for local development if needed.
 
-Test email confirmation from the deployed site in the same browser that initiated signup. Check your Supabase email delivery configuration before relying on client signup. For a guided review, you may create confirmed test accounts through Supabase Auth's admin dashboard, then assign their application roles as described below. Share passwords privately, never in source files.
+Current setting: Confirm Email is disabled in Supabase (user confirmation, 2026-11-06). New signups are automatically confirmed by Supabase and receive a session; the app sends them directly to My account. No email-link step is needed. Keep the callback configuration for future use. Existing accounts that cannot sign in should be checked in Supabase Auth; do not bypass session verification in the app. Share passwords privately, never in source files.
 
 ## 5. Prepare client data and access
 
-1. Create/confirm an account for the client in Supabase Auth. A normal signup grants no commissioner role.
+1. Create the client account using the app signup or Supabase Auth. With Confirm Email off, new signups are automatically confirmed; no manual email verification is needed. A normal signup grants no commissioner role.
 2. Open `web/supabase/demo/client-preview.sql` in SQL Editor. Replace `REPLACE_WITH_CLIENT_EMAIL` with that confirmed account's email, review, and run it.
 3. The script creates a separate **PLAIONN Client Demo** league, one season/division, Northline HC and Harbour Wolves, six active fictional players, a rink, and one scheduled game. It grants that account commissioner access only to the demo league.
 4. The registration window runs from the seed date for 30 days. Re-running the script preserves edits and does not reset dates or scores; extend the window through Season settings if needed.
@@ -108,3 +115,5 @@ A second browser/private window with a separate player account can test registra
 Give the client `CLIENT_TEST_GUIDE.md` with their actual URL and securely supplied account credentials.
 
 References: [Vercel project settings](https://vercel.com/docs/project-configuration/general-settings), [Node versions](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions), [environment variables](https://vercel.com/docs/environment-variables), [Supabase redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls).
+
+Supabase behavior reference: https://supabase.com/docs/guides/auth/general-configuration
