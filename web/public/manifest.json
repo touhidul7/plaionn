@@ -1,0 +1,22 @@
+{
+  "name": "PLAIONN Hockey Network",
+  "short_name": "PLAIONN",
+  "description": "Operating system for adult & recreational hockey leagues: rosters, live scorekeeping, schedules, and standings.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0d12",
+  "theme_color": "#0a0d12",
+  "icons": [
+    {
+      "src": "/globe.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/globe.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
+

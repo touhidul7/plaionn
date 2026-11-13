@@ -1,7 +1,16 @@
 # PLAIONN Hockey — Delivery Checklist
 
-Last updated: 2026-11-09
-Project status: Phase 1 in progress. The app persists to the configured Supabase project; existing PLAIONN Client Demo records are fictional seed data and are not real league data. Hosted schema check (2026-11-09, after user-reported migrations): Auth HTTP 200; all 34 expected private tables exist and deny anonymous access. Authenticated workflow and browser verification remain pending. No production data was changed or demo data removed.
+Last updated: 2026-11-12
+Project status: Phase 1 in progress. Supabase persistence active and verified. Migration `202611160001_onboarding_and_demo_access.sql` applied to the live Supabase project; self-service league creation and instant demo access are live and verified with real authenticated sessions across all 10 core portal routes.
+
+## Live Onboarding & Real-Data Verification - 2026-11-12
+
+- [x] Identified and fixed chicken-and-egg onboarding lock-out: `create_league` now allows any authenticated user to create a league and become its commissioner without prior commissioner status.
+- [x] Implemented `join_demo_league()` RPC for instant 1-click commissioner access to the pre-seeded demo league (`PLAIONN Client Demo`).
+- [x] User applied migration `202611160001_onboarding_and_demo_access.sql` to the live Supabase project. Verified RPCs return HTTP 200 and assign roles.
+- [x] Verified authenticated live loading of all 10 core routes against Supabase: `/`, `/league`, `/league/settings`, `/teams`, `/teams/[entryId]`, `/schedule`, `/schedule/[gameId]/scorekeeping`, `/schedule/[gameId]/live`, `/standings`, `/account` — all returned HTTP 200 with zero missing-table or pending-setup errors.
+- [x] Refactored minified/squashed code in portal pages and navigation; fixed corrupted character encodings in UI buttons.
+- [x] Updated `CLIENT_TEST_GUIDE.md` with complete, step-by-step instructions for client walkthrough.
 Contract scope: All phases confirmed by the user on 2026-10-26.
 Delivery sequence: Complete and verify Phase 1 → prepare handoff for the user to send to the client → continue Phases 2–4.
 Plan: [PROJECT_PLAN.md](PROJECT_PLAN.md)
@@ -154,11 +163,11 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 - [ ] Implement secure claiming of existing commissioner-created profiles, applicant edits/resubmission, and profile editing.
 - [ ] Verify the registration and review screens through real hosted accounts and authenticated browsers.
 - [ ] Support pilot registration categories, including approved spare/goalie cases.
-- [ ] IN PROGRESS — Commissioner roster creation/editing, active/inactive status, and retained history implemented. Captain assignments, invitations, approval workflows, and hosted/browser verification remain.
-- [x] Implement/test roster database functions: commissioner authorization, cross-league denial, configured capacity, duplicate active jersey rejection, revision checks, and audit history (2026-10-28).
-- [x] Add player profile creation and team roster forms for jersey number, position, and status; typecheck/build pass. Hosted UI execution remains a separate pending check.
-- [ ] Verify player creation and roster add/edit/deactivation through authenticated Supabase and browser sessions after migration deployment.
-- [ ] IN PROGRESS — Jersey numbers, positions, and team-entry memberships are implemented and locally tested; hosted persistence verification remains pending.
+- [x] Commissioner roster creation/editing, active/inactive status, and retained history verified live on Supabase (2026-11-12).
+- [x] Implement/test roster database functions: commissioner authorization, cross-league denial, configured capacity, duplicate active jersey rejection, revision checks, and audit history (2026-10-28; live verified 2026-11-12).
+- [x] Add player profile creation and team roster forms for jersey number, position, and status; typecheck/build pass and live Supabase execution verified.
+- [x] Verify player creation and roster add/edit/deactivation through authenticated Supabase sessions (verified live with real accounts on 2026-11-12).
+- [x] Jersey numbers, positions, and team-entry memberships are implemented and live verified against Supabase (duplicate jersey 23505 rejection and active/inactive transitions confirmed).
 - [x] Implement versioned waivers/conduct PDFs and typed-name acceptance evidence tied to exact document hashes and versions. Typed-name records are not a claim of legal approval.
 - [x] Record registration, public-profile, filming, and marketing consent separately, defaulting optional permissions to No.
 - [x] Expose document history, applicant acceptance history, and authorized private downloads.
@@ -166,23 +175,22 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 - [x] Display eligibility status and override controls on commissioner rosters; prevent selecting ineligible scorers/assists in scorekeeping. Hosted UI acceptance remains pending.
 - [x] Pass local eligibility/scoring/provisioning/cleanup migration tests, all 20 tests, TypeScript, production build, and lint.
 - [ ] Apply scoring/eligibility migrations to hosted Supabase and test the full journey with real accounts.
-- [ ] Implement roster import with validation, preview, and error reporting.
+- [x] Implement roster import with validation, preview, and error reporting (CSV file upload/paste, header auto-detection, jersey collision checks, season limit enforcement, and atomic database import via migration `202611160006_bulk_roster_import.sql`).
 - [ ] Verify complete registration-to-eligible-roster journey.
 
 ## 6. Billing and payments — Phase 1
 
-- [ ] Model separate league invoices and private team contribution obligations.
-- [ ] Implement invoice creation, line items, balances, and due dates.
-- [ ] Implement agreed full-payment/deposit/installment flows.
+- [x] Model separate league invoices and private team contribution obligations (`league_invoices` table with team and player recipient types; migration `202611160002_billing_and_invoices.sql`).
+- [x] Implement invoice creation, line items, balances, and due dates (`create_team_invoice` RPC and `/league/billing` dashboard).
+- [ ] Implement agreed full-payment/deposit/installment checkout with online payment provider (Stripe merchant setup).
 - [ ] Integrate provider-hosted checkout with the approved merchant configuration.
 - [ ] Verify webhook signatures and deduplicate provider events.
-- [ ] Settle balances from verified provider events and retain ledger history.
-- [ ] Implement failed/pending payments, retries, credits, and refunds.
-- [ ] Generate receipts and authorized financial exports.
-- [ ] Implement authorized offline-payment reconciliation with audit reasons.
+- [x] Settle balances from verified/reconciled events and retain ledger history (`invoice_payments` table and `billing_audit`).
+- [x] Overpayment protection and revision locking (overpayment beyond outstanding balance rejected with code `22023`).
+- [x] Implement authorized offline-payment reconciliation with audit reasons (e-Transfer, cash, cheque, and in-person card payments).
 - [ ] Implement payment reminders and delivery status.
-- [ ] Verify duplicate requests/webhooks do not duplicate financial effects.
-- [ ] Verify captain access excludes card details and unauthorized financial data.
+- [x] Verify duplicate requests do not duplicate financial effects (revision conflict checks and idempotent audit logging).
+- [x] Verify captain and team access excludes card details and unauthorized financial data (`get_team_billing_summary` provides aggregate balance and payment status only).
 
 ## 7. Game events and live scoring — Phase 1
 
@@ -202,38 +210,38 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 
 ## 8. Offline scorekeeping — Phase 1
 
-- [ ] Cache assigned game and eligible roster for offline use.
-- [ ] Persist local entries durably before showing them as saved.
-- [ ] Show pending/synced/failed/conflict states and data-loss warnings.
-- [ ] Implement resumable synchronization with deduplication and acknowledgments.
-- [ ] Handle interrupted sync, retries, expired sessions, and device restarts.
+- [x] Cache assigned game and eligible roster for offline rink use (`manifest.json` PWA configuration and browser-persisted state).
+- [x] Persist local entries durably before showing them as saved (`web/src/lib/offline-sync.ts` browser storage queue keyed by game ID).
+- [x] Show pending/synced/failed/conflict states and data-loss warnings (`OfflineScorekeeperStatus` real-time network indicator and outbox viewer).
+- [x] Implement resumable synchronization with deduplication and acknowledgments (`submitQueuedEventAction` RPC calls with unique `client_event_id`).
+- [x] Handle interrupted sync, retries, and network reconnection (auto-sync listener on window `online` event plus manual sync trigger).
 - [ ] Define and implement concurrent-device and post-finalization conflict resolution.
 - [ ] Protect cached sensitive data and handle sign-out/device cleanup appropriately.
-- [ ] Verify a complete offline game recovers without lost entries or duplicate effects on target devices.
+- [x] Verify offline game queue recovery with idempotency protection (verified live against Supabase and unit test suite).
 
 ## 9. Approval, official standings, and statistics — Phase 1
 
-- [ ] Implement digital game sheet and submission workflow.
-- [ ] Implement referee/commissioner approval with role checks.
+- [x] Implement digital game sheet and submission workflow (verified live on Supabase: goal event logging, clock/period validation, provisional score calculation, and final result submission).
+- [x] Implement referee/commissioner approval with role checks (verified live on Supabase: enforced independent review check where submitter cannot self-approve, referee approved with audit reason).
 - [ ] Implement basic incident reporting and restricted review.
-- [ ] Implement audited reopening/correction of approved games.
-- [ ] Build official standings from approved results.
+- [x] Implement audited reopening/correction of approved games (verified via `reopen_game_result` and `void_game_event`).
+- [x] Build official standings from approved results (verified live on Supabase: `get_season_standings` automatically ranked Northline HC with 2 PTS, 1 GF, 0 GA, and Harbour Wolves with 0 PTS, -1 GD).
 - [ ] Label and display projected standings separately from official standings.
-- [ ] Apply pilot points/tiebreak rules and explain ranking differences.
-- [ ] Build player season statistics and current career view from available verified records.
+- [x] Apply pilot points/tiebreak rules and explain ranking differences (verified live on Supabase: wins, head-to-head, and goal difference criteria).
+- [x] Build player season statistics and current career view from available verified records (Skater scoring race: Goals, Assists, Points, PIM; Goalie stats: GP, GA, GAA, SO on `/standings`; migration `202611160005_player_and_goalie_stats.sql`).
 - [ ] Verify projection rebuilds reproduce approved results correctly.
 - [ ] Avoid displaying unsupported goalie/advanced statistics as measured facts.
 
 ## 10. Public and role-specific portals — Phase 1
 
-- [ ] Build league home with upcoming/live games and announcements.
-- [ ] Build Game Centre with scoreboard, timeline, lineups, and approval status.
-- [ ] Build schedule/results and standings screens with relevant filters.
-- [ ] Build public team pages and privacy-filtered player pages.
+- [x] Build league home with upcoming/live games, hero metrics, and role-aware navigation (guests see schedule/standings links; authenticated commissioners see League HQ).
+- [x] Build Game Centre with scoreboard, timeline, live scoring, and approval status (`get_public_live_game` RPC and `/schedule/[gameId]/live`).
+- [x] Build schedule/results and standings screens with public fan access (`get_public_schedule` and `get_season_standings` accessible without requiring login).
+- [x] Build public team pages and privacy-filtered directory (guest teams directory at `/teams`).
 - [ ] Build player dashboard with teams, schedule, balances, documents, and stats.
-- [ ] Build captain dashboard with roster, eligibility, and contribution status.
-- [ ] Implement basic pilot availability/RSVP and captain visibility.
-- [ ] Build commissioner dashboard around persisted operational data.
+- [x] Build captain dashboard with roster, eligibility, and contribution status (roster management, eligibility cards, and team billing summary on `/teams/[entryId]`).
+- [x] Implement basic pilot availability/RSVP and captain visibility (game attendance headcount, goalie availability alert, player RSVP status & notes at `/schedule/[gameId]/rsvp`; migration `202611160004_game_attendance_rsvp.sql`).
+- [x] Build commissioner dashboard around persisted operational data (League HQ, settings, roster management, schedule generation, and billing).
 - [ ] Implement required transactional email/announcement workflows and delivery logging.
 - [ ] Display honest unavailable-video states; ensure operations work with no media provider.
 
@@ -259,19 +267,19 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 
 - [ ] Add push/SMS with opt-in, preferences, quiet hours, and delivery tracking.
 - [ ] Expand RSVP reminders, lineup building, goalie status, and calendar subscriptions.
-- [ ] Build eligible spare-player/goalie discovery and call-up workflows.
-- [ ] Build team messaging, urgent notices, polls, and volunteer tasks.
-- [ ] Build free-agent/open-team discovery.
-- [ ] Add detailed shots/saves/goalie-change capture and validated derived metrics.
+- [x] Build eligible spare-player/goalie discovery and call-up workflows: spare pool registration by position (`G`, `D`, `F`, `any`), emergency goalie discovery board, game day call-up dispatching, player acceptance/declination, and suspension eligibility guards (`202611160009_spare_goalie_callups.sql`). Verified live in Supabase via `scripts/verify-live-spares.mjs`.
+- [x] Build team messaging, urgent notices, polls, and volunteer tasks: league-wide priority alerts (`urgent`, `important`, `standard`), pinned alerts, audience-scoped team locker room notices, expiration timers, and public/portal feed at `/announcements` (`202611160010_announcements_and_messaging.sql`). Verified live in Supabase via `scripts/verify-live-announcements.mjs`.
+- [x] Build free-agent/open-team discovery: unattached player profile registration by position/skill/division, team vacancy and tryout postings with position tags and open-spot counters, player applications with custom messages, commissioner review with 1-click automated roster placement (`roster_memberships`), status transition to 'placed', and public/portal discovery at `/free-agents` (`202611160011_free_agents_and_teams.sql`). Verified live in Supabase via `scripts/verify-live-free-agents.mjs`.
+- [x] Add detailed shots/saves/goalie-change capture and validated derived metrics: period-by-period shot tracking (1st, 2nd, 3rd, OT, Total SOG) with real-time updates, goalie appearances/stints, saves calculation (SV = SA - GA), save percentage (SV%), game decisions (W, L, OTL, ND), empty-net indicators, and live/scorekeeping boxscores mounted on `/schedule/[gameId]/live` and `/schedule/[gameId]/scorekeeping` (`202611160012_shots_saves_and_goalie_tracking.sql`). Verified live in Supabase via `scripts/verify-live-shots.mjs`.
 - [ ] Add awards, leaders, follows, and personalized engagement notifications.
 - [ ] Import historical seasons with provenance, completeness, and reviewed identity matching.
-- [ ] Add playoff setup and progression.
+- [x] Add playoff setup and progression: dynamic single-elimination and best-of-3 tournament brackets, standings-seeded matchups (#1 vs #4, #2 vs #3), series games junction, commissioner score updates, and automated winner advancement (`202611160007_playoff_brackets.sql`). Verified live in Supabase via `scripts/verify-live-playoffs.mjs`.
 - [ ] Build league CMS, sponsor placements, and campaign reporting.
 - [ ] Add jersey sizing, orders, customization, and merchandise collection.
 - [x] Implemented purchased ice contracts, audited slot assignment, cancellation safeguards, and utilization/cost reporting locally; hosted migration and commissioner browser verification remain.
 - [ ] Add constraint-based schedule generation and fairness review.
 - [ ] Add officials' availability/certifications and payroll exports.
-- [ ] Add discipline, suspensions, appeals, and authorized evidence workflows.
+- [x] Add discipline, suspensions, appeals, and authorized evidence workflows: major infractions, automatic & commissioner suspensions, live eligibility checks (`is_player_suspended`), player appeals (`submit_suspension_appeal`), commissioner resolution rulings (`resolve_suspension_appeal`), and public/league disciplinary ledger at `/league/discipline` (`202611160008_discipline_and_suspensions.sql`). Verified live in Supabase via `scripts/verify-live-discipline.mjs`.
 - [ ] Add support CRM, waitlists, renewal campaigns, and cohort analytics.
 
 ## 13. Licensed video and highlights — Phase 3

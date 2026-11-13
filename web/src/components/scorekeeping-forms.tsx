@@ -2,6 +2,7 @@
 import {useActionState,useState} from "react";
 import {addGameEvent,voidGameEvent} from "@/app/(portal)/schedule/score-actions";
 import {reopenGameResult,reviewGameResult,submitGameResult} from "@/app/(portal)/schedule/result-actions";
+import {enqueueEvent} from "@/lib/offline-sync";
 import type {GameScoreRosterMember} from "@/lib/game-event-schema";
 
 const initial={error:false,message:""};
@@ -12,11 +13,38 @@ export function GameEventForm({gameId,clientEventId,homeEntryId,awayEntryId,peri
  const [kind,setKind]=useState("goal");
  const [scorer,setScorer]=useState("");
  const [assistOne,setAssistOne]=useState("");
+ const [offlineMsg,setOfflineMsg]=useState("");
  const teamRoster=roster.filter(p=>p.team_entry_id===team);
  const eligibleRoster=teamRoster.filter(p=>p.eligible);
  const optionLabel=(p:GameScoreRosterMember)=>`${p.jersey_number===null?"":`#${p.jersey_number} `}${p.display_name} (${p.position})${p.eligible?"":` — INELIGIBLE: ${p.eligibility_reason}`}`;
- return <form action={action} className="panel form-stack">
+
+ const handleSubmit=(e:React.FormEvent<HTMLFormElement>)=>{
+  if(typeof navigator!=="undefined"&&!navigator.onLine){
+   e.preventDefault();
+   const form=new FormData(e.currentTarget);
+   enqueueEvent({
+    client_event_id:clientEventId,
+    game_id:gameId,
+    event_kind:form.get("event_kind") as "goal"|"penalty",
+    team_entry_id:form.get("team_entry_id") as string,
+    period:form.get("period") as string,
+    clock_remaining:form.get("clock_remaining") as string,
+    player_id:form.get("player_id") as string,
+    assist_one_id:(form.get("assist_one_id") as string)||"",
+    assist_two_id:(form.get("assist_two_id") as string)||"",
+    penalty_minutes:(form.get("penalty_minutes") as string)||"",
+    queued_at:new Date().toISOString(),
+    status:"pending",
+   });
+   setOfflineMsg("Rink offline: Event saved locally to browser outbox. It will sync automatically when connected.");
+   setScorer("");
+   setAssistOne("");
+  }
+ };
+
+ return <form action={action} onSubmit={handleSubmit} className="panel form-stack">
   <h2>Record game event</h2>
+  {offlineMsg&&<p className="notice" role="status">{offlineMsg}</p>}
   <input type="hidden" name="game_id" value={gameId}/>
   <input type="hidden" name="client_event_id" value={clientEventId}/>
   <div className="settings-grid">
@@ -36,12 +64,14 @@ export function GameEventForm({gameId,clientEventId,homeEntryId,awayEntryId,peri
 
 export function VoidGameEventForm({gameId,eventId}:{gameId:string;eventId:string}){
  const [state,action,pending]=useActionState(voidGameEvent,initial);
- return <form action={action} className="form-stack">
+ return <form action={action} style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
   <input type="hidden" name="event_id" value={eventId}/>
   <input type="hidden" name="game_id" value={gameId}/>
-  <label>Correction reason<input name="reason" required minLength={3} maxLength={500}/></label>
-  <button disabled={pending}>{pending?"Saving…":"Void event"}</button>
-  <p role="status" className={"form-message"+(state.error?" error":"")}>{state.message}</p>
+  <input name="reason" required minLength={3} maxLength={500} placeholder="Reason to void..." style={{ width: "160px", padding: "6px 10px", fontSize: "12px" }} />
+  <button type="submit" style={{ minHeight: "32px", padding: "4px 10px", fontSize: "11px", background: "#381a1a", borderColor: "#7a2b2b", color: "#ffb0b0", borderRadius: "6px" }} disabled={pending}>
+   {pending?"…":"Void"}
+  </button>
+  {state.error&&<span style={{ color: "#ffb0b0", fontSize: "11px" }}>{state.message}</span>}
  </form>;
 }
 

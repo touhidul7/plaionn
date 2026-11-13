@@ -62,6 +62,10 @@ const privateTables = [
   "ice_contracts",
   "ice_contract_audit",
   "ice_slot_contract_audit",
+  "league_invoices",
+  "invoice_payments",
+  "billing_audit",
+  "game_attendance",
 ];
 try {
   const endpoint = new URL(url);

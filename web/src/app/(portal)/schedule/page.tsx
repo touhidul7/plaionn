@@ -10,10 +10,119 @@ import type {ScheduleBlackout} from "@/lib/ice-slot-schema";
 import type {ScheduleAuditInput} from "@/lib/schedule-fairness";
 import type {ContractSlot,IceContract} from "@/lib/ice-contracts";
 export const dynamic="force-dynamic";
+interface PublicGame {
+  game_id: string;
+  season_id: string;
+  season_name: string;
+  division_id: string;
+  division_name: string;
+  home_entry_id: string;
+  home_team_name: string;
+  away_entry_id: string;
+  away_team_name: string;
+  venue_name: string;
+  rink_name: string;
+  time_zone: string;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  home_score: number | null;
+  away_score: number | null;
+  decision: string | null;
+}
+
 export default async function SchedulePage({searchParams}:{searchParams:Promise<{edit?:string}>}){
  const {edit}=await searchParams;
  const {supabase,league,user,canManage}=await getLeagueContext();
  const base=await getLeagueData();
+
+ if (!user) {
+  const { data: publicGames } = await supabase.rpc("get_public_schedule", {
+    target_league: league.id,
+  });
+  const scheduled = (publicGames || []) as PublicGame[];
+  return (
+    <>
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">GAME DAY</p>
+          <h1>Every game, in its place.</h1>
+          <p>{league.name} · Times shown in each venue’s local time zone.</p>
+        </div>
+        <span className="badge">{scheduled.filter((g) => g.status === "scheduled").length} SCHEDULED</span>
+      </div>
+      <section className="panel">
+        <h2>League schedule</h2>
+        {scheduled.length ? (
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th scope="col">Matchup</th>
+                  <th scope="col">Start / duration</th>
+                  <th scope="col">Venue / rink</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scheduled.map((game) => {
+                  const time = new Intl.DateTimeFormat("en-CA", {
+                    timeZone: game.time_zone || "America/Toronto",
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }).format(new Date(game.starts_at));
+                  return (
+                    <tr key={game.game_id}>
+                      <td>
+                        <strong>{game.home_team_name}</strong>
+                        <br />
+                        vs {game.away_team_name}
+                      </td>
+                      <td>
+                        <time dateTime={game.starts_at}>{time}</time>
+                        <br />
+                        <small>{game.time_zone}</small>
+                      </td>
+                      <td>
+                        {game.venue_name}
+                        <br />
+                        <small>{game.rink_name}</small>
+                      </td>
+                      <td>
+                        <span className="badge">{game.status.toUpperCase()}</span>
+                      </td>
+                      <td>
+                        {game.home_score !== null && game.away_score !== null ? (
+                          <strong>
+                            {game.home_score} – {game.away_score}
+                            {game.decision && game.decision !== "regulation" && (
+                              <small> ({game.decision.toUpperCase()})</small>
+                            )}
+                          </strong>
+                        ) : (
+                          <Link className="button" href={"/schedule/" + game.game_id + "/live"}>
+                            Game Center
+                          </Link>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty">
+            <h2>No games scheduled yet.</h2>
+            <p>Your league schedule will appear here once published.</p>
+          </div>
+        )}
+      </section>
+    </>
+  );
+ }
+
  const [venues,rinks,games,rawEntries,ownAssignments,iceSlotResult,planResult]=await Promise.all([
   supabase.from("venues").select("id,name,address,time_zone").eq("league_id",league.id).order("name").returns<Venue[]>(),
   supabase.from("rinks").select("id,name,venue_id").eq("league_id",league.id).order("name").returns<Rink[]>(),
@@ -73,7 +182,7 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
   const rink=rinks.data.find(r=>r.id===game.rink_id);
   const venue=venues.data.find(v=>v.id===rink?.venue_id);
   const time=new Intl.DateTimeFormat("en-CA",{timeZone:venue?.time_zone??"UTC",dateStyle:"medium",timeStyle:"short"}).format(new Date(game.starts_at));
-  return <tr key={game.id}><td><strong>{entryLabel(game.home_entry_id)}</strong><br/>vs {entryLabel(game.away_entry_id)}</td><td><time dateTime={game.starts_at}>{time}</time><br/><small>{venue?.time_zone} · {(Date.parse(game.ends_at)-Date.parse(game.starts_at))/60000} min</small></td><td>{venue?.name}<br/><small>{rink?.name}</small></td><td><span className="badge">{game.status.toUpperCase()}</span></td><td>{game.status==="scheduled"&&<Link className="button" href={"/schedule/"+game.id+"/live"}>Live score</Link>}</td>{(canManage||scorekeepingIds.size>0)&&<td>{(canManage||scorekeepingIds.has(game.id))&&game.status==="scheduled"&&<Link className="button" href={"/schedule/"+game.id+"/scorekeeping"}>Scorekeeping</Link>} {canManage&&<><Link className="button" href={"/schedule?edit="+game.id+"#game-form"}>Edit game</Link> <Link className="button" href={"/schedule/"+game.id+"/officials"}>Officials</Link></>}</td>}</tr>;
+  return <tr key={game.id}><td><strong>{entryLabel(game.home_entry_id)}</strong><br/>vs {entryLabel(game.away_entry_id)}</td><td><time dateTime={game.starts_at}>{time}</time><br/><small>{venue?.time_zone} · {(Date.parse(game.ends_at)-Date.parse(game.starts_at))/60000} min</small></td><td>{venue?.name}<br/><small>{rink?.name}</small></td><td><span className="badge">{game.status.toUpperCase()}</span></td><td>{game.status==="scheduled"&&<div style={{display:"flex",gap:"0.25rem"}}><Link className="button" href={"/schedule/"+game.id+"/live"}>Live score</Link><Link className="button" href={"/schedule/"+game.id+"/rsvp"}>RSVP</Link></div>}</td>{(canManage||scorekeepingIds.size>0)&&<td>{(canManage||scorekeepingIds.has(game.id))&&game.status==="scheduled"&&<Link className="button" href={"/schedule/"+game.id+"/scorekeeping"}>Scorekeeping</Link>} {canManage&&<><Link className="button" href={"/schedule?edit="+game.id+"#game-form"}>Edit game</Link> <Link className="button" href={"/schedule/"+game.id+"/officials"}>Officials</Link></>}</td>}</tr>;
  })}</tbody></table></div>:<div className="empty"><h2>No games scheduled yet.</h2><p>{canManage?"Add a venue and rink, then choose two teams from the same division.":"Your commissioner will publish the schedule here."}</p></div>}</section>
  {canManage&&<>
  <div className="section-heading"><h2>{editing?"Update fixture":"Plan the next game"}</h2>{editing&&<Link href="/schedule" className="text-link">Create a new game instead →</Link>}</div>

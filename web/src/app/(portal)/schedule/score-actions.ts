@@ -47,3 +47,55 @@ export async function voidGameEvent(_previous:ScoreState,form:FormData):Promise<
  revalidatePath("/schedule/"+parsed.data.game_id+"/scorekeeping");
  return {error:false,message:"Event voided. Its original record remains in the audit history."};
 }
+
+export async function submitQueuedEventAction(event: {
+  game_id: string;
+  client_event_id: string;
+  event_kind: string;
+  team_entry_id: string;
+  period: string;
+  clock_remaining: string;
+  player_id: string;
+  assist_one_id: string;
+  assist_two_id: string;
+  penalty_minutes: string;
+}): Promise<ScoreState> {
+  const form = new FormData();
+  form.set("game_id", event.game_id);
+  form.set("client_event_id", event.client_event_id);
+  form.set("event_kind", event.event_kind);
+  form.set("team_entry_id", event.team_entry_id);
+  form.set("period", event.period);
+  form.set("clock_remaining", event.clock_remaining);
+  form.set("player_id", event.player_id);
+  form.set("assist_one_id", event.assist_one_id || "");
+  form.set("assist_two_id", event.assist_two_id || "");
+  form.set("penalty_minutes", event.penalty_minutes || "");
+
+  const parsed = gameEventSchema.safeParse(Object.fromEntries(form));
+  if (!parsed.success) {
+    return { error: true, message: parsed.error.issues[0]?.message ?? "Invalid event details." };
+  }
+
+  const { supabase } = await getLeagueContext();
+  const value = parsed.data;
+  const { error } = await supabase.rpc("add_game_event", {
+    target_game: value.game_id,
+    client_event: value.client_event_id,
+    event_type: value.event_kind,
+    target_entry: value.team_entry_id,
+    target_period: value.period,
+    clock_remaining: value.clock_remaining,
+    target_player: value.player_id,
+    assist_one: value.assist_one_id,
+    assist_two: value.assist_two_id,
+    penalty_duration: value.penalty_minutes,
+  });
+
+  if (error) {
+    return { error: true, message: error.message ?? "The event could not be saved." };
+  }
+
+  revalidatePath("/schedule/" + value.game_id + "/scorekeeping");
+  return { error: false, message: "Synced successfully" };
+}

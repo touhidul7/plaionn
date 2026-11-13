@@ -1,27 +1,113 @@
 import "server-only";
-import { getLeagueContext } from "./supabase/session";
-export type NamedRecord={id:string;name:string};
-export type Division=NamedRecord & {season_id:string;season_name:string};
-export type TeamEntry=NamedRecord & {entry_id:string;division_name:string;season_name:string};
-export async function getLeagueData() {
- const {supabase,league,canManage}=await getLeagueContext();
- const [seasons,divisions,teams,entries]=await Promise.all([
-  supabase.from("seasons").select("id,name").eq("league_id",league.id).order("name").returns<NamedRecord[]>(),
-  supabase.from("divisions").select("id,name,season_id").eq("league_id",league.id).order("name").returns<(NamedRecord&{season_id:string})[]>(),
-  supabase.from("teams").select("id,name").eq("league_id",league.id).order("name").returns<NamedRecord[]>(),
-  supabase.from("team_entries").select("id,team_id,division_id").eq("league_id",league.id).returns<{id:string;team_id:string;division_id:string}[]>(),
- ]);
- if([seasons,divisions,teams,entries].some(result=>result.error)) throw new Error("Could not load league records from Supabase.");
- const seasonMap=new Map(seasons.data!.map(s=>[s.id,s]));
- const divisionRows:Division[]=divisions.data!.map(d=>({...d,season_name:seasonMap.get(d.season_id)?.name??"Unavailable season"}));
- const divisionMap=new Map(divisionRows.map(d=>[d.id,d]));
- const teamMap=new Map(teams.data!.map(t=>[t.id,t]));
- const teamRows:TeamEntry[]=entries.data!.map(entry=>{
-  const team=teamMap.get(entry.team_id);
-  const division=divisionMap.get(entry.division_id);
-  if(!team||!division) throw new Error("The league contains an incomplete team entry.");
-  return {...team,entry_id:entry.id,division_name:division.name,season_name:division.season_name};
- }).sort((a,b)=>a.name.localeCompare(b.name));
- return {seasons:seasons.data!,divisions:divisionRows,teams:teamRows,league,canManage};
-}
+import { getLeagueContext, type PublicLeagueOverview } from "./supabase/session";
 
+export type NamedRecord = { id: string; name: string };
+export type Division = NamedRecord & { season_id: string; season_name: string };
+export type TeamEntry = NamedRecord & { entry_id: string; division_name: string; season_name: string };
+
+export async function getLeagueData() {
+  const context = await getLeagueContext();
+  const { supabase, league, canManage, user, isGuest } = context;
+
+  if (isGuest && context.publicData) {
+    const { seasons, divisions, teams } = context.publicData;
+    const seasonMap = new Map((seasons || []).map((s) => [s.id, s]));
+    const divisionRows: Division[] = (divisions || []).map((d) => ({
+      id: d.id,
+      name: d.name,
+      season_id: d.season_id,
+      season_name: seasonMap.get(d.season_id)?.name ?? "Unavailable season",
+    }));
+
+    const teamRows: TeamEntry[] = (teams || []).map((t) => ({
+      id: t.id,
+      name: t.name,
+      entry_id: t.entry_id,
+      division_name: t.division_name,
+      season_name: t.season_name,
+    }));
+
+    return {
+      seasons: seasons || [],
+      divisions: divisionRows,
+      teams: teamRows,
+      league,
+      canManage: false,
+      isGuest: true,
+      user: null,
+    };
+  }
+
+  // If user is authenticated, query tables directly
+  if (user) {
+    const [seasons, divisions, teams, entries] = await Promise.all([
+      supabase.from("seasons").select("id,name").eq("league_id", league.id).order("name").returns<NamedRecord[]>(),
+      supabase.from("divisions").select("id,name,season_id").eq("league_id", league.id).order("name").returns<(NamedRecord & { season_id: string })[]>(),
+      supabase.from("teams").select("id,name").eq("league_id", league.id).order("name").returns<NamedRecord[]>(),
+      supabase.from("team_entries").select("id,team_id,division_id").eq("league_id", league.id).returns<{ id: string; team_id: string; division_id: string }[]>(),
+    ]);
+
+    if (![seasons, divisions, teams, entries].some((result) => result.error)) {
+      const seasonMap = new Map(seasons.data!.map((s) => [s.id, s]));
+      const divisionRows: Division[] = divisions.data!.map((d) => ({
+        ...d,
+        season_name: seasonMap.get(d.season_id)?.name ?? "Unavailable season",
+      }));
+      const divisionMap = new Map(divisionRows.map((d) => [d.id, d]));
+      const teamMap = new Map(teams.data!.map((t) => [t.id, t]));
+      const teamRows: TeamEntry[] = entries.data!.map((entry) => {
+        const team = teamMap.get(entry.team_id);
+        const division = divisionMap.get(entry.division_id);
+        return {
+          id: team?.id ?? entry.team_id,
+          name: team?.name ?? "Team",
+          entry_id: entry.id,
+          division_name: division?.name ?? "Division",
+          season_name: division?.season_name ?? "Season",
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name));
+
+      return {
+        seasons: seasons.data!,
+        divisions: divisionRows,
+        teams: teamRows,
+        league,
+        canManage,
+        isGuest: false,
+        user,
+      };
+    }
+  }
+
+  // Fallback to public RPC
+  const { data: overviewRows } = await supabase.rpc("get_public_league_overview", {
+    target_league: league.id,
+  });
+
+  const overview = overviewRows?.[0] as PublicLeagueOverview | undefined;
+  const seasons = overview?.seasons || [];
+  const seasonMap = new Map(seasons.map((s) => [s.id, s]));
+  const divisionRows: Division[] = (overview?.divisions || []).map((d) => ({
+    id: d.id,
+    name: d.name,
+    season_id: d.season_id,
+    season_name: seasonMap.get(d.season_id)?.name ?? "Season",
+  }));
+  const teamRows: TeamEntry[] = (overview?.teams || []).map((t) => ({
+    id: t.id,
+    name: t.name,
+    entry_id: t.entry_id,
+    division_name: t.division_name,
+    season_name: t.season_name,
+  }));
+
+  return {
+    seasons,
+    divisions: divisionRows,
+    teams: teamRows,
+    league,
+    canManage: false,
+    isGuest: !user,
+    user,
+  };
+}

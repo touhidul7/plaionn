@@ -1,10 +1,13 @@
 import Link from "next/link";
-import {notFound} from "next/navigation";
+import {notFound, redirect} from "next/navigation";
 import {randomUUID} from "node:crypto";
 import {z} from "zod";
 import {getLeagueContext} from "@/lib/supabase/session";
 import {getLeagueData} from "@/lib/league";
 import {GameEventForm,ReopenGameResultForm,ReviewGameResultForm,SubmitGameResultForm,VoidGameEventForm} from "@/components/scorekeeping-forms";
+import {OfflineScorekeeperStatus} from "@/components/offline-scorekeeper";
+import {ShotsAndGoalieBoxscore} from "@/components/shots-and-goalie-boxscore";
+import type {GameShotsSummary} from "@/lib/shots-schema";
 import {gameScoreRosterMemberSchema,type GameEvent,type GameScoreRosterMember} from "@/lib/game-event-schema";
 export const dynamic="force-dynamic";
 
@@ -12,9 +15,11 @@ export default async function ScorekeepingPage({params,searchParams}:{params:Pro
  const {gameId}=await params;
  if(!z.uuid().safeParse(gameId).success) notFound();
  const {supabase,league,user,canManage}=await getLeagueContext();
+ if (!user) redirect("/login");
  const game=await supabase.from("games").select("id,league_id,status,home_entry_id,away_entry_id,starts_at").eq("id",gameId).eq("league_id",league.id).maybeSingle();
  if(game.error) return <section className="panel"><h1>Scorekeeping unavailable</h1><p>Could not load this game.</p></section>;
  if(!game.data) notFound();
+ const fixture = game.data;
  const homeEntry=await supabase.from("team_entries").select("division_id").eq("id",game.data.home_entry_id).eq("league_id",league.id).single();
  if(homeEntry.error) return <section className="panel"><h1>Game setup unavailable</h1><p>Could not load this game’s season.</p></section>;
  const division=await supabase.from("divisions").select("season_id").eq("id",homeEntry.data.division_id).eq("league_id",league.id).single();
@@ -24,7 +29,7 @@ export default async function ScorekeepingPage({params,searchParams}:{params:Pro
  const rosterParsed=z.array(gameScoreRosterMemberSchema).safeParse(rosterResult.data);
  if(!rosterParsed.success) return <section className="panel"><h1>Roster data unavailable</h1><p>The game roster response was invalid. Contact a league commissioner.</p></section>;
  const roster:GameScoreRosterMember[]=rosterParsed.data;
- const [events,voids,assignments,base,settings,savedParams,result]=await Promise.all([
+ const [events,voids,assignments,base,settings,savedParams,result,shotsRes]=await Promise.all([
   supabase.from("game_events").select("id,client_event_id,event_kind,team_entry_id,period,clock_seconds_remaining,player_id,assist_one_id,assist_two_id,penalty_minutes,recorded_by,recorded_at").eq("game_id",gameId).eq("league_id",league.id).order("recorded_at",{ascending:false}).returns<GameEvent[]>(),
   supabase.from("game_event_voids").select("event_id,voided_by,reason,voided_at").eq("game_id",gameId).eq("league_id",league.id),
   supabase.from("game_officials").select("role").eq("game_id",gameId).eq("league_id",league.id).eq("user_id",user.id),
@@ -32,6 +37,7 @@ export default async function ScorekeepingPage({params,searchParams}:{params:Pro
   supabase.from("season_settings").select("period_count,period_minutes").eq("league_id",league.id).eq("season_id",division.data.season_id).maybeSingle(),
   searchParams,
   supabase.from("game_results").select("home_score,away_score,decision,status,submitted_by,revision,correction_reason").eq("game_id",gameId).maybeSingle(),
+  supabase.rpc("get_game_shots_summary", { target_game: gameId }),
  ]);
  if(events.error||voids.error||assignments.error||settings.error) return <section className="panel"><h1>Game events unavailable</h1><p>Check that the scoring migration is applied and try again.</p></section>;
  if(!settings.data) return <section className="panel"><h1>Season settings required</h1><p>A commissioner must configure this season’s game format before scoring can begin.</p></section>;
@@ -49,9 +55,29 @@ export default async function ScorekeepingPage({params,searchParams}:{params:Pro
  const periodCount=settings.data.period_count;
  const periodMinutes=settings.data.period_minutes;
  const resultReviewer=reviewRole&&result.data?.submitted_by!==user.id;
+ const homeGoalies = roster
+  .filter((r) => r.team_entry_id === fixture.home_entry_id && r.position === "G")
+  .map((r) => ({ id: r.player_id, name: `${r.display_name} (#${r.jersey_number ?? ""})` }));
+ const awayGoalies = roster
+  .filter((r) => r.team_entry_id === fixture.away_entry_id && r.position === "G")
+  .map((r) => ({ id: r.player_id, name: `${r.display_name} (#${r.jersey_number ?? ""})` }));
+ const effectiveHomeGoalies = homeGoalies.length > 0 ? homeGoalies : roster.filter(r => r.team_entry_id === fixture.home_entry_id).map(r => ({ id: r.player_id, name: `${r.display_name} (#${r.jersey_number ?? ""})` }));
+ const effectiveAwayGoalies = awayGoalies.length > 0 ? awayGoalies : roster.filter(r => r.team_entry_id === fixture.away_entry_id).map(r => ({ id: r.player_id, name: `${r.display_name} (#${r.jersey_number ?? ""})` }));
+
+ const shotsSummary: GameShotsSummary = (shotsRes.data as GameShotsSummary) || {
+  game_id: gameId,
+  home_entry_id: fixture.home_entry_id,
+  away_entry_id: fixture.away_entry_id,
+  home_name: teamName(fixture.home_entry_id),
+  away_name: teamName(fixture.away_entry_id),
+  period_shots: [],
+  goalies: [],
+ };
+
  if(game.data.status!=="scheduled") return <section className="panel"><h1>Game is not open for scoring</h1><p>Only scheduled games accept scorekeeping events.</p><Link href="/schedule" className="button">Back to schedule</Link></section>;
  return <><div className="page-heading"><div><p className="eyebrow">PROVISIONAL GAME SCORE</p><h1>{teamName(game.data.home_entry_id)} {goals(game.data.home_entry_id)} — {goals(game.data.away_entry_id)} {teamName(game.data.away_entry_id)}</h1><p>{league.name} · Live events are provisional and not an approved result.</p></div><Link href="/schedule" className="button">Back to schedule</Link></div>
  {savedParams.saved==="1"&&<p className="notice" role="status">Event saved to the game log.</p>}
+ <OfflineScorekeeperStatus gameId={gameId} />
  {result.error?<section className="panel notice"><p>Final-result approval is not available until the game-results migration is applied. Provisional scorekeeping remains available.</p></section>:result.data&&<section className="panel">
   <h2>Final result</h2><p><strong>{teamName(game.data.home_entry_id)} {result.data.home_score} — {result.data.away_score} {teamName(game.data.away_entry_id)}</strong></p>
   <p>Outcome: {result.data.decision==="overtime"?"Overtime":result.data.decision==="shootout"?"Shootout":result.data.decision==="tie"?"Tie":"Regulation"} · Status: <span className="badge">{result.data.status.replace("_"," ").toUpperCase()}</span></p>
@@ -59,6 +85,14 @@ export default async function ScorekeepingPage({params,searchParams}:{params:Pro
   {result.data.status==="correction"&&<p>Correction required: {result.data.correction_reason}</p>}
  </section>}
  {entryAllowed&&<GameEventForm key={randomUUID()} gameId={gameId} clientEventId={randomUUID()} homeEntryId={game.data.home_entry_id} awayEntryId={game.data.away_entry_id} periodCount={periodCount} periodMinutes={periodMinutes} roster={roster}/>}
+ <div style={{ margin: "1.5rem 0" }}>
+  <ShotsAndGoalieBoxscore
+   summary={shotsSummary}
+   canScore={entryRole}
+   homeRosterGoalies={effectiveHomeGoalies}
+   awayRosterGoalies={effectiveAwayGoalies}
+  />
+ </div>
  {!result.error&&resultEditable&&entryRole&&<SubmitGameResultForm gameId={gameId} correction={Boolean(result.data)}/>}
  {!result.error&&result.data?.status==="pending"&&resultReviewer&&<ReviewGameResultForm gameId={gameId}/>}
  {!result.error&&result.data?.status==="pending"&&reviewRole&&!resultReviewer&&<p className="notice">The submitter cannot review their own result. Another assigned referee or commissioner must review it.</p>}
