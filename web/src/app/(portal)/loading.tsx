@@ -1,1 +1,5 @@
-export default function Loading(){return <p role="status">Loading your league…</p>;}
+import { PortalPageSkeleton } from "@/components/skeleton";
+
+export default function Loading() {
+  return <PortalPageSkeleton />;
+}

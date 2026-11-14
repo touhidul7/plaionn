@@ -68,7 +68,7 @@ interface DashboardData {
 export default async function PlayerDashboardPage() {
   const { supabase, user } = await getVerifiedSession();
 
-  const { data: rawDashboard, error } = await supabase.rpc(
+  const { data: rawDashboard } = await supabase.rpc(
     "get_player_portal_dashboard"
   );
 
@@ -108,24 +108,24 @@ export default async function PlayerDashboardPage() {
         <section
           className="panel"
           style={{
-            borderLeft: "4px solid #3b82f6",
-            background: "var(--panel-bg, #ffffff)",
+            borderLeft: "4px solid var(--lime)",
+            background: "var(--panel)",
             marginBottom: "1.5rem",
           }}
         >
           <h2 style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>📢 League Announcements</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
             {dashboard.announcements.map((a) => (
-              <div key={a.id} style={{ borderBottom: "1px solid var(--border-color, #eee)", paddingBottom: "0.5rem" }}>
+              <div key={a.id} style={{ borderBottom: "1px solid var(--line)", paddingBottom: "0.5rem" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <strong>{a.title}</strong>
-                  {a.priority !== "normal" && (
+                  {a.priority !== "standard" && (
                     <span className="badge" style={{ fontSize: "0.7rem", textTransform: "uppercase" }}>
                       {a.priority}
                     </span>
                   )}
                 </div>
-                <p style={{ margin: "4px 0 0 0", fontSize: "0.9rem", color: "var(--text-muted, #555)" }}>
+                <p style={{ margin: "4px 0 0 0", fontSize: "0.9rem", color: "var(--muted)" }}>
                   {a.body}
                 </p>
               </div>
@@ -145,33 +145,83 @@ export default async function PlayerDashboardPage() {
             marginTop: "1rem",
           }}
         >
-          <div style={{ background: "var(--subtle-bg, #f8fafc)", padding: "1rem", borderRadius: "8px", textAlign: "center" }}>
-            <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>GAMES PLAYED</span>
-            <p style={{ fontSize: "1.8rem", fontWeight: "bold", margin: "4px 0 0 0" }}>
+          <div
+            style={{
+              background: "#0c1822",
+              border: "1px solid var(--line)",
+              padding: "1.2rem 1rem",
+              borderRadius: "12px",
+              textAlign: "center",
+            }}
+          >
+            <span style={{ fontSize: "0.75rem", color: "var(--muted)", fontWeight: 700, letterSpacing: "0.5px" }}>
+              GAMES PLAYED
+            </span>
+            <p style={{ fontSize: "2rem", fontWeight: "bold", margin: "4px 0 0 0", color: "var(--text)" }}>
               {dashboard.career_stats.games_played}
             </p>
           </div>
-          <div style={{ background: "var(--subtle-bg, #f8fafc)", padding: "1rem", borderRadius: "8px", textAlign: "center" }}>
-            <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>GOALS</span>
-            <p style={{ fontSize: "1.8rem", fontWeight: "bold", margin: "4px 0 0 0", color: "#16a34a" }}>
+          <div
+            style={{
+              background: "#0c1822",
+              border: "1px solid var(--line)",
+              padding: "1.2rem 1rem",
+              borderRadius: "12px",
+              textAlign: "center",
+            }}
+          >
+            <span style={{ fontSize: "0.75rem", color: "var(--muted)", fontWeight: 700, letterSpacing: "0.5px" }}>
+              GOALS
+            </span>
+            <p style={{ fontSize: "2rem", fontWeight: "bold", margin: "4px 0 0 0", color: "var(--lime)" }}>
               {dashboard.career_stats.goals}
             </p>
           </div>
-          <div style={{ background: "var(--subtle-bg, #f8fafc)", padding: "1rem", borderRadius: "8px", textAlign: "center" }}>
-            <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>ASSISTS</span>
-            <p style={{ fontSize: "1.8rem", fontWeight: "bold", margin: "4px 0 0 0", color: "#2563eb" }}>
+          <div
+            style={{
+              background: "#0c1822",
+              border: "1px solid var(--line)",
+              padding: "1.2rem 1rem",
+              borderRadius: "12px",
+              textAlign: "center",
+            }}
+          >
+            <span style={{ fontSize: "0.75rem", color: "var(--muted)", fontWeight: 700, letterSpacing: "0.5px" }}>
+              ASSISTS
+            </span>
+            <p style={{ fontSize: "2rem", fontWeight: "bold", margin: "4px 0 0 0", color: "#66d6e9" }}>
               {dashboard.career_stats.assists}
             </p>
           </div>
-          <div style={{ background: "var(--subtle-bg, #f8fafc)", padding: "1rem", borderRadius: "8px", textAlign: "center" }}>
-            <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>TOTAL POINTS</span>
-            <p style={{ fontSize: "1.8rem", fontWeight: "bold", margin: "4px 0 0 0", color: "#9333ea" }}>
+          <div
+            style={{
+              background: "#0c1822",
+              border: "1px solid var(--line)",
+              padding: "1.2rem 1rem",
+              borderRadius: "12px",
+              textAlign: "center",
+            }}
+          >
+            <span style={{ fontSize: "0.75rem", color: "var(--muted)", fontWeight: 700, letterSpacing: "0.5px" }}>
+              TOTAL POINTS
+            </span>
+            <p style={{ fontSize: "2rem", fontWeight: "bold", margin: "4px 0 0 0", color: "#ffffff" }}>
               {dashboard.career_stats.points}
             </p>
           </div>
-          <div style={{ background: "var(--subtle-bg, #f8fafc)", padding: "1rem", borderRadius: "8px", textAlign: "center" }}>
-            <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>PENALTY MIN (PIM)</span>
-            <p style={{ fontSize: "1.8rem", fontWeight: "bold", margin: "4px 0 0 0", color: "#d97706" }}>
+          <div
+            style={{
+              background: "#0c1822",
+              border: "1px solid var(--line)",
+              padding: "1.2rem 1rem",
+              borderRadius: "12px",
+              textAlign: "center",
+            }}
+          >
+            <span style={{ fontSize: "0.75rem", color: "var(--muted)", fontWeight: 700, letterSpacing: "0.5px" }}>
+              PENALTY MIN (PIM)
+            </span>
+            <p style={{ fontSize: "2rem", fontWeight: "bold", margin: "4px 0 0 0", color: "#f59e0b" }}>
               {dashboard.career_stats.pim}
             </p>
           </div>
@@ -188,59 +238,65 @@ export default async function PlayerDashboardPage() {
         </div>
 
         {dashboard.upcoming_games.length === 0 ? (
-          <p className="hint">No upcoming games scheduled in the immediate horizon.</p>
+          <p style={{ color: "var(--muted)" }}>No upcoming games scheduled in the immediate horizon.</p>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }}>
             {dashboard.upcoming_games.map((g) => (
               <div
                 key={g.game_id}
                 style={{
-                  border: "1px solid var(--border-color, #e2e8f0)",
-                  borderRadius: "8px",
-                  padding: "1rem",
-                  background: "var(--card-bg, #ffffff)",
+                  border: "1px solid var(--line)",
+                  borderRadius: "12px",
+                  padding: "1.2rem",
+                  background: "#0c1822",
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
                 }}
               >
                 <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "#64748b", marginBottom: "0.5rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "var(--muted)", marginBottom: "0.5rem" }}>
                     <span>{new Date(g.starts_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span>
                     <span>{new Date(g.starts_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
                   </div>
-                  <strong style={{ fontSize: "1.05rem", display: "block" }}>
+                  <strong style={{ fontSize: "1.05rem", display: "block", color: "var(--text)" }}>
                     {g.my_team_name} {g.is_home ? "vs" : "@"} {g.opponent_team_name}
                   </strong>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-muted, #64748b)", margin: "4px 0 8px 0" }}>
+                  <p style={{ fontSize: "0.85rem", color: "var(--muted)", margin: "4px 0 8px 0" }}>
                     📍 {g.venue_name} · {g.rink_name}
                   </p>
                 </div>
-                <div style={{ marginTop: "1rem", borderTop: "1px solid #f1f5f9", paddingTop: "0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ marginTop: "1rem", borderTop: "1px solid var(--line)", paddingTop: "0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <span style={{ fontSize: "0.75rem", color: "#64748b" }}>RSVP: </span>
+                    <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>RSVP: </span>
                     <span
                       className="badge"
                       style={{
                         fontSize: "0.75rem",
                         background:
                           g.my_rsvp === "attending"
-                            ? "#dcfce7"
+                            ? "#1e3a2b"
                             : g.my_rsvp === "out"
-                            ? "#fee2e2"
-                            : "#fef9c3",
+                            ? "#3a1e1e"
+                            : "#3a321e",
                         color:
                           g.my_rsvp === "attending"
-                            ? "#15803d"
+                            ? "var(--lime)"
                             : g.my_rsvp === "out"
-                            ? "#b91c1c"
-                            : "#854d0e",
+                            ? "#fca5a5"
+                            : "#fde047",
+                        border:
+                          g.my_rsvp === "attending"
+                            ? "1px solid #2e593f"
+                            : g.my_rsvp === "out"
+                            ? "1px solid #7f1d1d"
+                            : "1px solid #713f12",
                       }}
                     >
                       {g.my_rsvp.toUpperCase()}
                     </span>
                   </div>
-                  <Link className="button" style={{ fontSize: "0.8rem", padding: "4px 8px" }} href={`/schedule/${g.game_id}/rsvp`}>
+                  <Link className="button" style={{ fontSize: "0.8rem", padding: "5px 10px" }} href={`/schedule/${g.game_id}/rsvp`}>
                     Update RSVP →
                   </Link>
                 </div>
@@ -255,7 +311,7 @@ export default async function PlayerDashboardPage() {
         <h2>My Teams &amp; Division Rosters</h2>
         {dashboard.teams.length === 0 ? (
           <div className="empty">
-            <p>You are not currently rostered on an active team.</p>
+            <p style={{ color: "var(--muted)", marginBottom: "1rem" }}>You are not currently rostered on an active team.</p>
             <Link className="button" href="/registration">
               Register for an upcoming season
             </Link>
@@ -289,8 +345,8 @@ export default async function PlayerDashboardPage() {
                     <span
                       className="badge"
                       style={{
-                        background: t.status === "active" ? "#dcfce7" : "#f1f5f9",
-                        color: t.status === "active" ? "#166534" : "#475569",
+                        background: t.status === "active" ? "#1e3a2b" : "#1a2e38",
+                        color: t.status === "active" ? "var(--lime)" : "var(--muted)",
                       }}
                     >
                       {t.status.toUpperCase()}
@@ -312,7 +368,7 @@ export default async function PlayerDashboardPage() {
       <section className="panel" style={{ marginBottom: "1.5rem" }}>
         <h2>League Dues &amp; Invoices</h2>
         {dashboard.invoices.length === 0 ? (
-          <p className="hint">No outstanding or past due invoices found for your accounts.</p>
+          <p style={{ color: "var(--muted)" }}>No outstanding or past due invoices found for your accounts.</p>
         ) : (
           <table className="table" style={{ width: "100%", textAlign: "left", marginTop: "0.75rem" }}>
             <thead>
@@ -332,15 +388,15 @@ export default async function PlayerDashboardPage() {
                   <td><span className="badge">{inv.recipient_type}</span></td>
                   <td>{(inv.amount_cents / 100).toFixed(2)} {inv.currency}</td>
                   <td>{(inv.amount_paid_cents / 100).toFixed(2)} {inv.currency}</td>
-                  <td style={{ fontWeight: inv.balance_cents > 0 ? "bold" : "normal", color: inv.balance_cents > 0 ? "#dc2626" : "inherit" }}>
+                  <td style={{ fontWeight: inv.balance_cents > 0 ? "bold" : "normal", color: inv.balance_cents > 0 ? "#f87171" : "inherit" }}>
                     {(inv.balance_cents / 100).toFixed(2)} {inv.currency}
                   </td>
                   <td>
                     <span
                       className="badge"
                       style={{
-                        background: inv.status === "paid" ? "#dcfce7" : "#fee2e2",
-                        color: inv.status === "paid" ? "#166534" : "#b91c1c",
+                        background: inv.status === "paid" ? "#1e3a2b" : "#3a1e1e",
+                        color: inv.status === "paid" ? "var(--lime)" : "#fca5a5",
                       }}
                     >
                       {inv.status.toUpperCase()}
@@ -357,24 +413,24 @@ export default async function PlayerDashboardPage() {
       <section className="panel">
         <h2>Signed Waivers &amp; Documentation</h2>
         {dashboard.documents.length === 0 ? (
-          <p className="hint">No signed documents currently on file.</p>
+          <p style={{ color: "var(--muted)" }}>No signed documents currently on file.</p>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1rem", marginTop: "0.75rem" }}>
             {dashboard.documents.map((doc) => (
               <div
                 key={doc.id}
                 style={{
-                  border: "1px solid var(--border-color, #e2e8f0)",
-                  borderRadius: "8px",
-                  padding: "0.75rem 1rem",
-                  background: "var(--subtle-bg, #f8fafc)",
+                  border: "1px solid var(--line)",
+                  borderRadius: "10px",
+                  padding: "0.85rem 1.1rem",
+                  background: "#0c1822",
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <strong>📄 {doc.title}</strong>
                   <span className="badge" style={{ fontSize: "0.7rem" }}>v{doc.version}</span>
                 </div>
-                <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>
+                <p style={{ margin: "6px 0 0 0", fontSize: "0.8rem", color: "var(--muted)" }}>
                   Signed by {doc.signer_name} on {new Date(doc.accepted_at).toLocaleDateString()}
                 </p>
               </div>

@@ -238,7 +238,7 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 - [x] Build Game Centre with scoreboard, timeline, live scoring, and approval status (`get_public_live_game` RPC and `/schedule/[gameId]/live`).
 - [x] Build schedule/results and standings screens with public fan access (`get_public_schedule` and `get_season_standings` accessible without requiring login).
 - [x] Build public team pages and privacy-filtered directory (guest teams directory at `/teams`).
-- [ ] Build player dashboard with teams, schedule, balances, documents, and stats.
+- [x] Build player dashboard with teams, schedule, balances, documents, and stats (`/dashboard` Player Hub with personal career stats, next matchups, attendance RSVP, team roster cards, dues balance, signed documents, and announcements; migration `202611160033_player_dashboard_portal.sql`).
 - [x] Build captain dashboard with roster, eligibility, and contribution status (roster management, eligibility cards, and team billing summary on `/teams/[entryId]`).
 - [x] Implement basic pilot availability/RSVP and captain visibility (game attendance headcount, goalie availability alert, player RSVP status & notes at `/schedule/[gameId]/rsvp`; migration `202611160004_game_attendance_rsvp.sql`).
 - [x] Build commissioner dashboard around persisted operational data (League HQ, settings, roster management, schedule generation, and billing).
