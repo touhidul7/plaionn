@@ -5,7 +5,7 @@ import type {PlayerOption,RosterRow,TeamEligibility} from "@/lib/roster-schema";
 const positions=[["F","Forward"],["C","Centre"],["LW","Left wing"],["RW","Right wing"],["D","Defence"],["G","Goalie"]];
 export function PlayerForm(){
  const [state,action,pending]=useActionState(createPlayer,{error:false,message:"",revision:0});
- return <form action={action} className="panel form-stack"><h2>Create a player profile</h2><p>Check the existing player list first. Players with matching names are not merged automatically.</p><label>Player name<input name="display_name" required minLength={2} maxLength={100} autoComplete="off"/></label><button disabled={pending}>{pending?"Creating…":"Create player"}</button><p role="status" className={"form-message"+(state.error?" error":"")}>{state.message}</p></form>;
+ return <form action={action} className="panel form-stack"><h2>Create a player profile</h2><p>Check the existing player list first. Players with matching names are not merged automatically.</p><label>Player name<input name="display_name" required minLength={2} maxLength={100} autoComplete="off"/></label><button className="button primary" disabled={pending}>{pending?"Creating…":"Create player"}</button><p role="status" className={"form-message"+(state.error?" error":"")}>{state.message}</p></form>;
 }
 export function RosterForm({entryId,players,row}:{entryId:string;players:PlayerOption[];row?:RosterRow}){
  const [state,action,pending]=useActionState(saveRoster,{error:false,message:"",revision:row?.revision??0});

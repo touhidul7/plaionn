@@ -82,7 +82,7 @@ export default async function PlayoffsPage({
         </div>
       </div>
 
-      <section className="panel">
+      <section className="panel" style={{ marginBottom: "24px" }}>
         <form action="/playoffs" method="get" className="filter-bar">
           <label>
             Season

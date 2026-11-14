@@ -21,6 +21,12 @@ export default async function LeaguePage() {
           </Link>
           {data.canManage && (
             <>
+              <Link className="button" href="/league/health">
+                Health &amp; Diagnostics
+              </Link>
+              <Link className="button" href="/league/communications">
+                Communications &amp; Logs
+              </Link>
               <Link className="button" href="/league/governance">
                 Staff &amp; Governance
               </Link>

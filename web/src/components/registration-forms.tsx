@@ -179,12 +179,12 @@ export function RegistrationForm({
               />
               <ConsentChoice
                 name="consent_filming"
-                label="Game Broadcast &amp; Highlights"
+                label="Game Broadcast & Highlights"
                 description="Allow video streams and highlights featuring you to be broadcast across the network."
               />
               <ConsentChoice
                 name="consent_marketing"
-                label="League Announcements &amp; Updates"
+                label="League Announcements & Updates"
                 description="Receive occasional notifications about upcoming tournaments and season registrations."
               />
             </div>
@@ -402,7 +402,7 @@ export function RegistrationDocumentUpload({
           style={{ padding: "10px 20px" }}
           disabled={pending || !seasons.length}
         >
-          {pending ? "Uploading Version…" : "Upload &amp; Publish Version"}
+          {pending ? "Uploading Version…" : "Upload & Publish Version"}
         </button>
         {state.message && (
           <p

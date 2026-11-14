@@ -57,6 +57,9 @@ export function SeasonLeaderboards({ skaters, goalies }: LeaderboardsProps) {
                 ))}
               </tbody>
             </table>
+            <p style={{ marginTop: "0.75rem", fontSize: "0.8rem", color: "var(--muted)", fontStyle: "italic" }}>
+              * Skater scoring statistics (G, A, PTS, PIM) are compiled strictly from official game event logs verified by referees and commissioners.
+            </p>
           </div>
         )}
       </section>
@@ -108,6 +111,9 @@ export function SeasonLeaderboards({ skaters, goalies }: LeaderboardsProps) {
                 ))}
               </tbody>
             </table>
+            <p style={{ marginTop: "0.75rem", fontSize: "0.8rem", color: "var(--muted)", fontStyle: "italic" }}>
+              * Goaltender metrics (GAA, GA, SO) are calculated strictly from verified official match scoresheets. Advanced statistics (such as Save Percentage and Shot Differentials) are presented exclusively for fixtures where official rink-side shot counts were actively tracked.
+            </p>
           </div>
         )}
       </section>

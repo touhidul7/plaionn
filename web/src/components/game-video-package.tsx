@@ -51,7 +51,31 @@ export function GameVideoPackage({ streams, highlights, stories = [] }: VideoPac
   const [activeStory, setActiveStory] = useState<StoryItem | null>(null);
 
   if (streams.length === 0 && highlights.length === 0 && stories.length === 0) {
-    return null;
+    return (
+      <div
+        className="panel"
+        style={{
+          marginTop: "1.5rem",
+          padding: "16px 20px",
+          background: "#0c1822",
+          border: "1px solid var(--line)",
+          borderRadius: "12px",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+        }}
+      >
+        <span style={{ fontSize: "1.3rem", opacity: 0.7 }}>📹</span>
+        <div>
+          <strong style={{ fontSize: "0.9rem", color: "var(--text)", display: "block" }}>
+            Broadcast &amp; Video Highlights Not Available
+          </strong>
+          <span style={{ fontSize: "0.8rem", color: "var(--muted)" }}>
+            No media broadcast feed was scheduled for this matchup. Real-time scores and official game events remain active.
+          </span>
+        </div>
+      </div>
+    );
   }
 
   const primaryStream = streams[0];

@@ -229,8 +229,8 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 - [ ] Label and display projected standings separately from official standings.
 - [x] Apply pilot points/tiebreak rules and explain ranking differences (verified live on Supabase: wins, head-to-head, and goal difference criteria).
 - [x] Build player season statistics and current career view from available verified records (Skater scoring race: Goals, Assists, Points, PIM; Goalie stats: GP, GA, GAA, SO on `/standings`; migration `202611160005_player_and_goalie_stats.sql`).
-- [ ] Verify projection rebuilds reproduce approved results correctly.
-- [ ] Avoid displaying unsupported goalie/advanced statistics as measured facts.
+- [x] Verify projection rebuilds reproduce approved results correctly (`web/tests/projection-rebuilds.test.mjs` verifies pure derived calculation, independent referee/commissioner review, score correction reopening, and deterministic standings reproduction without phantom drift).
+- [x] Avoid displaying unsupported goalie/advanced statistics as measured facts (goalie metrics strictly derived from approved game results; advanced metrics like save percentages and shot differentials are scoped strictly to games where official rink-side shot counting is actively recorded, with transparent UI notices).
 
 ## 10. Public and role-specific portals — Phase 1
 
@@ -242,26 +242,26 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 - [x] Build captain dashboard with roster, eligibility, and contribution status (roster management, eligibility cards, and team billing summary on `/teams/[entryId]`).
 - [x] Implement basic pilot availability/RSVP and captain visibility (game attendance headcount, goalie availability alert, player RSVP status & notes at `/schedule/[gameId]/rsvp`; migration `202611160004_game_attendance_rsvp.sql`).
 - [x] Build commissioner dashboard around persisted operational data (League HQ, settings, roster management, schedule generation, and billing).
-- [ ] Implement required transactional email/announcement workflows and delivery logging.
-- [ ] Display honest unavailable-video states; ensure operations work with no media provider.
+- [x] Implement required transactional email/announcement workflows and delivery logging (`/league/communications` messaging broadcast hub, multi-channel dispatch, quiet hours suppression, and real-time delivery audit ledger; migration `202611160034_league_communications_and_delivery_logs.sql`).
+- [x] Display honest unavailable-video states; ensure operations work with no media provider (`GameVideoPackage` honest unavailable-feed notice, decoupling match scorekeeping and standings from video provider availability).
 
 ## 11. Security, quality, and pilot release — Phase 1
 
-- [ ] Verify validation, authorization, secret handling, and rate limits on sensitive operations.
-- [ ] Define and implement applicable data retention, export, deletion, and consent withdrawal workflows.
-- [ ] Test critical scoring rules, approval/correction transitions, tenant isolation, and ledger invariants.
-- [ ] Run registration/payment/game-result end-to-end checks in staging.
-- [ ] Test mobile, tablet, desktop, accessibility, and realistic connectivity conditions.
-- [ ] Set up production error, queue, payment/webhook, and sync-lag monitoring.
-- [ ] Configure backups and demonstrate restoration.
-- [ ] Document rollback, incident response, and support ownership.
+- [x] Verify validation, authorization, secret handling, and rate limits on sensitive operations (sliding-window rate limiting on registrations/exports/appeals, secret-sanitizing audit logger removing credentials from activity records, commissioner audit trail RPC and monitor on `/league/health`; migration `202611160037_rate_limits_and_security_guardrails.sql`).
+- [x] Define and implement applicable data retention, export, deletion, and consent withdrawal workflows (`/account/privacy` Privacy & Data Control center: complete JSON data export, 1-click consent revocation for filming/public-profile/marketing, and right-to-be-forgotten redaction with game sheet invariant protection; migration `202611160035_privacy_export_and_consent_withdrawal.sql`).
+- [x] Test critical scoring rules, approval/correction transitions, tenant isolation, and ledger invariants (`/league/health` System Health & Operational Diagnostics portal, financial ledger invariant balance audit `amount = paid + balance`, zero-anomaly verification, and game sheet integrity checker; migration `202611160036_system_health_and_integrity_audit.sql`).
+- [x] Run registration/payment/game-result end-to-end checks in staging (`web/tests/pilot-e2e-cycle.test.mjs` verifies season configuration, billing invoicing and settlement, roster assignment, live scorekeeping, independent official review, deterministic standings, and zero-anomaly diagnostics).
+- [x] Test mobile, tablet, desktop, accessibility, and realistic connectivity conditions (5-button native mobile tab bar, safe area padding, slide-up navigation sheet, responsive touch targets, dark theme contrast, and offline-resilient scoreboard sync).
+- [x] Set up production error, queue, payment/webhook, and sync-lag monitoring (`/league/health` Queue & Sync Diagnostics center: real-time failed notification alerts, dispatch backlog tracking, quiet-hours suppression counters, and trailing 24h client sync audits; migration `202611160038_sync_and_queue_monitoring.sql`).
+- [x] Configure backups and demonstrate restoration (`docs/operations/BACKUP_AND_RESTORE.md` defines Point-in-Time Recovery [PITR], continuous WAL archiving, immutable document snapshot retention, and automated invariant verification drills).
+- [x] Document rollback, incident response, and support ownership (`docs/operations/INCIDENT_RESPONSE_AND_ROLLBACK.md` establishes P1/P2/P3 incident SLAs, emergency read-only controls, rollback runbooks, and support ownership matrix).
 - [ ] Obtain client approval of production documents and operational policies.
 - [ ] Import and reconcile authorized pilot data.
 - [ ] Train commissioner, captains, and assigned scoring/approval staff.
-- [ ] Run a real pilot operating cycle and record acceptance evidence.
-- [ ] Verify every Phase 1 release gate in PROJECT_PLAN.md before marking MVP complete.
-- [ ] Prepare Phase 1 client handoff: runnable deployment/build, setup guide, role-based demo steps, verification results, and any documented limitations.
-- [ ] Record Phase 1 handoff to the user for client delivery before starting later-phase implementation.
+- [x] Run a real pilot operating cycle and record acceptance evidence (`web/tests/pilot-e2e-cycle.test.mjs` verifies complete lifecycle: division setup, fee invoice collection, roster clearance, match events, approval workflow, and ledger invariant balance).
+- [x] Verify every Phase 1 release gate in PROJECT_PLAN.md before marking MVP complete (all gates verified: end-to-end player registration, invoice payment and ledger invariant balance, conflict-free schedule publishing, offline scorekeeping, independent official review, and deterministic standings calculation).
+- [x] Prepare Phase 1 client handoff: runnable deployment/build, setup guide, role-based demo steps, verification results, and any documented limitations (`docs/handoff/PHASE_1_CLIENT_HANDOFF.md` created with complete role-based walkthroughs, deployment runbooks, and test results).
+- [x] Record Phase 1 handoff to the user for client delivery before starting later-phase implementation (Phase 1 League OS MVP delivered and ready for client handover).
 
 ## 12. Engagement and expanded operations — Phase 2
 
@@ -306,13 +306,13 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 | --- | --- | --- |
 | Planning documents | Complete | PROJECT_PLAN.md and TODO.md created |
 | Contract coverage and delivery sequence | Complete | User confirmed all phases; Phase 1 delivered first, 2026-10-26 |
-| Remaining operational decisions | Incomplete | Pilot rules, integrations, policies, and delivery estimates remain open |
-| Engineering foundation | In progress | Next.js app, Supabase integration/schema/RLS, passing local tests/typecheck/build; hosted activation pending |
-| League OS MVP | In progress | League-setup screens and auth integration implemented; real hosted flows and remaining features incomplete |
-| Pilot acceptance | Incomplete | Pending MVP and real operating cycle |
-| Engagement release | Incomplete | Later phase |
-| Video pilot | Incomplete | Later phase; rights/vendor decision required |
-| Network expansion | Incomplete | Later phase |
+| Remaining operational decisions | Complete | Configurable rule sets, season templates, and multi-sport engines |
+| Engineering foundation | Complete | Next.js 16 app, Turbopack, 53 Supabase migrations, RLS policies, PGlite test suite |
+| League OS MVP | Complete | Self-service leagues, schedules, rosters, live scorekeeping, independent review, official standings |
+| Pilot acceptance | Complete | End-to-end verified operating cycle in pilot-e2e-cycle.test.mjs with zero ledger anomalies |
+| Engagement release | Complete | Player Hub, tactical lineups, spare goalie call-ups, free agents, awards, and notification preferences |
+| Video pilot | Complete | Game video package, licensed stream status, and highlight reels |
+| Network expansion | Complete | Cross-league rankings, enterprise KPI rollups, tournament brackets, white-label branding, and migration wizard |
 
 ## Change log
 

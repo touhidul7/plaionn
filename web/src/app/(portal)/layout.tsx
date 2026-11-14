@@ -21,8 +21,8 @@ export default async function PortalLayout({
         <aside className="sidebar">
           <Link href="/" className="brand">
             <span className="brand-mark">{leagueInitial}</span>
-            <span>
-              {league.name}
+            <span className="brand-info">
+              <span className="brand-title">{league.name}</span>
               <small>LEAGUE PORTAL</small>
             </span>
           </Link>

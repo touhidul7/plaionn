@@ -42,6 +42,9 @@ export default async function AccountPage() {
           <Link className="text-link" href="/account/notifications">
             🔔 Notification &amp; SMS alerts →
           </Link>
+          <Link className="text-link" href="/account/privacy">
+            🛡️ Privacy &amp; data control →
+          </Link>
           <Link className="text-link" href="/registration">
             Apply for an open season →
           </Link>

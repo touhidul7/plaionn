@@ -105,13 +105,11 @@ export default async function LiveGamePage({
       />
 
       {/* Phase 3 Broadcast Video & Highlight Clips */}
-      {(videoResult?.data || storiesResult?.data) && (
-        <GameVideoPackage
-          streams={(videoResult?.data as any)?.streams || []}
-          highlights={(videoResult?.data as any)?.highlights || []}
-          stories={(storiesResult?.data as any) || []}
-        />
-      )}
+      <GameVideoPackage
+        streams={(videoResult?.data as any)?.streams || []}
+        highlights={(videoResult?.data as any)?.highlights || []}
+        stories={(storiesResult?.data as any) || []}
+      />
 
       <div className="mt-6">
         <ShotsAndGoalieBoxscore summary={shotsSummary} canScore={false} />

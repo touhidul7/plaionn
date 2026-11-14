@@ -18,8 +18,9 @@ export default async function LoginPage({
       <main id="main" className="auth-content" tabIndex={-1}>
         <Link href="/" className="brand auth-brand">
           <span className="brand-mark">P</span>
-          <span>
-            PLAIONN<small>HOCKEY NETWORK</small>
+          <span className="brand-info">
+            <span className="brand-title">PLAIONN</span>
+            <small>HOCKEY NETWORK</small>
           </span>
         </Link>
         <div className="auth-heading">
