@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { Navigation } from "@/components/navigation";
-import { getOptionalSession } from "@/lib/supabase/session";
+import { SponsorBanner } from "@/components/sponsor-banner";
+import { getLeagueContext } from "@/lib/supabase/session";
 
 export default async function PortalLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { user } = await getOptionalSession();
+  const { user, league, isGuest } = await getLeagueContext();
+
+  const leagueInitial = (league?.name || "P").trim().charAt(0).toUpperCase();
 
   return (
     <>
@@ -17,25 +20,26 @@ export default async function PortalLayout({
       <div className="app-shell">
         <aside className="sidebar">
           <Link href="/" className="brand">
-            <span className="brand-mark">P</span>
+            <span className="brand-mark">{leagueInitial}</span>
             <span>
-              PLAIONN<small>HOCKEY NETWORK</small>
+              {league.name}
+              <small>LEAGUE PORTAL</small>
             </span>
           </Link>
-          <p className="nav-label">THE PLATFORM</p>
-          <Navigation isGuest={!user} />
+          <p className="nav-label">LEAGUE NAVIGATION</p>
+          <Navigation isGuest={isGuest} />
           <div className="sidebar-note">
-            <strong>Supabase connected</strong>
-            <p>Records are saved to the configured project.</p>
+            <strong>{league.name}</strong>
+            <p>Official Hockey League</p>
           </div>
         </aside>
 
         <div>
           <header className="topbar">
             <Link className="mobile-brand" href="/">
-              PLAIONN
+              {league.name}
             </Link>
-            <span>PLAIONN HOCKEY NETWORK</span>
+            <span style={{ fontWeight: 700, letterSpacing: "-0.01em" }}>{league.name}</span>
             {user ? (
               <Link className="button button-sm" href="/account">
                 My account
@@ -47,17 +51,12 @@ export default async function PortalLayout({
             )}
           </header>
 
-          <div className="notice">
-            Connected Supabase data is persistent. Confirm this is the intended project and league
-            before entering real participant information; existing sample records are not
-            automatically replaced.
-          </div>
-
           <main id="main" tabIndex={-1}>
             {children}
+            <SponsorBanner />
           </main>
 
-          <footer>PLAIONN Hockey Network · Supabase-backed</footer>
+          <footer>{league.name} · Powered by PLAIONN Hockey Network</footer>
         </div>
       </div>
     </>

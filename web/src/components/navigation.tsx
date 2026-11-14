@@ -3,40 +3,44 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const links = [
+const memberLinks = [
   ["/", "⌂", "Home"],
+  ["/dashboard", "👤", "Player Hub"],
   ["/announcements", "📢", "Notices"],
   ["/league", "▣", "League HQ"],
-  ["/teams", "♧", "Teams"],
-  ["/schedule", "▦", "Schedule"],
+  ["/schedule", "▦", "Schedules & Scores"],
   ["/standings", "▤", "Standings"],
+  ["/leaders", "🎯", "Leaders"],
+  ["/rankings", "⚡", "Rankings"],
   ["/playoffs", "🏆", "Playoffs"],
+  ["/tournaments", "🏅", "Tournaments"],
+  ["/teams", "♧", "Teams"],
   ["/spares", "🥅", "Spares"],
   ["/free-agents", "👥", "Free Agents"],
   ["/account", "○", "Account"],
 ] as const;
 
+const guestLinks = [
+  ["/", "⌂", "Home"],
+  ["/announcements", "📢", "Notices"],
+  ["/schedule", "▦", "Schedules & Scores"],
+  ["/standings", "▤", "Standings"],
+  ["/leaders", "🎯", "Leaders"],
+  ["/rankings", "⚡", "Rankings"],
+  ["/playoffs", "🏆", "Playoffs"],
+  ["/tournaments", "🏅", "Tournaments"],
+  ["/teams", "♧", "Teams"],
+  ["/login", "→", "Sign in"],
+] as const;
+
 export function Navigation({ isGuest }: { isGuest?: boolean }) {
   const pathname = usePathname();
-
-  const activeLinks = isGuest
-    ? [
-        ["/", "⌂", "Home"],
-        ["/announcements", "📢", "Notices"],
-        ["/schedule", "▦", "Schedule"],
-        ["/standings", "▤", "Standings"],
-        ["/playoffs", "🏆", "Playoffs"],
-        ["/spares", "🥅", "Spares"],
-        ["/free-agents", "👥", "Free Agents"],
-        ["/teams", "♧", "Teams"],
-        ["/login", "→", "Sign in"],
-      ]
-    : links;
+  const activeLinks = isGuest ? guestLinks : memberLinks;
 
   return (
     <nav aria-label="Main navigation">
       {activeLinks.map(([href, icon, label]) => {
-        const isActive = pathname === href;
+        const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
         return (
           <Link
             key={href}

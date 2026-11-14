@@ -2,8 +2,6 @@ import Link from "next/link";
 import { z } from "zod";
 import { getLeagueData } from "@/lib/league";
 import { getLeagueContext } from "@/lib/supabase/session";
-import { SeasonLeaderboards } from "@/components/leaderboards";
-import type { SkaterLeader, GoalieLeader } from "@/lib/leaderboards-schema";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +50,7 @@ export default async function StandingsPage({
             className="button"
             href={data.user ? "/league" : "/schedule"}
           >
-            {data.user ? "League setup" : "Schedule"}
+            {data.user ? "League setup" : "Schedules & Scores"}
           </Link>
         </div>
         <section className="panel empty">
@@ -68,36 +66,33 @@ export default async function StandingsPage({
 
   const { supabase } = await getLeagueContext();
 
-  const [standingsRes, skatersRes, goaliesRes] = await Promise.all([
-    supabase.rpc("get_season_standings", { target_season: selectedSeason.id }),
-    supabase.rpc("get_season_skater_leaders", { target_season: selectedSeason.id }),
-    supabase.rpc("get_season_goalie_leaders", { target_season: selectedSeason.id }),
-  ]);
+  const standingsRes = await supabase.rpc("get_season_standings", {
+    target_season: selectedSeason.id,
+  });
 
   const parsedRows = z.array(standingsRowSchema).safeParse(standingsRes.data);
   const rows = parsedRows.success ? parsedRows.data : null;
-  const skaters: SkaterLeader[] = (!skatersRes.error && Array.isArray(skatersRes.data))
-    ? (skatersRes.data as SkaterLeader[])
-    : [];
-  const goalies: GoalieLeader[] = (!goaliesRes.error && Array.isArray(goaliesRes.data))
-    ? (goaliesRes.data as GoalieLeader[])
-    : [];
 
   return (
     <>
       <div className="page-heading">
         <div>
           <p className="eyebrow">OFFICIAL TABLE</p>
-          <h1>Standings &amp; Leaders</h1>
-          <p>{data.league.name} · Approved results only</p>
+          <h1>Standings</h1>
+          <p>{data.league.name} · Official Division Standings</p>
         </div>
-        <Link className="button" href="/schedule">
-          Schedule
-        </Link>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <Link className="button primary" href="/leaders">
+            Player &amp; Goalie Leaders →
+          </Link>
+          <Link className="button" href="/schedule">
+            Schedules &amp; Scores
+          </Link>
+        </div>
       </div>
 
-      <section className="panel form-stack">
-        <form action="/standings" method="get" className="settings-grid">
+      <section className="panel">
+        <form action="/standings" method="get" className="filter-bar">
           <label>
             Season
             <select name="season" defaultValue={selectedSeason.id}>
@@ -108,7 +103,7 @@ export default async function StandingsPage({
               ))}
             </select>
           </label>
-          <button className="primary">View standings</button>
+          <button type="submit" className="button primary">View Standings</button>
         </form>
 
         {standingsRes.error || !rows ? (
@@ -130,16 +125,17 @@ export default async function StandingsPage({
                 (row) => row.division_id === division.id
               );
               return (
-                <section key={division.id}>
+                <section key={division.id} style={{ marginTop: "1.75rem" }}>
                   <div className="section-heading">
-                    <h2>{division.name}</h2>
+                    <h2 style={{ fontSize: "1.25rem", margin: 0 }}>{division.name}</h2>
+                    <span className="badge">{divisionRows.length} Teams</span>
                   </div>
                   {divisionRows.length ? (
                     <div className="table-wrap">
                       <table className="table">
                         <thead>
                           <tr>
-                            <th scope="col">#</th>
+                            <th scope="col" style={{ width: "3rem" }}>#</th>
                             <th scope="col">Team</th>
                             <th scope="col">GP</th>
                             <th scope="col">W</th>
@@ -150,16 +146,14 @@ export default async function StandingsPage({
                             <th scope="col">GA</th>
                             <th scope="col">GD</th>
                             <th scope="col">PIM</th>
-                            <th scope="col">PTS</th>
+                            <th scope="col" style={{ color: "var(--lime)", fontWeight: 800 }}>PTS</th>
                           </tr>
                         </thead>
                         <tbody>
                           {divisionRows.map((row) => (
                             <tr key={row.team_entry_id}>
-                              <td>{row.rank}</td>
-                              <td>
-                                <strong>{row.team_name}</strong>
-                              </td>
+                              <td><strong>{row.rank}</strong></td>
+                              <td><strong>{row.team_name}</strong></td>
                               <td>{row.games_played}</td>
                               <td>{row.wins}</td>
                               <td>{row.ties}</td>
@@ -173,7 +167,7 @@ export default async function StandingsPage({
                               </td>
                               <td>{row.penalty_minutes}</td>
                               <td>
-                                <strong>{row.points}</strong>
+                                <strong style={{ color: "var(--lime)", fontSize: "1.05rem" }}>{row.points}</strong>
                               </td>
                             </tr>
                           ))}
@@ -198,9 +192,6 @@ export default async function StandingsPage({
           season settings. Pending, corrected, and unreviewed scores are excluded.
         </p>
       </section>
-
-      {/* Skater & Goalie Leaderboards */}
-      <SeasonLeaderboards skaters={skaters} goalies={goalies} />
     </>
   );
 }

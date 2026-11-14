@@ -36,6 +36,12 @@ export default async function AccountPage() {
       <section className="panel">
         <h2>Your leagues</h2>
         <div style={{ display: "flex", gap: "16px", marginBottom: "16px", flexWrap: "wrap" }}>
+          <Link className="text-link" href="/dashboard">
+            👤 Go to Player Hub Dashboard →
+          </Link>
+          <Link className="text-link" href="/account/notifications">
+            🔔 Notification &amp; SMS alerts →
+          </Link>
           <Link className="text-link" href="/registration">
             Apply for an open season →
           </Link>

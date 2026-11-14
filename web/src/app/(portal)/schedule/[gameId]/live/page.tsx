@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { LiveScoreboard } from "@/components/live-scoreboard";
 import { ShotsAndGoalieBoxscore } from "@/components/shots-and-goalie-boxscore";
+import { GameStarsBanner } from "@/components/game-stars-banner";
+import { GameVideoPackage } from "@/components/game-video-package";
 import { getLeagueData } from "@/lib/league";
 import { liveScoreboardSchema } from "@/lib/live-scoreboard";
 import type { GameShotsSummary } from "@/lib/shots-schema";
@@ -35,9 +37,11 @@ export default async function LiveGamePage({
     );
   if (!game.data) notFound();
   const fixture = game.data;
-  const [boardResult, shotsResult] = await Promise.all([
+  const [boardResult, shotsResult, videoResult, storiesResult] = await Promise.all([
     supabase.rpc("get_live_scoreboard", { target_game: gameId }),
     supabase.rpc("get_game_shots_summary", { target_game: gameId }),
+    supabase.rpc("get_game_video_package", { target_game: gameId }),
+    supabase.rpc("get_game_story_reel", { target_game: gameId }),
   ]);
 
   const board = liveScoreboardSchema.safeParse(boardResult.data);
@@ -79,19 +83,36 @@ export default async function LiveGamePage({
           <p>For league members · Automatically refreshed from saved game events.</p>
         </div>
         <div style={{ display: "flex", gap: "0.5rem" }}>
+          <Link className="button" href={`/schedule/${gameId}/lineup`}>
+            Lineup Board
+          </Link>
           <Link className="button" href={`/schedule/${gameId}/rsvp`}>
             Attendance &amp; RSVP
           </Link>
           <Link className="button" href="/schedule">
-            Schedule
+            Schedules &amp; Scores
           </Link>
         </div>
       </div>
+
+      {/* Official Three Stars of the Game Banner */}
+      <GameStarsBanner gameId={gameId} />
+
       <LiveScoreboard
         initial={board.data}
         homeName={homeName}
         awayName={awayName}
       />
+
+      {/* Phase 3 Broadcast Video & Highlight Clips */}
+      {(videoResult?.data || storiesResult?.data) && (
+        <GameVideoPackage
+          streams={(videoResult?.data as any)?.streams || []}
+          highlights={(videoResult?.data as any)?.highlights || []}
+          stories={(storiesResult?.data as any) || []}
+        />
+      )}
+
       <div className="mt-6">
         <ShotsAndGoalieBoxscore summary={shotsSummary} canScore={false} />
       </div>

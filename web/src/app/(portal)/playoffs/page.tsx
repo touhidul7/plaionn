@@ -82,8 +82,8 @@ export default async function PlayoffsPage({
         </div>
       </div>
 
-      <section className="panel form-stack">
-        <form action="/playoffs" method="get" className="settings-grid">
+      <section className="panel">
+        <form action="/playoffs" method="get" className="filter-bar">
           <label>
             Season
             <select name="season" defaultValue={selectedSeason.id}>
@@ -108,7 +108,7 @@ export default async function PlayoffsPage({
             </label>
           )}
 
-          <button className="primary">View Bracket</button>
+          <button type="submit" className="button primary">View Bracket</button>
         </form>
       </section>
 

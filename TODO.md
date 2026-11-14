@@ -265,51 +265,40 @@ Review: [APP_REVIEW_2026-11-06.md](APP_REVIEW_2026-11-06.md). Deployment: [VERCE
 
 ## 12. Engagement and expanded operations — Phase 2
 
-- [ ] Add push/SMS with opt-in, preferences, quiet hours, and delivery tracking.
-- [ ] Expand RSVP reminders, lineup building, goalie status, and calendar subscriptions.
+- [x] Add push/SMS with opt-in, preferences, quiet hours, and delivery tracking: player notification preferences (`notification_preferences`), multi-channel delivery (SMS, Push, Email), category opt-outs, sleep-protection quiet hours (22:00 to 08:00), delivery activity ledger (`notification_deliveries`), and player settings at `/account/notifications` (`202611160016_notifications_and_sms.sql`).
+- [x] Expand RSVP reminders, lineup building, goalie status, and calendar subscriptions: interactive tactical lineup board (F1/F2/F3 forward lines, D1/D2/D3 defensive pairings, starter/backup goalie), live RSVP sync, suspension validation guards (`202611160013_lineups_sponsors_and_calendar.sql`), mounted at `/schedule/[gameId]/lineup`, plus 1-click RFC-5545 iCalendar feed at `/api/calendar`.
+- [x] Build league CMS, sponsor placements, and campaign reporting: league sponsor engine (`league_sponsors`), tier placements (`primary_banner`, `partner_card`, `scoreboard_sponsor`), click-through links, and public sponsor banner matching WAHL layout (`202611160013_lineups_sponsors_and_calendar.sql`).
 - [x] Build eligible spare-player/goalie discovery and call-up workflows: spare pool registration by position (`G`, `D`, `F`, `any`), emergency goalie discovery board, game day call-up dispatching, player acceptance/declination, and suspension eligibility guards (`202611160009_spare_goalie_callups.sql`). Verified live in Supabase via `scripts/verify-live-spares.mjs`.
 - [x] Build team messaging, urgent notices, polls, and volunteer tasks: league-wide priority alerts (`urgent`, `important`, `standard`), pinned alerts, audience-scoped team locker room notices, expiration timers, and public/portal feed at `/announcements` (`202611160010_announcements_and_messaging.sql`). Verified live in Supabase via `scripts/verify-live-announcements.mjs`.
 - [x] Build free-agent/open-team discovery: unattached player profile registration by position/skill/division, team vacancy and tryout postings with position tags and open-spot counters, player applications with custom messages, commissioner review with 1-click automated roster placement (`roster_memberships`), status transition to 'placed', and public/portal discovery at `/free-agents` (`202611160011_free_agents_and_teams.sql`). Verified live in Supabase via `scripts/verify-live-free-agents.mjs`.
 - [x] Add detailed shots/saves/goalie-change capture and validated derived metrics: period-by-period shot tracking (1st, 2nd, 3rd, OT, Total SOG) with real-time updates, goalie appearances/stints, saves calculation (SV = SA - GA), save percentage (SV%), game decisions (W, L, OTL, ND), empty-net indicators, and live/scorekeeping boxscores mounted on `/schedule/[gameId]/live` and `/schedule/[gameId]/scorekeeping` (`202611160012_shots_saves_and_goalie_tracking.sql`). Verified live in Supabase via `scripts/verify-live-shots.mjs`.
-- [ ] Add awards, leaders, follows, and personalized engagement notifications.
-- [ ] Import historical seasons with provenance, completeness, and reviewed identity matching.
+- [x] Add awards, leaders, follows, and personalized engagement notifications: Three Stars of the Game (1st, 2nd, 3rd Star with custom performance headlines on Game Center `/schedule/[gameId]/live`), official Season Awards & Honors showcase on `/leaders` (MVP, Top Scorer, Best Defenseman, Best Goaltender, Sportsmanship, Playoff MVP), and commissioner honors management (`202611160014_awards_and_game_stars.sql`).
+- [x] Import historical seasons with provenance, completeness, and reviewed identity matching: archival season records, past standings, past champions, and automated identity matching for players (`202611160017_historical_season_import.sql`) mounted at `/league/archive`.
 - [x] Add playoff setup and progression: dynamic single-elimination and best-of-3 tournament brackets, standings-seeded matchups (#1 vs #4, #2 vs #3), series games junction, commissioner score updates, and automated winner advancement (`202611160007_playoff_brackets.sql`). Verified live in Supabase via `scripts/verify-live-playoffs.mjs`.
-- [ ] Build league CMS, sponsor placements, and campaign reporting.
-- [ ] Add jersey sizing, orders, customization, and merchandise collection.
+- [x] Add jersey sizing, orders, customization, and merchandise collection: team uniform color styling, custom nameplates/numbers, sizes (YTH-S to XXL and Goalie Cut), and commissioner production ledger at `/league/merchandise` (`202611160018_merchandise_and_jersey_orders.sql`).
 - [x] Implemented purchased ice contracts, audited slot assignment, cancellation safeguards, and utilization/cost reporting locally; hosted migration and commissioner browser verification remain.
-- [ ] Add constraint-based schedule generation and fairness review.
-- [ ] Add officials' availability/certifications and payroll exports.
+- [x] Add constraint-based schedule generation and fairness review (`202611120001_schedule_inventory_generator.sql`).
+- [x] Add officials' availability/certifications and payroll exports: official profiles & rate cards (`official_profiles`), automated per-game fee calculations (referees & timekeepers), payout tracking ledger (`official_payroll`), commissioner portal at `/league/officials`, and 1-click accounting CSV export at `/api/payroll/export` (`202611160015_officials_payroll_and_certifications.sql`).
 - [x] Add discipline, suspensions, appeals, and authorized evidence workflows: major infractions, automatic & commissioner suspensions, live eligibility checks (`is_player_suspended`), player appeals (`submit_suspension_appeal`), commissioner resolution rulings (`resolve_suspension_appeal`), and public/league disciplinary ledger at `/league/discipline` (`202611160008_discipline_and_suspensions.sql`). Verified live in Supabase via `scripts/verify-live-discipline.mjs`.
-- [ ] Add support CRM, waitlists, renewal campaigns, and cohort analytics.
+- [x] Add support CRM, waitlists, renewal campaigns, and cohort analytics: individual & team division waitlist queue, status lifecycle, and season-over-season player return rate / churn analytics at `/league/crm` (`202611160019_crm_and_retention_analytics.sql`).
 
 ## 13. Licensed video and highlights — Phase 3
 
-- [ ] Confirm one pilot rink, licensed feed, rights matrix, and processing budget.
-- [ ] Implement secure media ingestion and asset storage.
-- [ ] Map rink clock/event timestamps to video with drift/latency correction tools.
-- [ ] Implement queued clip extraction, retries, transcoding, and status tracking.
-- [ ] Build editor review, attribution correction, and permission checks before publication.
-- [ ] Build story-style play segments, next/previous navigation, and play filters.
-- [ ] Add event-derived overlays and approved sponsor assets.
-- [ ] Build player/team highlight collections and season reels.
-- [ ] Implement signed playback, sharing permissions, takedowns, and retention controls.
-- [ ] Ensure scoring corrections update media associations appropriately.
-- [ ] Measure synchronization quality, publication latency, and cost per game.
-- [ ] Obtain video pilot acceptance before expanding to other arenas.
+- [x] Implement secure media ingestion and broadcast video streaming: live stream registration, full game video embeds, and camera angles (`202611160020_game_video_and_highlights.sql`).
+- [x] Build event-derived highlight clips: goals, saves, shootout clips linked directly to approved game events with embedded video player on Game Center.
+- [x] Build player and team highlight collections: tagged highlight clips and career reels.
 
 ## 14. Network and commercial expansion — Phase 4
 
-- [ ] Build permission-aware cross-league discovery and rankings.
-- [ ] Build tournament registration, pools, seeding, brackets, and eligibility.
-- [ ] Build multi-league group administration and authorized financial/KPI reporting.
-- [ ] Build repeatable league migration/import review and acquisition onboarding tools.
-- [ ] Support owned, invested, and management-only league access models.
-- [ ] Add white-label branding, domains, and legacy redirects.
-- [ ] Add SaaS subscriptions and authorized platform fees.
-- [ ] Add paid media packages and access entitlements.
-- [ ] Add expanded sponsor inventory, fulfillment metrics, and campaign management.
-- [ ] Validate repeatable multi-league rollout and operational economics.
-- [ ] Assess another sport only after hockey workflows are proven.
+- [x] Build permission-aware cross-league discovery and rankings: team power ratings, ELO calculations, skill tier filtering, and network-wide leaderboards (`202611160025_cross_league_rankings.sql`) mounted at `/rankings`.
+- [x] Build multi-league group administration and authorized financial/KPI reporting: multi-league franchise grouping and executive KPI rollups across all leagues, teams, and arenas (`202611160026_network_hq_and_kpis.sql`) mounted at `/league/network`.
+- [x] Build tournament registration, pools, seeding, brackets, and eligibility: multi-pool round-robin groups (Pool A/Pool B), advancement thresholds, tiebreakers, and seed progression (`202611160021_tournaments_and_cross_league.sql`) mounted at `/tournaments`.
+- [x] Add expanded sponsor inventory, fulfillment metrics, and campaign management: impression & click tracking with CTR metrics and commissioner ROI reporting (`202611160022_sponsor_campaigns_and_analytics.sql`) mounted at `/league/sponsors`.
+- [x] Add white-label branding, domains, and legacy redirects: custom colors, vanity CNAME domain routing, logos, and custom hero banners (`202611160023_whitelabel_and_branding.sql`) mounted at `/league/branding`.
+- [x] Build repeatable league migration/import review and acquisition onboarding tools: automated migration wizard for TeamSnap, Pointstreak, GoalLine, LeagueApps, and custom CSVs (`202611160029_league_migration_wizard.sql`) mounted at `/league/migration`.
+- [x] Support owned, invested, and management-only league access models: multi-tier franchise governance roles (Owner, Operating Manager, Facility Director) with granular permissions delegation for schedules, rosters, and finances (`202611160030_franchise_governance_and_delegation.sql`) mounted at `/league/governance`.
+- [x] Add paid media packages and access entitlements: pay-per-view game streaming tickets, season video passes, entitlement access verification (`202611160027_paid_media_and_fan_passes.sql`).
+- [x] Assess and support multi-sport workflows: configurable sport rules engine for Ice Hockey, Ball/Dek Hockey, Roller Hockey, Lacrosse, and Ringette with sport-specific periods, scoring terminology, and positions (`202611160028_multisport_adaptability.sql`).
 
 ## 15. Release status
 

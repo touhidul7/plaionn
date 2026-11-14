@@ -21,8 +21,35 @@ export default async function LeaguePage() {
           </Link>
           {data.canManage && (
             <>
+              <Link className="button" href="/league/governance">
+                Staff &amp; Governance
+              </Link>
+              <Link className="button" href="/league/migration">
+                Migration Wizard
+              </Link>
+              <Link className="button" href="/league/network">
+                Network HQ
+              </Link>
+              <Link className="button" href="/league/branding">
+                Branding &amp; Plan
+              </Link>
+              <Link className="button" href="/league/sponsors">
+                Sponsor ROI
+              </Link>
               <Link className="button" href="/league/billing">
                 Billing & Fees
+              </Link>
+              <Link className="button" href="/league/merchandise">
+                Jerseys &amp; Orders
+              </Link>
+              <Link className="button" href="/league/crm">
+                Waitlists &amp; CRM
+              </Link>
+              <Link className="button" href="/league/archive">
+                Archives
+              </Link>
+              <Link className="button" href="/league/officials">
+                Officials &amp; Payroll
               </Link>
               <Link className="button" href="/league/discipline">
                 Discipline &amp; Suspensions
