@@ -5,16 +5,10 @@ import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
-interface GovernanceRoleRow {
-  role_id: string;
+interface StaffRow {
   user_id: string;
   email: string;
-  governance_model: string;
-  can_manage_finances: boolean;
-  can_manage_schedules: boolean;
-  can_manage_rosters: boolean;
-  can_transfer_ownership: boolean;
-  assigned_at: string;
+  role: string;
 }
 
 export default async function LeagueGovernancePage() {
@@ -23,8 +17,8 @@ export default async function LeagueGovernancePage() {
   if (!canManage) {
     return (
       <section className="panel empty">
-        <h1>Franchise Governance &amp; Staff Roles</h1>
-        <p>Only league owners and commissioners may manage governance permissions.</p>
+        <h1>League Governance &amp; Staff Roles</h1>
+        <p>Only league commissioners may manage administrator and staff roles.</p>
         <Link className="button" href="/league">
           Back to League HQ
         </Link>
@@ -32,52 +26,67 @@ export default async function LeagueGovernancePage() {
     );
   }
 
-  // Fetch governance roles
-  const { data: teamRes } = await supabase.rpc("get_league_governance_team", {
+  // Fetch all staff & commissioners
+  const { data: staffData, error: staffError } = await supabase.rpc("get_league_staff_members", {
     target_league: league.id,
   });
 
-  const roles: GovernanceRoleRow[] = teamRes?.governance_roles || [];
+  const staffList: StaffRow[] = (!staffError && staffData) ? staffData : [];
 
-  async function assignRoleAction(formData: FormData) {
+  // Server Action: Add Admin / Staff by email
+  async function addStaffAction(formData: FormData) {
     "use server";
-    const targetEmail = formData.get("email") as string;
-    const model = formData.get("governanceModel") as string;
-    const canFinances = formData.get("canFinances") === "on";
-    const canSchedules = formData.get("canSchedules") === "on";
-    const canRosters = formData.get("canRosters") === "on";
+    const email = (formData.get("email") as string)?.trim();
+    const role = (formData.get("role") as string) || "commissioner";
+
+    if (!email) return;
 
     const { supabase: actionClient, league: actionLeague } = await getLeagueContext();
 
-    // Find user by email in auth
-    const { data: userData } = await actionClient
-      .from("league_memberships")
-      .select("user_id")
-      .eq("league_id", actionLeague.id)
-      .limit(1)
-      .maybeSingle();
+    await actionClient.rpc("add_league_member_by_email", {
+      target_league: actionLeague.id,
+      target_email: email,
+      target_role: role,
+    });
 
-    if (userData?.user_id) {
-      await actionClient.rpc("assign_governance_role", {
-        target_league: actionLeague.id,
-        target_user: userData.user_id,
-        p_model: model,
-        p_finances: canFinances,
-        p_schedules: canSchedules,
-        p_rosters: canRosters,
-        p_transfer: false,
-      });
-    }
     revalidatePath("/league/governance");
   }
+
+  // Server Action: Remove Admin / Staff
+  async function removeStaffAction(formData: FormData) {
+    "use server";
+    const targetUserId = formData.get("userId") as string;
+    const targetRole = formData.get("role") as string;
+
+    if (!targetUserId || !targetRole) return;
+
+    const { supabase: actionClient, league: actionLeague } = await getLeagueContext();
+
+    await actionClient.rpc("remove_league_member", {
+      target_league: actionLeague.id,
+      target_user: targetUserId,
+      target_role: targetRole,
+    });
+
+    revalidatePath("/league/governance");
+  }
+
+  const roleLabels: Record<string, string> = {
+    commissioner: "Commissioner (Full Administrator)",
+    referee: "Referee (Scoresheet Approval)",
+    timekeeper: "Timekeeper (Scorekeeping Console)",
+    finance: "Finance Operator",
+    media: "Media Manager",
+    captain: "Team Captain",
+  };
 
   return (
     <>
       <div className="page-heading">
         <div>
-          <p className="eyebrow">GOVERNANCE &amp; DELEGATION</p>
-          <h1>Franchise Governance &amp; Staff</h1>
-          <p>{league.name}</p>
+          <p className="eyebrow">GOVERNANCE &amp; STAFF</p>
+          <h1>Administrators &amp; Staff Management</h1>
+          <p>{league.name} · Appoint and manage league operational roles</p>
         </div>
         <div style={{ display: "flex", gap: "10px" }}>
           <Link href="/league" className="button">
@@ -86,102 +95,111 @@ export default async function LeagueGovernancePage() {
         </div>
       </div>
 
+      {/* 1. Active Administrators & Staff */}
       <div className="section-heading">
-        <h2>Appointed Operating Staff &amp; Directors</h2>
-        <span>Granular role assignments for facility managers, schedulers, and directors</span>
+        <h2>Active League Administrators &amp; Staff</h2>
+        <span>Commissioners and staff members with access to this league</span>
       </div>
 
-      <section className="panel" style={{ marginBottom: "2rem" }}>
-        {roles.length === 0 ? (
+      <section className="panel" style={{ marginBottom: "24px" }}>
+        {staffList.length === 0 ? (
           <div className="empty">
-            <p>No auxiliary governance roles assigned yet.</p>
-            <p className="hint">The league commissioner currently holds full operational oversight.</p>
+            <p>No auxiliary administrators assigned yet.</p>
           </div>
         ) : (
-          <div className="table-wrapper">
-            <table>
+          <div className="table-wrap">
+            <table className="table">
               <thead>
                 <tr>
-                  <th>Staff Member</th>
-                  <th>Governance Role</th>
-                  <th>Schedules</th>
-                  <th>Rosters</th>
-                  <th>Finances</th>
-                  <th>Assigned</th>
+                  <th>User Email</th>
+                  <th>Assigned Role</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {roles.map((r) => (
-                  <tr key={r.role_id}>
-                    <td>
-                      <strong>{r.email}</strong>
-                    </td>
-                    <td>
-                      <span className="badge info">
-                        {r.governance_model.replace(/_/g, " ").toUpperCase()}
-                      </span>
-                    </td>
-                    <td>{r.can_manage_schedules ? "✓ Yes" : "✕ No"}</td>
-                    <td>{r.can_manage_rosters ? "✓ Yes" : "✕ No"}</td>
-                    <td>{r.can_manage_finances ? "✓ Yes" : "✕ No"}</td>
-                    <td>{new Date(r.assigned_at).toLocaleDateString()}</td>
-                  </tr>
-                ))}
+                {staffList.map((m) => {
+                  const isCurrentUser = m.user_id === user.id;
+                  const isSoleCommissioner =
+                    m.role === "commissioner" &&
+                    staffList.filter((s) => s.role === "commissioner").length <= 1;
+
+                  return (
+                    <tr key={`${m.user_id}-${m.role}`}>
+                      <td>
+                        <strong>{m.email}</strong>
+                        {isCurrentUser && (
+                          <span className="badge" style={{ marginLeft: "8px", background: "rgba(199,244,80,0.15)", color: "var(--lime)" }}>
+                            You
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <span className="badge" style={{ background: m.role === "commissioner" ? "#23372b" : "#1a2e38", color: m.role === "commissioner" ? "var(--lime)" : "var(--text)" }}>
+                          {roleLabels[m.role] || m.role.toUpperCase()}
+                        </span>
+                      </td>
+                      <td>
+                        {isSoleCommissioner ? (
+                          <small style={{ color: "var(--muted)" }}>Sole Commissioner</small>
+                        ) : (
+                          <form action={removeStaffAction} style={{ margin: 0 }}>
+                            <input type="hidden" name="userId" value={m.user_id} />
+                            <input type="hidden" name="role" value={m.role} />
+                            <button
+                              type="submit"
+                              className="button button-sm button-danger"
+                              title="Revoke access"
+                            >
+                              Remove
+                            </button>
+                          </form>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </section>
 
+      {/* 2. Add Administrator or Staff Member */}
       <div className="section-heading">
-        <h2>Appoint Governance Role</h2>
-        <span>Delegate operational tasks to facility directors or coordinators</span>
+        <h2>Appoint New Administrator or Staff Member</h2>
+        <span>Grant commissioner, referee, timekeeper, or finance permissions by email</span>
       </div>
 
       <section className="panel">
-        <form action={assignRoleAction} style={{ display: "flex", flexDirection: "column", gap: "12px", maxWidth: "520px" }}>
-          <div>
-            <label style={{ display: "block", marginBottom: "4px", fontWeight: "bold" }}>Member Email</label>
+        <form action={addStaffAction} className="form-stack" style={{ maxWidth: "540px" }}>
+          <label>
+            User Email Address
             <input
               type="email"
               name="email"
-              placeholder="director@arena.com"
+              placeholder="e.g. colleague@league.com"
               required
-              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #ccc" }}
+              autoComplete="email"
             />
-          </div>
+          </label>
 
-          <div>
-            <label style={{ display: "block", marginBottom: "4px", fontWeight: "bold" }}>Governance Title</label>
-            <select
-              name="governanceModel"
-              defaultValue="facility_director"
-              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #ccc" }}
-            >
-              <option value="facility_director">Facility Director / Rink Manager</option>
-              <option value="operating_manager">Operating Manager</option>
-              <option value="investor">Investor / Silent Partner</option>
-              <option value="owner">Co-Owner</option>
+          <label>
+            Assigned Operational Role
+            <select name="role" defaultValue="commissioner">
+              <option value="commissioner">Commissioner (Full League Administrator Access)</option>
+              <option value="referee">Referee (Scoresheet Approval &amp; Game Verification)</option>
+              <option value="timekeeper">Timekeeper (Rink Scorekeeping Console)</option>
+              <option value="finance">Finance Operator (Billing &amp; Payment Settlements)</option>
+              <option value="media">Media Manager (Game Video &amp; Highlight Reels)</option>
             </select>
-          </div>
+          </label>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <input type="checkbox" name="canSchedules" defaultChecked />
-              <span>Can manage ice schedules and game times</span>
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <input type="checkbox" name="canRosters" defaultChecked />
-              <span>Can manage team rosters and player eligibility</span>
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <input type="checkbox" name="canFinances" />
-              <span>Can view and manage banking invoices and fee payouts</span>
-            </label>
-          </div>
+          <p style={{ fontSize: "12.5px", color: "var(--muted)", margin: "4px 0 12px" }}>
+            The person must already have an account on the platform (or sign up at <code>/login</code>). Once you appoint their email address, they will immediately have administrator access when signed in.
+          </p>
 
-          <button type="submit" className="button primary" style={{ alignSelf: "flex-start", marginTop: "8px" }}>
-            Appoint Staff Member
+          <button type="submit" className="button primary">
+            Appoint Administrator →
           </button>
         </form>
       </section>
