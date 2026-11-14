@@ -44,22 +44,28 @@ This guide takes you step-by-step through testing the PLAIONN platform using eit
 | **15** | **Discipline & Suspensions** | Visit `/league/discipline` (via League HQ). Review the **Official Disciplinary Ledger**. As commissioner, record major infractions and suspensions. As player, submit an appeal statement. As commissioner, review and uphold, reduce, or overturn the suspension. | Suspended players are dynamically flagged across the system (`is_player_suspended`), rendering them ineligible for game rosters until their suspension is served or overturned. |
 | **16** | **Spare & Emergency Goalie Pool** | Visit `/spares` (or click **🥅 Spares** in navigation). Filter by position (Goalies, Defense, Forwards). As a player, register availability and skill level. As commissioner or captain, dispatch game day call-up requests with temporary jersey numbers. As the spare, accept or decline the call-up. | Available substitutes and emergency goalies are instantly discoverable. Suspended players are blocked from receiving call-ups. Accepted call-ups appear on the game day roster. |
 | **17** | **League Announcements & Broadcasts** | Visit `/announcements` (or click **📢 Notices** in navigation). As commissioner, broadcast urgent weather alerts, rink delays, or team-scoped locker room notices. Configure priorities (`urgent`, `important`, `standard`) and auto-expiration timers. | Urgent broadcasts pin to the top with pulsing alerts. Locker room notices are scoped directly to the designated team. All active announcements are visible to fans and players. |
+| **18** | **Tactical Lineup Board** | On any scheduled game in `/schedule`, click **"Lineup"** (or `/schedule/[gameId]/lineup`). As captain, drag and drop players into forward lines (F1, F2, F3), defensive pairings (D1, D2, D3), and starting/backup goaltenders. | Lineups reflect player availability from RSVPs, warn if suspended or ineligible players are selected, and persist for official matchday rosters. |
+| **19** | **Player Hub Dashboard** | Visit `/dashboard` (or click **👤 Player Hub** in navigation). View your personal career statistics (G, A, PTS, PIM), upcoming match cards with 1-click RSVP buttons, active team rosters, outstanding dues balances, and signed league documents. | Unified personal view combines everything relevant to the signed-in player across all teams and leagues. |
+| **20** | **Privacy, Data Export & Consent** | Visit `/account/privacy` (via Account menu). Click **"Download JSON Archive"** to export all personal records. Revoke optional filming or marketing consents, or request account anonymization. | Structured personal data is exported cleanly; revocations are instantly saved while preserving immutable game sheet history. |
+| **21** | **System Health & Ledger Audits** | Visit `/league/health` (via League HQ). Review real-time diagnostic cards for Financial Ledger Invariants (`total = paid + balance`), scoresheet review alerts, dispatch queue health, and recent security audit trails. | The system proves 100% ledger invariant health with zero unassigned funds or overpayment anomalies. |
+| **22** | **Mobile Navigation Experience** | Open the application on a mobile device (or toggle responsive mobile mode in browser dev tools). | Enjoy a sleek 5-item bottom tab bar (Home, Schedule, Standings, Notices, More) with an accessible slide-up menu sheet for all additional league destinations. |
 
 ---
 
 ## 3. Database Migrations
 
-The project includes SQL migrations to be executed in the Supabase SQL Editor:
-1. `web/supabase/migrations/202611160001_onboarding_and_demo_access.sql`: Enables self-service league creation and 1-click commissioner demo access. *(Applied)*
-2. `web/supabase/migrations/202611160002_billing_and_invoices.sql`: Adds team & player invoices, payment logging, and balance tracking. *(Applied)*
-3. `web/supabase/migrations/202611160003_public_fan_access.sql`: Adds public guest access for schedules, standings, game center, and league overview without requiring sign-in. *(Applied)*
-4. `web/supabase/migrations/202611160004_game_attendance_rsvp.sql`: Adds game attendance, player RSVPs, headcount tracking, and goalie availability alerts. *(Applied)*
-5. `web/supabase/migrations/202611160005_player_and_goalie_stats.sql`: Adds season player scoring race & goaltending leaderboards computed directly from approved game event logs. *(Applied)*
-6. `web/supabase/migrations/202611160006_bulk_roster_import.sql`: Adds atomic bulk roster import from CSV/JSON with duplicate checks, position validation, limit guards, and audit history. *(Applied)*
-7. `web/supabase/migrations/202611160007_playoff_brackets.sql`: Adds standings-seeded tournament brackets, single elimination & best-of-3 series trees, score updates, and automated winner advancement. *(Applied)*
-8. `web/supabase/migrations/202611160008_discipline_and_suspensions.sql`: Adds disciplinary incidents, misconduct suspensions, player eligibility enforcement, player appeals, and commissioner rulings. *(Applied)*
-9. `web/supabase/migrations/202611160009_spare_goalie_callups.sql`: Adds spare player & goalie pool discovery, game day call-up requests, player responses, and suspension checks. *(Applied)*
-10. `web/supabase/migrations/202611160010_announcements_and_messaging.sql`: Adds priority broadcasts (urgent/important/standard), team locker room notices, expiration timers, and public feeds. *(Applied)*
+The project includes SQL migrations executed in the Supabase project:
+1. `202611160001_onboarding_and_demo_access.sql`: Self-service league creation and 1-click commissioner demo access.
+2. `202611160002_billing_and_invoices.sql`: Team & player invoices, payment logging, and balance tracking.
+3. `202611160003_public_fan_access.sql`: Public guest access for schedules, standings, game center, and league overview without requiring sign-in.
+4. `202611160004_game_attendance_rsvp.sql`: Game attendance, player RSVPs, headcount tracking, and goalie availability alerts.
+5. `202611160005_player_and_goalie_stats.sql`: Season player scoring race & goaltending leaderboards computed from approved game events.
+6. `202611160006_bulk_roster_import.sql`: Bulk roster import from CSV with duplicate checks, position validation, and limit guards.
+7. `202611160007_playoff_brackets.sql`: Standings-seeded tournament brackets, single elimination & best-of-3 series trees, and automated winner advancement.
+8. `202611160008_discipline_and_suspensions.sql`: Disciplinary incidents, misconduct suspensions, player eligibility enforcement, player appeals, and commissioner rulings.
+9. `202611160009_spare_goalie_callups.sql`: Spare player & goalie pool discovery, game day call-up requests, and player responses.
+10. `202611160010_announcements_and_messaging.sql`: Priority broadcasts (urgent/important/standard), team locker room notices, expiration timers, and public feeds.
+11. `202611160011` through `202611160038`: Advanced Phase 2-4 features, video highlight packages, cross-league rankings, enterprise KPI rollups, multi-sport engines, system health diagnostics, sliding-window rate limits, and dispatch queue monitoring.
 
 ---
 
