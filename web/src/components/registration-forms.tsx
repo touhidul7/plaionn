@@ -103,6 +103,31 @@ export function RegistrationForm({
         </label>
       </div>
 
+      {/* Team Preference & Payment Model Selection */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+        <label style={{ display: "grid", gap: "6px" }}>
+          <span style={{ fontWeight: 600 }}>Team Selection</span>
+          <input
+            name="preferred_team"
+            placeholder="Team name or 'Free Agent'"
+            defaultValue="Free Agent / Unassigned"
+          />
+        </label>
+
+        <label style={{ display: "grid", gap: "6px" }}>
+          <span style={{ fontWeight: 600 }}>Payment Method</span>
+          <select name="payment_preference" defaultValue="online_individual">
+            <option value="online_individual">Pay Online Individually (Card / Portal)</option>
+            <option value="offline_tracked">Pay Offline (e-Transfer / Cheque / Cash)</option>
+            <option value="manager_pays">Team Manager Pays on Behalf of Team</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="notice" style={{ borderRadius: "8px", fontSize: "12px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
+        ⚡ <strong>GoHighLevel Integration:</strong> Registration information and signed waivers are synchronized with the Plaionn Sports Group CRM subaccount.
+      </div>
+
       {!selectedSeason ? (
         <div className="notice" style={{ borderRadius: "8px", margin: "8px 0" }}>
           ℹ️ Select an available season above to review its policies and required waivers.

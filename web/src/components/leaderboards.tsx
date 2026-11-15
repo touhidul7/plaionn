@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { SkaterLeader, GoalieLeader } from "@/lib/leaderboards-schema";
 
 interface LeaderboardsProps {
@@ -41,7 +42,14 @@ export function SeasonLeaderboards({ skaters, goalies }: LeaderboardsProps) {
                   <tr key={player.player_id}>
                     <td><strong>{idx + 1}</strong></td>
                     <td>
-                      <strong>{player.display_name}</strong>
+                      <Link
+                        href={`/players/${player.player_id}`}
+                        className="text-link"
+                        style={{ fontWeight: 700 }}
+                        title={`View ${player.display_name} profile`}
+                      >
+                        {player.display_name}
+                      </Link>
                       {player.jersey_number !== null && (
                         <span style={{ opacity: 0.6, marginLeft: "0.35rem" }}>#{player.jersey_number}</span>
                       )}
@@ -95,7 +103,14 @@ export function SeasonLeaderboards({ skaters, goalies }: LeaderboardsProps) {
                   <tr key={goalie.player_id}>
                     <td><strong>{idx + 1}</strong></td>
                     <td>
-                      <strong>{goalie.display_name}</strong>
+                      <Link
+                        href={`/players/${goalie.player_id}`}
+                        className="text-link"
+                        style={{ fontWeight: 700 }}
+                        title={`View ${goalie.display_name} profile`}
+                      >
+                        {goalie.display_name}
+                      </Link>
                       {goalie.jersey_number !== null && (
                         <span style={{ opacity: 0.6, marginLeft: "0.35rem" }}>#{goalie.jersey_number}</span>
                       )}

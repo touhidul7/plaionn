@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import {useActionState} from "react";
 import {createPlayer,saveRoster,grantEligibilityOverride,revokeEligibilityOverride} from "@/app/(portal)/teams/roster-actions";
 import type {PlayerOption,RosterRow,TeamEligibility} from "@/lib/roster-schema";
@@ -10,7 +11,15 @@ export function PlayerForm(){
 export function RosterForm({entryId,players,row}:{entryId:string;players:PlayerOption[];row?:RosterRow}){
  const [state,action,pending]=useActionState(saveRoster,{error:false,message:"",revision:row?.revision??0});
  return <form action={action} className="panel form-stack">
- <h2>{row?players.find(p=>p.id===row.player_id)?.display_name??"Player":"Add an existing player"}</h2>
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <h2 style={{ margin: 0 }}>
+      {row ? (
+        <Link href={`/players/${row.player_id}`} className="text-link" title="View player profile">
+          {players.find(p=>p.id===row.player_id)?.display_name ?? "Player"} ↗
+        </Link>
+      ) : "Add an existing player"}
+    </h2>
+  </div>
  <input type="hidden" name="team_entry_id" value={entryId}/><input type="hidden" name="revision" value={state.revision}/>
  {row?<input type="hidden" name="player_id" value={row.player_id}/>:<label>Player<select name="player_id" required defaultValue=""><option value="" disabled>Select a player</option>{players.map(p=><option key={p.id} value={p.id}>{p.display_name} · {p.id.slice(0,8)}</option>)}</select></label>}
  <div className="settings-grid"><label>Jersey number<input name="jersey_number" type="number" min={0} max={99} step={1} defaultValue={row?.jersey_number??""}/></label>

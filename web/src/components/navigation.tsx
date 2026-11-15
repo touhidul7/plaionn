@@ -6,31 +6,26 @@ import { useState, useEffect } from "react";
 
 const desktopMemberLinks = [
   ["/", "⌂", "Home"],
-  ["/dashboard", "👤", "Player Hub"],
-  ["/announcements", "📢", "Notices"],
-  ["/league", "▣", "League HQ"],
   ["/schedule", "▦", "Schedules & Scores"],
   ["/standings", "▤", "Standings"],
-  ["/leaders", "🎯", "Leaders"],
-  ["/rankings", "⚡", "Rankings"],
+  ["/leaders", "🎯", "Stats & Leaders"],
+  ["/teams", "♧", "Team Pages"],
   ["/playoffs", "🏆", "Playoffs"],
-  ["/tournaments", "🏅", "Tournaments"],
-  ["/teams", "♧", "Teams"],
-  ["/spares", "🥅", "Spares"],
-  ["/free-agents", "👥", "Free Agents"],
+  ["/registration", "✍", "Registration"],
+  ["/announcements", "📢", "League Info"],
+  ["/league", "▣", "League HQ"],
   ["/account", "○", "Account"],
 ] as const;
 
 const desktopGuestLinks = [
   ["/", "⌂", "Home"],
-  ["/announcements", "📢", "Notices"],
   ["/schedule", "▦", "Schedules & Scores"],
   ["/standings", "▤", "Standings"],
-  ["/leaders", "🎯", "Leaders"],
-  ["/rankings", "⚡", "Rankings"],
+  ["/leaders", "🎯", "Stats & Leaders"],
+  ["/teams", "♧", "Team Pages"],
   ["/playoffs", "🏆", "Playoffs"],
-  ["/tournaments", "🏅", "Tournaments"],
-  ["/teams", "♧", "Teams"],
+  ["/registration", "✍", "Registration"],
+  ["/announcements", "📢", "League Info"],
   ["/login", "→", "Sign in"],
 ] as const;
 
@@ -38,29 +33,24 @@ const mobilePrimaryLinks = [
   { href: "/", icon: "⌂", label: "Home" },
   { href: "/schedule", icon: "▦", label: "Schedule" },
   { href: "/standings", icon: "▤", label: "Standings" },
-  { href: "/announcements", icon: "📢", label: "Notices" },
+  { href: "/leaders", icon: "🎯", label: "Stats" },
 ] as const;
 
 const drawerMemberLinks = [
-  { href: "/dashboard", icon: "👤", label: "Player Hub", description: "Personal stats, RSVP, and dues" },
-  { href: "/league", icon: "▣", label: "League HQ", description: "Commissioner & league operations" },
-  { href: "/leaders", icon: "🎯", label: "Leaders", description: "Skater & goalie leaderboards" },
-  { href: "/rankings", icon: "⚡", label: "Rankings", description: "Power rankings & team metrics" },
-  { href: "/playoffs", icon: "🏆", label: "Playoffs", description: "Tournament championship brackets" },
-  { href: "/tournaments", icon: "🏅", label: "Tournaments", description: "Cross-league tournament pools" },
-  { href: "/teams", icon: "♧", label: "Teams", description: "League directory & team rosters" },
-  { href: "/spares", icon: "🥅", label: "Spares", description: "Emergency goalie & sub call-ups" },
-  { href: "/free-agents", icon: "👥", label: "Free Agents", description: "Player discovery & open teams" },
-  { href: "/account", icon: "○", label: "Account", description: "Profile, notifications, and privacy" },
+  { href: "/teams", icon: "♧", label: "Team Pages", description: "League directory and active team rosters" },
+  { href: "/playoffs", icon: "🏆", label: "Playoffs", description: "Championship brackets and series scores" },
+  { href: "/registration", icon: "✍", label: "Registration", description: "Player registration and waivers" },
+  { href: "/announcements", icon: "📢", label: "League Info", description: "Official announcements and notices" },
+  { href: "/league", icon: "▣", label: "League HQ", description: "Commissioner administration and settings" },
+  { href: "/account", icon: "○", label: "Account", description: "Personal profile and preferences" },
 ] as const;
 
 const drawerGuestLinks = [
-  { href: "/leaders", icon: "🎯", label: "Leaders", description: "Skater & goalie leaderboards" },
-  { href: "/rankings", icon: "⚡", label: "Rankings", description: "Power rankings & team metrics" },
-  { href: "/playoffs", icon: "🏆", label: "Playoffs", description: "Tournament championship brackets" },
-  { href: "/tournaments", icon: "🏅", label: "Tournaments", description: "Cross-league tournament pools" },
-  { href: "/teams", icon: "♧", label: "Teams", description: "League directory & team rosters" },
-  { href: "/login", icon: "→", label: "Sign In", description: "Access your player or commissioner portal" },
+  { href: "/teams", icon: "♧", label: "Team Pages", description: "League directory and active team rosters" },
+  { href: "/playoffs", icon: "🏆", label: "Playoffs", description: "Championship brackets and series scores" },
+  { href: "/registration", icon: "✍", label: "Registration", description: "Player registration and waivers" },
+  { href: "/announcements", icon: "📢", label: "League Info", description: "Official announcements and notices" },
+  { href: "/login", icon: "→", label: "Sign In", description: "Access commissioner and member portal" },
 ] as const;
 
 export function Navigation({ isGuest }: { isGuest?: boolean }) {

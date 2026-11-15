@@ -153,7 +153,16 @@ export default async function StandingsPage({
                           {divisionRows.map((row) => (
                             <tr key={row.team_entry_id}>
                               <td><strong>{row.rank}</strong></td>
-                              <td><strong>{row.team_name}</strong></td>
+                              <td>
+                                <Link
+                                  href={`/teams/${row.team_entry_id}`}
+                                  className="text-link"
+                                  style={{ fontWeight: 700, fontSize: "0.95rem" }}
+                                  title={`View ${row.team_name} team page`}
+                                >
+                                  {row.team_name}
+                                </Link>
+                              </td>
                               <td>{row.games_played}</td>
                               <td>{row.wins}</td>
                               <td>{row.ties}</td>

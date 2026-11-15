@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Navigation } from "@/components/navigation";
 import { SponsorBanner } from "@/components/sponsor-banner";
+import { ScoresTicker } from "@/components/scores-ticker";
 import { getLeagueContext } from "@/lib/supabase/session";
 
 export default async function PortalLayout({
@@ -35,11 +36,14 @@ export default async function PortalLayout({
         </aside>
 
         <div>
+          <ScoresTicker />
           <header className="topbar">
             <Link className="mobile-brand" href="/">
               {league.name}
             </Link>
-            <span style={{ fontWeight: 700, letterSpacing: "-0.01em" }}>{league.name}</span>
+            <span style={{ fontWeight: 800, letterSpacing: "0.5px", fontSize: "13px" }}>
+              {league.name} <span style={{ opacity: 0.6, fontWeight: 400 }}>: Powered by PLAIONN</span>
+            </span>
             {user ? (
               <Link className="button button-sm" href="/account">
                 My account

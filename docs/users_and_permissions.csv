@@ -1,0 +1,43 @@
+Category,Module / Capability,Super Admin,Regular Admin,League Admin (Commissioner),Team Admin (Captain / Manager),Player,Timekeeper / Referee
+Platform & Governance,Create and Delete User Accounts,YES,NO,NO,NO,NO,NO
+Platform & Governance,Create New Leagues and Assign Commissioners,YES,YES,NO,NO,NO,NO
+Platform & Governance,Cross-League Enterprise Analytics & KPI Rollups,YES,YES,NO,NO,NO,NO
+Platform & Governance,White-Label Custom Domain & Brand Styling,YES,YES,YES,NO,NO,NO
+Platform & Governance,View System Health & Ledger Invariant Audits,YES,YES,YES,NO,NO,NO
+Platform & Governance,Appoint Auxiliary Admins and Staff by Email,YES,YES,YES,NO,NO,NO
+League Operations,Configure Season Rules Points and Tiebreakers,YES,YES,YES,NO,NO,NO
+League Operations,Define Arena Rinks and Ice Slot Inventory,YES,YES,YES,NO,NO,NO
+League Operations,Submit Team Blackout Dates,YES,YES,YES,YES (Own Team),NO,NO
+League Operations,Generate and Publish Conflict-Free Schedules,YES,YES,YES,NO,NO,NO
+League Operations,Post Urgent League Weather/Delay Notices,YES,YES,YES,NO,NO,NO
+League Operations,Post Team Locker Room Announcements,YES,YES,YES,YES (Own Team),NO,NO
+League Operations,Generate Standings-Seeded Playoff Trees,YES,YES,YES,NO,NO,NO
+Registration & Rosters,Publish Season Registration Windows,YES,YES,YES,NO,NO,NO
+Registration & Rosters,Upload and Version Legal Waivers (GoHighLevel),YES,YES,YES,NO,NO,NO
+Registration & Rosters,Review and Approve Player Applications,YES,YES,YES,NO,NO,NO
+Registration & Rosters,Manage Team Rosters and Assign Uniform Numbers,YES,YES,YES,YES (Own Team),NO,NO
+Registration & Rosters,Bulk Import Team Rosters via CSV,YES,YES,YES,YES (Own Team),NO,NO
+Registration & Rosters,Grant Audited Season Eligibility Overrides,YES,YES,YES,NO,NO,NO
+Registration & Rosters,Register as Free Agent or Emergency Goalie,YES,YES,YES,YES,YES,NO
+Registration & Rosters,Dispatch Game-Day Substitute Call-Up Requests,YES,YES,YES,YES (Own Team),NO,NO
+Matchday & Scoring,Assemble Tactical Forward and Defense Lineups,YES,YES,YES,YES (Own Team),NO,NO
+Matchday & Scoring,Submit Game Attendance RSVP and Notes,YES,YES,YES,YES,YES,NO
+Matchday & Scoring,Rink-Side Live Scorekeeping (Goals and Penalties),YES,YES,YES,NO,NO,YES
+Matchday & Scoring,Offline Rink Scorekeeping with Auto-Sync,YES,YES,YES,NO,NO,YES
+Matchday & Scoring,Void Erroneous Game Event with Stated Reason,YES,YES,YES,NO,NO,YES
+Matchday & Scoring,Submit Official Final Game Sheet,YES,YES,YES,NO,NO,YES
+Matchday & Scoring,Independent Referee Scoresheet Review & Approval,YES,YES,YES,NO,NO,YES (Referee)
+Matchday & Scoring,Reopen Approved Game with Documented Reason,YES,YES,YES,NO,NO,NO
+Matchday & Scoring,Award Official Three Stars of the Game,YES,YES,YES,NO,NO,YES
+Billing & Accounting,Issue League and Team Invoices,YES,YES,YES,NO,NO,NO
+Billing & Accounting,Select League Payment Model (Individual/Offline/Manager),YES,YES,YES,NO,NO,NO
+Billing & Accounting,Record Offline Payments (e-Transfer Cash Cheque),YES,YES,YES,NO,NO,NO
+Billing & Accounting,View Team Contribution Balances,YES,YES,YES,YES (Own Team),NO,NO
+Billing & Accounting,Pay Team Balance on Behalf of Team,YES,YES,YES,YES (Own Team),NO,NO
+Billing & Accounting,Pay Individual Player Registration Online,YES,YES,YES,YES,YES,NO
+Billing & Accounting,Export Officials Payroll Accounting CSV,YES,YES,YES,NO,NO,NO
+Discipline & Privacy,Log Infractions and Automatic Suspensions,YES,YES,YES,NO,NO,YES (Report)
+Discipline & Privacy,Submit Written Suspension Appeal Statement,NO,NO,NO,YES,YES,NO
+Discipline & Privacy,Review and Rule on Suspension Appeals,YES,YES,YES,NO,NO,NO
+Discipline & Privacy,Export Personal GDPR/CCPA Data Archive (JSON),YES,YES,YES,YES,YES,YES
+Discipline & Privacy,Revoke Marketing Filming or Public Profile Consents,YES,YES,YES,YES,YES,YES
