@@ -1,12 +1,77 @@
 import Link from "next/link";
-import { getVerifiedSession } from "@/lib/supabase/session";
+import { getOptionalSession, getLeagueContext } from "@/lib/supabase/session";
 import { RegistrationForm, RegistrationDecision } from "@/components/registration-forms";
 import { openSeasonsSchema } from "@/lib/registration-schema";
 
 export const dynamic = "force-dynamic";
 
 export default async function RegistrationPage() {
-  const { supabase, user } = await getVerifiedSession();
+  const { supabase, user } = await getOptionalSession();
+  const { league } = await getLeagueContext();
+
+  if (!user) {
+    return (
+      <div style={{ maxWidth: "860px", margin: "0 auto", padding: "20px 0" }}>
+        <div className="page-heading" style={{ marginBottom: "24px" }}>
+          <div>
+            <span className="badge" style={{ marginBottom: "8px" }}>
+              PLAYER REGISTRATION &amp; WAIVERS
+            </span>
+            <h1 style={{ fontSize: "28px", margin: "4px 0 6px" }}>Player Registration</h1>
+            <p style={{ margin: 0, color: "var(--muted)" }}>
+              {league.name} · Official player sign-up, digital waivers, and payment processing.
+            </p>
+          </div>
+        </div>
+
+        <section className="panel" style={{ padding: "32px", display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div>
+            <h2 style={{ fontSize: "20px", margin: "0 0 8px" }}>Welcome to Official Registration</h2>
+            <p style={{ color: "var(--muted)", margin: 0, lineHeight: 1.6 }}>
+              To register as a player for an active team, sign required liability waivers with instant GoHighLevel CRM sync, and complete your league payment, please sign in to your player account.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "16px",
+              padding: "16px 0",
+            }}
+          >
+            <div style={{ padding: "16px", background: "#0c1822", borderRadius: "10px", border: "1px solid var(--line)" }}>
+              <div style={{ fontSize: "22px", marginBottom: "6px" }}>1️⃣</div>
+              <strong style={{ display: "block", fontSize: "14px", color: "var(--text)" }}>Select Team</strong>
+              <small style={{ color: "var(--muted)" }}>Choose your registered club and roster spot.</small>
+            </div>
+
+            <div style={{ padding: "16px", background: "#0c1822", borderRadius: "10px", border: "1px solid var(--line)" }}>
+              <div style={{ fontSize: "22px", marginBottom: "6px" }}>2️⃣</div>
+              <strong style={{ display: "block", fontSize: "14px", color: "var(--text)" }}>Digital Waiver</strong>
+              <small style={{ color: "var(--muted)" }}>Instant liability consent synced to GoHighLevel CRM.</small>
+            </div>
+
+            <div style={{ padding: "16px", background: "#0c1822", borderRadius: "10px", border: "1px solid var(--line)" }}>
+              <div style={{ fontSize: "22px", marginBottom: "6px" }}>3️⃣</div>
+              <strong style={{ display: "block", fontSize: "14px", color: "var(--text)" }}>Flexible Payment</strong>
+              <small style={{ color: "var(--muted)" }}>Individual online pay, team manager pay, or offline.</small>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: "12px", paddingTop: "8px" }}>
+            <Link href="/login?next=/registration" className="button primary" style={{ padding: "12px 28px" }}>
+              Sign In to Register Player ↗
+            </Link>
+            <Link href="/teams" className="button button-outline" style={{ padding: "12px 24px" }}>
+              Browse Teams
+            </Link>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   const [available, profile, requests] = await Promise.all([
     supabase.rpc("open_registration_seasons"),
     supabase.from("players").select("display_name").eq("owner_user_id", user.id).maybeSingle(),

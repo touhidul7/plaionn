@@ -35,17 +35,6 @@ export default async function TeamRosterPage({
     .single();
 
   if (team.error) throw new Error("Unable to load this team.");
-  if (!canManage) {
-    return (
-      <section className="panel empty">
-        <h1>{team.data.name}</h1>
-        <p>Private roster management is currently available to league commissioners and captains.</p>
-        <Link href="/teams" className="button">
-          Back to teams
-        </Link>
-      </section>
-    );
-  }
 
   const division = await supabase
     .from("divisions")
@@ -215,84 +204,130 @@ export default async function TeamRosterPage({
         </p>
       )}
 
-      <RosterCsvImportModal
-        entryId={entryId}
-        existingRoster={roster.data.map((r) => ({
-          jersey_number: r.jersey_number,
-          status: r.status,
-          display_name: players.find((p) => p.id === r.player_id)?.display_name ?? "Player",
-        }))}
-        rosterLimit={settings.data?.roster_limit ?? 25}
-      />
-
-      <div className="roster-create">
-        <PlayerForm />
-        <RosterForm
-          key={available.map((p) => p.id).join(",")}
-          entryId={entryId}
-          players={available}
-        />
-      </div>
-
-      <div className="section-heading">
-        <h2>Players</h2>
-        <span>Deactivate players to retain their history</span>
-      </div>
-
-      {sorted.length ? (
-        <div className="roster-list">
-          {sorted.map((row) => (
-            <RosterForm
-              key={row.id + ":" + row.revision}
-              entryId={entryId}
-              players={players}
-              row={row}
-            />
-          ))}
+      {/* 1. Public Verified Roster Table */}
+      <section className="panel" style={{ padding: 0, overflow: "hidden", marginBottom: "32px" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--line)" }}>
+          <h2 style={{ fontSize: "16px", margin: 0 }}>Official Active Roster</h2>
         </div>
-      ) : (
-        <section className="panel empty">
-          <h2>Your roster is empty.</h2>
-          <p>Create a player profile or select an existing player to get started.</p>
-        </section>
-      )}
+        {sorted.length ? (
+          <table className="table" style={{ width: "100%", margin: 0 }}>
+            <thead>
+              <tr>
+                <th style={{ width: "70px" }}>#</th>
+                <th>Player Name</th>
+                <th>Position</th>
+                <th style={{ textAlign: "right" }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((r) => {
+                const pName = players.find((p) => p.id === r.player_id)?.display_name ?? "Player";
+                return (
+                  <tr key={r.id}>
+                    <td style={{ fontWeight: 800, color: "var(--lime)" }}>
+                      {r.jersey_number ? `#${r.jersey_number}` : "—"}
+                    </td>
+                    <td style={{ fontWeight: 800 }}>
+                      <Link href={`/players/${r.player_id}`} className="text-link">
+                        {pName}
+                      </Link>
+                    </td>
+                    <td>{r.position ? r.position.toUpperCase() : "SKATER"}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <span className="badge" style={{ fontSize: "10px" }}>
+                        {r.status.toUpperCase()}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <div style={{ padding: "32px", textAlign: "center", color: "var(--muted)" }}>
+            No players assigned to this roster yet.
+          </div>
+        )}
+      </section>
 
-      <div className="section-heading">
-        <h2>Game eligibility</h2>
-        <span>Commissioner overrides require a reason and remain audited</span>
-      </div>
+      {/* 2. Commissioner Management Controls (Only visible to managers) */}
+      {canManage && (
+        <>
+          <RosterCsvImportModal
+            entryId={entryId}
+            existingRoster={roster.data.map((r) => ({
+              jersey_number: r.jersey_number,
+              status: r.status,
+              display_name: players.find((p) => p.id === r.player_id)?.display_name ?? "Player",
+            }))}
+            rosterLimit={settings.data?.roster_limit ?? 25}
+          />
 
-      <div className="roster-list">
-        {eligibility.data.map((row) => (
-          <EligibilityCard key={row.roster_membership_id} entryId={entryId} eligibility={row} />
-        ))}
-      </div>
+          <div className="roster-create">
+            <PlayerForm />
+            <RosterForm
+              key={available.map((p) => p.id).join(",")}
+              entryId={entryId}
+              players={available}
+            />
+          </div>
 
-      {!!overrides.data.length && (
-        <section className="panel">
-          <h2>Eligibility override history</h2>
-          {overrides.data.map((override) => (
-            <div className="list-row" key={override.id}>
-              <strong>
-                {players.find(
-                  (player) =>
-                    player.id ===
-                    roster.data.find((row) => row.id === override.roster_membership_id)?.player_id
-                )?.display_name ?? "Player"}
-              </strong>
-              <p>
-                Granted {override.granted_at} by {override.granted_by.slice(0, 8)}:{" "}
-                {override.reason}
-              </p>
-              {override.revoked_at && (
-                <p>
-                  Revoked {override.revoked_at} by {override.revoked_by?.slice(0, 8)}:{" "}
-                  {override.revocation_reason}
-                </p>
-              )}
+          <div className="section-heading">
+            <h2>Manage Player Numbers &amp; Status</h2>
+            <span>Deactivate players to retain their history</span>
+          </div>
+
+          {sorted.length ? (
+            <div className="roster-list">
+              {sorted.map((row) => (
+                <RosterForm
+                  key={row.id + ":" + row.revision}
+                  entryId={entryId}
+                  players={players}
+                  row={row}
+                />
+              ))}
             </div>
-          ))}
-        </section>
+          ) : null}
+
+          <div className="section-heading">
+            <h2>Game eligibility</h2>
+            <span>Commissioner overrides require a reason and remain audited</span>
+          </div>
+
+          <div className="roster-list">
+            {eligibility.data.map((row) => (
+              <EligibilityCard key={row.roster_membership_id} entryId={entryId} eligibility={row} />
+            ))}
+          </div>
+
+          {!!overrides.data.length && (
+            <section className="panel">
+              <h2>Eligibility override history</h2>
+              {overrides.data.map((override) => (
+                <div className="list-row" key={override.id}>
+                  <strong>
+                    {players.find(
+                      (player) =>
+                        player.id ===
+                        roster.data.find((row) => row.id === override.roster_membership_id)?.player_id
+                    )?.display_name ?? "Player"}
+                  </strong>
+                  <p>
+                    Granted {override.granted_at} by {override.granted_by.slice(0, 8)}:{" "}
+                    {override.reason}
+                  </p>
+                  {override.revoked_at && (
+                    <p>
+                      Revoked {override.revoked_at} by {override.revoked_by?.slice(0, 8)}:{" "}
+                      {override.revocation_reason}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </section>
+          )}
+        </>
       )}
     </>
   );
