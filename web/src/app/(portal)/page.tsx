@@ -47,12 +47,12 @@ export default async function Home({
 
   return (
     <>
-      {/* 1. WAHL-Style Full-Width Public Hero Banner (Matches Client Screenshot) */}
-      <section className="wahl-hero">
-        <h1 className="wahl-hero-title">
+      {/* 1. Plaionn Full-Width Public Hero Banner (Dark Slate & Lime) */}
+      <section className="plaionn-hero">
+        <h1 className="plaionn-hero-title">
           — WELCOME TO {data.league.name.toUpperCase()} —
         </h1>
-        <Link className="wahl-hero-btn" href="/teams">
+        <Link className="plaionn-hero-btn" href="/teams">
           Team Pages
         </Link>
       </section>

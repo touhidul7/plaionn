@@ -2,9 +2,8 @@ import { getLeagueContext } from "@/lib/supabase/session";
 import { PublicHeaderClient, type TickerGameItem } from "./public-header-client";
 
 export async function PublicHeader() {
-  const { supabase, league, user, canManage, leagueId } = await getLeagueContext();
+  const { supabase, league, user, canManage } = await getLeagueContext();
 
-  // Try to fetch public games with real scores
   let games: TickerGameItem[] = [];
 
   try {
@@ -15,14 +14,17 @@ export async function PublicHeader() {
     if (publicGamesData && Array.isArray(publicGamesData) && publicGamesData.length > 0) {
       games = publicGamesData.slice(0, 10).map((g: any) => ({
         id: g.game_id || g.id,
-        startsAt: new Date(g.starts_at).toLocaleDateString(undefined, {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-        }) + " @ " + new Date(g.starts_at).toLocaleTimeString(undefined, {
-          hour: "numeric",
-          minute: "2-digit",
-        }),
+        startsAt:
+          new Date(g.starts_at).toLocaleDateString(undefined, {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          }) +
+          " @ " +
+          new Date(g.starts_at).toLocaleTimeString(undefined, {
+            hour: "numeric",
+            minute: "2-digit",
+          }),
         status: g.status,
         homeTeam: g.home_team_name ?? "Home",
         awayTeam: g.away_team_name ?? "Away",
@@ -30,65 +32,49 @@ export async function PublicHeader() {
         awayScore: g.away_score,
         arena: g.venue_name ? `${g.venue_name} - ${g.rink_name ?? "Main"}` : "Arena",
       }));
+    } else {
+      // Fallback query to games table
+      const { data: rawGames } = await supabase
+        .from("games")
+        .select("id, starts_at, status, home_entry_id, away_entry_id, rink_id")
+        .eq("league_id", league.id)
+        .order("starts_at", { ascending: false })
+        .limit(8);
+
+      if (rawGames && rawGames.length > 0) {
+        const { data: teamEntries } = await supabase
+          .from("team_entries")
+          .select("id, teams(name)")
+          .eq("league_id", league.id);
+
+        const entries = (teamEntries as any[]) || [];
+        const getName = (id: string) =>
+          entries.find((e) => e.id === id)?.teams?.name ?? "Team";
+
+        games = rawGames.map((g) => ({
+          id: g.id,
+          startsAt:
+            new Date(g.starts_at).toLocaleDateString(undefined, {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            }) +
+            " @ " +
+            new Date(g.starts_at).toLocaleTimeString(undefined, {
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+          status: g.status,
+          homeTeam: getName(g.home_entry_id),
+          awayTeam: getName(g.away_entry_id),
+          homeScore: null,
+          awayScore: null,
+          arena: "Rink Arena",
+        }));
+      }
     }
   } catch {
-    // Graceful fallback to demo games if RPC not present
-  }
-
-  // If database games are empty or sparse, provide realistic league ticker games (WAHL sample from client notes)
-  if (games.length === 0) {
-    games = [
-      {
-        id: "demo-game-1",
-        startsAt: "THU NOV 13 @ 9:45 PM",
-        status: "final",
-        awayTeam: "Thunder Puck",
-        homeTeam: "SO25",
-        awayScore: 4,
-        homeScore: 3,
-        arena: "Mr. Lube & Tires Arena - Red",
-      },
-      {
-        id: "demo-game-2",
-        startsAt: "THU NOV 13 @ 10:00 PM",
-        status: "final",
-        awayTeam: "Big Deals",
-        homeTeam: "Richards",
-        awayScore: 5,
-        homeScore: 0,
-        arena: "Mr. Lube & Tires Arena - Black",
-      },
-      {
-        id: "demo-game-3",
-        startsAt: "THU NOV 13 @ 10:45 PM",
-        status: "final",
-        awayTeam: "Black Bull Mud Dawgs",
-        homeTeam: "Stingers",
-        awayScore: 6,
-        homeScore: 2,
-        arena: "Mr. Lube & Tires Arena - Red",
-      },
-      {
-        id: "demo-game-4",
-        startsAt: "THU NOV 13 @ 11:00 PM",
-        status: "final",
-        awayTeam: "Morning Sherwoods",
-        homeTeam: "Seal Team Sticks",
-        awayScore: 3,
-        homeScore: 2,
-        arena: "Mr. Lube & Tires Arena - Black",
-      },
-      {
-        id: "demo-game-5",
-        startsAt: "FRI NOV 14 @ 8:30 PM",
-        status: "scheduled",
-        awayTeam: "Northline HC",
-        homeTeam: "Metro Chiefs",
-        awayScore: null,
-        homeScore: null,
-        arena: "Community Center Rink 1",
-      },
-    ];
+    // Graceful fallback
   }
 
   return (
@@ -97,7 +83,6 @@ export async function PublicHeader() {
       games={games}
       user={user}
       canManage={canManage}
-      currentLeagueId={leagueId}
     />
   );
 }

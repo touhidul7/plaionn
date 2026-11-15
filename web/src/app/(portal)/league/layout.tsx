@@ -31,8 +31,8 @@ export default async function LeagueAdminLayout({
               width: "42px",
               height: "42px",
               borderRadius: "10px",
-              background: "#10b981",
-              color: "#06281e",
+              background: "var(--lime)",
+              color: "#091219",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -44,7 +44,7 @@ export default async function LeagueAdminLayout({
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "11px", fontWeight: 800, letterSpacing: "1.5px", color: "#10b981", textTransform: "uppercase" }}>
+              <span style={{ fontSize: "11px", fontWeight: 800, letterSpacing: "1.5px", color: "var(--lime)", textTransform: "uppercase" }}>
                 Commissioner Management Console
               </span>
               <span className="badge" style={{ fontSize: "10px", padding: "1px 6px" }}>
@@ -61,7 +61,7 @@ export default async function LeagueAdminLayout({
           <Link href="/" className="button button-sm button-outline">
             ← View Public League Site
           </Link>
-          <Link href="/admin" className="button button-sm" style={{ background: "#4f46e5", color: "#fff" }}>
+          <Link href="/admin" className="button button-sm button-outline">
             Super Admin Platform ↗
           </Link>
         </div>

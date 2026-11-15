@@ -89,8 +89,8 @@ export default async function AdminManagementPage() {
       {/* Super Admin Top Header */}
       <section
         style={{
-          background: "linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)",
-          border: "1px solid #3730a3",
+          background: "#0c1921",
+          border: "1px solid var(--line)",
           borderRadius: "14px",
           padding: "24px 30px",
           display: "flex",
@@ -104,7 +104,7 @@ export default async function AdminManagementPage() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
             <span
               className="badge"
-              style={{ background: "#4f46e5", color: "#ffffff", fontWeight: 800, letterSpacing: "1px" }}
+              style={{ background: "rgba(199, 244, 80, 0.15)", color: "var(--lime)", fontWeight: 800, letterSpacing: "1px" }}
             >
               CENTRAL MANAGEMENT BACKEND
             </span>
@@ -112,19 +112,19 @@ export default async function AdminManagementPage() {
               Access: Super Admin &amp; Regular Admin
             </span>
           </div>
-          <h1 style={{ margin: 0, fontSize: "26px", color: "#ffffff" }}>
+          <h1 style={{ margin: 0, fontSize: "26px", color: "var(--text)" }}>
             PLAIONN Multi-League Administrator Console
           </h1>
-          <p style={{ margin: "6px 0 0", color: "#c7d2fe", fontSize: "14px", maxWidth: "800px" }}>
+          <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: "14px", maxWidth: "800px" }}>
             Manage independent sports leagues, configure dedicated domain routing (e.g. bhl.com, chl.com), appoint commissioners, and enforce platform-wide role permissions.
           </p>
         </div>
 
         <div style={{ display: "flex", gap: "10px" }}>
-          <Link href="/plaionn" className="button button-outline" style={{ borderColor: "#6366f1", color: "#e0e7ff" }}>
+          <Link href="/plaionn" className="button button-outline" style={{ fontSize: "13px" }}>
             Plaionn Public Site (plaionn.com) ↗
           </Link>
-          <Link href="/" className="button primary">
+          <Link href="/" className="button primary" style={{ fontSize: "13px" }}>
             View Current League Portal →
           </Link>
         </div>

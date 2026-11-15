@@ -3,24 +3,24 @@ import Link from "next/link";
 export default function PlaionnPlatformPage() {
   const showcaseLeagues = [
     {
-      name: "Wave Adult Hockey League (WAHL)",
-      acronym: "WAHL",
-      domain: "waveadulthockeyleague.ca",
-      description: "Premier adult hockey league featuring full live scoreboard, schedule, standings, and team pages.",
+      name: "PLAIONN Premier League",
+      acronym: "PLAIONN",
+      domain: "plaionn.com",
+      description: "Flagship hockey league featuring real-time scoreboard, automated schedules, and verified player statistics.",
       teams: 12,
-      seasons: "Winter 2026, Winter 2025, Summer 2026",
+      seasons: "Winter 2026, Summer 2025",
       featured: true,
-      color: "#0284c7",
+      color: "var(--lime)",
     },
     {
       name: "Bangladesh Hockey League (BHL)",
       acronym: "BHL",
       domain: "bhl.com",
-      description: "Official National Hockey Championship network with player registration and digital waivers.",
+      description: "Official National Hockey Championship network with player registration and GoHighLevel digital waivers.",
       teams: 8,
       seasons: "Winter 2026, Summer 2025",
       featured: true,
-      color: "#16a34a",
+      color: "#10b981",
     },
     {
       name: "Canada Hockey League (CHL)",
@@ -30,17 +30,17 @@ export default function PlaionnPlatformPage() {
       teams: 16,
       seasons: "Winter 2026, Fall 2025",
       featured: false,
-      color: "#dc2626",
+      color: "#f59e0b",
     },
     {
-      name: "Italy Hockey League (IHL)",
-      acronym: "IHL",
-      domain: "ihl.com",
-      description: "European regional tournament and league management with automated rink scheduling.",
-      teams: 6,
+      name: "Wave Adult Hockey League (WAHL)",
+      acronym: "WAHL",
+      domain: "waveadulthockeyleague.ca",
+      description: "Adult recreational circuit with custom top scores ticker and horizontal navigation.",
+      teams: 10,
       seasons: "Winter 2026",
       featured: false,
-      color: "#2563eb",
+      color: "#60a5fa",
     },
   ];
 
@@ -118,7 +118,7 @@ export default function PlaionnPlatformPage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          <Link href="/admin" className="button button-sm" style={{ background: "#4f46e5", color: "#ffffff" }}>
+          <Link href="/admin" className="button button-sm button-outline">
             Super Admin Console ↗
           </Link>
           <Link href="/login" className="button button-sm primary">
@@ -296,8 +296,8 @@ export default function PlaionnPlatformPage() {
       {/* 5. Call To Action Footer Banner */}
       <section
         style={{
-          background: "linear-gradient(135deg, #0e2a47 0%, #07121b 100%)",
-          border: "1px solid #1f4268",
+          background: "#0c1921",
+          border: "1px solid var(--line)",
           borderRadius: "16px",
           padding: "40px",
           textAlign: "center",
@@ -308,10 +308,10 @@ export default function PlaionnPlatformPage() {
           marginBottom: "40px",
         }}
       >
-        <h2 style={{ margin: 0, fontSize: "26px", color: "#ffffff" }}>
+        <h2 style={{ margin: 0, fontSize: "26px", color: "var(--text)" }}>
           Ready to launch your league on PLAIONN?
         </h2>
-        <p style={{ margin: 0, color: "#94a3b8", fontSize: "15px", maxWidth: "600px" }}>
+        <p style={{ margin: 0, color: "var(--muted)", fontSize: "15px", maxWidth: "600px" }}>
           Create your league, configure your custom domain, and launch a branded public website in minutes.
         </p>
         <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>

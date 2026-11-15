@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState, useRef } from "react";
 
 export interface TickerGameItem {
@@ -20,46 +20,26 @@ interface PublicHeaderClientProps {
   games: TickerGameItem[];
   user: any;
   canManage: boolean;
-  currentLeagueId?: string;
 }
-
-const PRESET_LEAGUES = [
-  { id: "60000000-0000-4000-8000-000000000001", name: "Wave Adult Hockey League (WAHL)", abbr: "WAHL", domain: "waveadulthockeyleague.ca" },
-  { id: "60000000-0000-4000-8000-000000000002", name: "Bangladesh Hockey League (BHL)", abbr: "BHL", domain: "bhl.com" },
-  { id: "60000000-0000-4000-8000-000000000003", name: "Canada Hockey League (CHL)", abbr: "CHL", domain: "chl.com" },
-  { id: "60000000-0000-4000-8000-000000000004", name: "Italy Hockey League (IHL)", abbr: "IHL", domain: "ihl.com" },
-];
 
 export function PublicHeaderClient({
   leagueName,
   games,
   user,
   canManage,
-  currentLeagueId,
 }: PublicHeaderClientProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Compute acronym/short mark
-  const words = (leagueName || "WAHL").split(/\s+/).filter(Boolean);
-  const acronym =
-    words.length > 1
-      ? words.map((w) => w[0]).join("").toUpperCase().slice(0, 4)
-      : leagueName.slice(0, 4).toUpperCase();
+  // Dynamic league initial (e.g. "B" for BHL, "P" for Plaionn)
+  const leagueInitial = (leagueName || "P").trim().charAt(0).toUpperCase();
 
   const scrollTicker = (direction: "left" | "right") => {
     if (scrollRef.current) {
       const offset = direction === "left" ? -300 : 300;
       scrollRef.current.scrollBy({ left: offset, behavior: "smooth" });
     }
-  };
-
-  const handleLeagueChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedId = e.target.value;
-    document.cookie = `plaionn-league=${selectedId}; path=/; max-age=31536000`;
-    router.refresh();
   };
 
   const navLinks = [
@@ -74,97 +54,107 @@ export function PublicHeaderClient({
   ];
 
   return (
-    <header className="wahl-header-wrap">
-      {/* 1. TOP TICKER ROW (WAHL reference: Slanted puck logo on left + score cards) */}
-      <div className="wahl-header-top">
-        <Link href="/" className="wahl-brand-wedge" title={`Visit ${leagueName} Home`}>
-          <div className="wahl-puck-logo" aria-hidden="true">
-            {acronym}
+    <header className="plaionn-header-wrap">
+      {/* 1. TOP TICKER ROW (Plaionn Obsidian & Lime Design) */}
+      <div className="plaionn-header-top">
+        <Link href="/" className="plaionn-brand-wedge" title={`Visit ${leagueName} Home`}>
+          <div className="plaionn-brand-logo" aria-hidden="true">
+            {leagueInitial}
           </div>
-          <div className="wahl-brand-text">
-            <span className="wahl-brand-name">{leagueName}</span>
-            <span className="wahl-brand-sub">Powered by Plaionn</span>
+          <div className="plaionn-brand-text">
+            <span className="plaionn-brand-name">{leagueName}</span>
+            <span className="plaionn-brand-sub">Powered by Plaionn</span>
           </div>
         </Link>
 
         {/* Ticker Track with Prev/Next controls */}
-        <div className="wahl-ticker-container" aria-label="Scores Ticker">
-          <button
-            type="button"
-            className="wahl-ticker-arrow"
-            onClick={() => scrollTicker("left")}
-            aria-label="Scroll scores left"
-          >
-            ‹
-          </button>
+        <div className="plaionn-ticker-container" aria-label="Scores Ticker">
+          {games.length > 0 && (
+            <button
+              type="button"
+              className="plaionn-ticker-arrow"
+              onClick={() => scrollTicker("left")}
+              aria-label="Scroll scores left"
+            >
+              ‹
+            </button>
+          )}
 
-          <div className="wahl-ticker-scroll" ref={scrollRef}>
-            {games.map((g) => {
-              const isFinal = g.status === "completed" || g.status === "final";
-              const isLive = g.status === "in_progress" || g.status === "live";
+          <div className="plaionn-ticker-scroll" ref={scrollRef}>
+            {games.length === 0 ? (
+              <div style={{ padding: "8px 16px", fontSize: "12px", color: "var(--muted)" }}>
+                No games scheduled currently. League games will update live here.
+              </div>
+            ) : (
+              games.map((g) => {
+                const isFinal = g.status === "completed" || g.status === "final";
+                const isLive = g.status === "in_progress" || g.status === "live";
 
-              return (
-                <Link
-                  key={g.id}
-                  href={`/schedule/${g.id}/live`}
-                  className="wahl-game-card"
-                  title={`${g.awayTeam} vs ${g.homeTeam}`}
-                >
-                  <div className="wahl-game-meta">
-                    <span className="wahl-game-date">{g.startsAt}</span>
-                    <span
-                      className={`wahl-game-badge ${
-                        isLive ? "live" : isFinal ? "final" : ""
-                      }`}
-                    >
-                      {isLive ? "LIVE" : isFinal ? "FINAL" : "SCHEDULED"}
-                    </span>
-                  </div>
-
-                  <div className="wahl-game-teams">
-                    <div className="wahl-game-team-row">
-                      <span>{g.awayTeam}</span>
-                      <span className="score">
-                        {typeof g.awayScore === "number" ? g.awayScore : "—"}
+                return (
+                  <Link
+                    key={g.id}
+                    href={`/schedule/${g.id}/live`}
+                    className="plaionn-game-card"
+                    title={`${g.awayTeam} vs ${g.homeTeam}`}
+                  >
+                    <div className="plaionn-game-meta">
+                      <span className="plaionn-game-date">{g.startsAt}</span>
+                      <span
+                        className={`plaionn-game-badge ${
+                          isLive ? "live" : isFinal ? "final" : ""
+                        }`}
+                      >
+                        {isLive ? "LIVE" : isFinal ? "FINAL" : "SCHEDULED"}
                       </span>
                     </div>
-                    <div className="wahl-game-team-row">
-                      <span>{g.homeTeam}</span>
-                      <span className="score">
-                        {typeof g.homeScore === "number" ? g.homeScore : "—"}
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="wahl-game-arena">{g.arena}</div>
-                </Link>
-              );
-            })}
+                    <div className="plaionn-game-teams">
+                      <div className="plaionn-game-team-row">
+                        <span>{g.awayTeam}</span>
+                        <span className="score">
+                          {typeof g.awayScore === "number" ? g.awayScore : "—"}
+                        </span>
+                      </div>
+                      <div className="plaionn-game-team-row">
+                        <span>{g.homeTeam}</span>
+                        <span className="score">
+                          {typeof g.homeScore === "number" ? g.homeScore : "—"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="plaionn-game-arena">{g.arena}</div>
+                  </Link>
+                );
+              })
+            )}
           </div>
 
-          <button
-            type="button"
-            className="wahl-ticker-arrow"
-            onClick={() => scrollTicker("right")}
-            aria-label="Scroll scores right"
-          >
-            ›
-          </button>
+          {games.length > 0 && (
+            <button
+              type="button"
+              className="plaionn-ticker-arrow"
+              onClick={() => scrollTicker("right")}
+              aria-label="Scroll scores right"
+            >
+              ›
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 2. HORIZONTAL ROYAL BLUE NAVIGATION BAR */}
-      <nav className="wahl-navbar" aria-label="League Navigation">
+      {/* 2. HORIZONTAL PLAIONN SLATE & LIME NAVIGATION BAR */}
+      <nav className="plaionn-navbar" aria-label="League Navigation">
         <button
           type="button"
-          className="wahl-mobile-menu-btn"
+          className="plaionn-mobile-menu-btn"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Toggle Navigation Menu"
         >
           {mobileOpen ? "✕" : "☰"}
         </button>
 
-        <ul className={`wahl-nav-menu ${mobileOpen ? "open" : ""}`}>
+        <ul className={`plaionn-nav-menu ${mobileOpen ? "open" : ""}`}>
           {navLinks.map((link) => {
             const isActive =
               link.href === "/"
@@ -172,7 +162,7 @@ export function PublicHeaderClient({
                 : pathname.startsWith(link.href.split("?")[0]);
 
             return (
-              <li key={link.href} className="wahl-nav-item">
+              <li key={link.href} className="plaionn-nav-item">
                 <Link
                   href={link.href}
                   className={isActive ? "active" : ""}
@@ -185,30 +175,21 @@ export function PublicHeaderClient({
           })}
         </ul>
 
-        {/* Right side actions: League switcher, Admin Login & Management */}
-        <div className="wahl-nav-right">
-          {/* League Switcher (demonstrating multi-tenancy: BHL, WAHL, CHL, IHL) */}
-          <select
-            className="wahl-league-select"
-            value={currentLeagueId || "60000000-0000-4000-8000-000000000001"}
-            onChange={handleLeagueChange}
-            title="Switch Branded League"
-            aria-label="Select League"
-          >
-            {PRESET_LEAGUES.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.abbr} ({l.domain})
-              </option>
-            ))}
-          </select>
-
+        {/* Right side actions: Admin Login & Management */}
+        <div className="plaionn-nav-right">
           {user ? (
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               {canManage && (
                 <Link
                   href="/league"
-                  className="wahl-admin-login-btn"
-                  style={{ background: "#10b981" }}
+                  className="button button-sm"
+                  style={{
+                    background: "#183325",
+                    color: "var(--lime)",
+                    border: "1px solid rgba(199,244,80,0.3)",
+                    fontWeight: 700,
+                    fontSize: "12px",
+                  }}
                   title="Commissioner League HQ"
                 >
                   League HQ ⚙️
@@ -216,22 +197,33 @@ export function PublicHeaderClient({
               )}
               <Link
                 href="/admin"
-                className="wahl-admin-login-btn"
-                style={{ background: "#4f46e5" }}
-                title="Super Admin Central Platform"
+                className="button button-sm"
+                style={{
+                  background: "#152430",
+                  color: "var(--text)",
+                  border: "1px solid var(--line)",
+                  fontWeight: 700,
+                  fontSize: "12px",
+                }}
+                title="Super Admin Platform"
               >
                 Super Admin
               </Link>
               <Link
                 href="/account"
-                className="wahl-admin-login-btn"
-                style={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.2)" }}
+                className="button button-sm"
+                style={{
+                  background: "#101e28",
+                  color: "var(--text)",
+                  border: "1px solid var(--line)",
+                  fontSize: "12px",
+                }}
               >
                 Account
               </Link>
             </div>
           ) : (
-            <Link href="/login" className="wahl-admin-login-btn">
+            <Link href="/login" className="plaionn-admin-login-btn">
               Admin Login ↗
             </Link>
           )}
