@@ -61,10 +61,10 @@ export function RosterCsvImportModal({
 
   if (!isOpen) {
     return (
-      <div style={{ margin: "1rem 0" }}>
+      <div>
         <button
           type="button"
-          className="button"
+          className="button button-sm button-outline"
           onClick={() => setIsOpen(true)}
           style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
         >

@@ -1169,7 +1169,8 @@ button:disabled, .button:disabled {
 .settings-grid > .panel,
 .metrics > .panel,
 .cards > .panel {
-  margin-bottom: 0;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .hero {
@@ -1220,9 +1221,18 @@ button:disabled, .button:disabled {
 
 .metrics {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin-top: 18px;
+}
+
+.metrics > .panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .metrics p {
@@ -1707,9 +1717,21 @@ main.auth-content { width: 100%; max-width: 480px; margin: 0; padding: 0; }
 .roster-create {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  align-items: start;
+  align-items: stretch;
   gap: 20px;
-  margin-top: 24px;
+  margin-top: 16px;
+}
+
+.roster-create > form.panel,
+.roster-create > .panel {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+@media (min-width: 900px) {
+  .homepage-quick-cards {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
 }
 .roster-list { display: grid; gap: 16px; }
 .roster-list .panel { padding: 22px; }

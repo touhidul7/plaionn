@@ -105,7 +105,7 @@ export default async function LeagueBillingPage() {
         </section>
       ) : (
         <>
-          <div className="cards" style={{ marginTop: "24px", gridTemplateColumns: "1fr 1fr" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "20px", marginTop: "24px" }}>
             <CreateInvoiceForm entries={entryOptions} />
             <RecordPaymentForm invoices={invoices} />
           </div>

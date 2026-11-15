@@ -9,7 +9,7 @@ export default async function LeagueAdminLayout({
   const { league, canManage, user } = await getLeagueContext();
 
   return (
-    <div>
+    <main id="main" className="public-portal-container">
       {/* Commissioner Management Banner */}
       <div
         style={{
@@ -99,6 +99,6 @@ export default async function LeagueAdminLayout({
       </div>
 
       {children}
-    </div>
+    </main>
   );
 }

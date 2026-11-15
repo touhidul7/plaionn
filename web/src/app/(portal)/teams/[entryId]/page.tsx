@@ -257,15 +257,21 @@ export default async function TeamRosterPage({
       {/* 2. Commissioner Management Controls (Only visible to managers) */}
       {canManage && (
         <>
-          <RosterCsvImportModal
-            entryId={entryId}
-            existingRoster={roster.data.map((r) => ({
-              jersey_number: r.jersey_number,
-              status: r.status,
-              display_name: players.find((p) => p.id === r.player_id)?.display_name ?? "Player",
-            }))}
-            rosterLimit={settings.data?.roster_limit ?? 25}
-          />
+          <div className="section-heading" style={{ marginTop: "32px", marginBottom: "16px" }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: "1.25rem" }}>Add Players to Roster</h2>
+              <span style={{ fontSize: "12px", color: "var(--muted)" }}>Create a new profile or assign registered players</span>
+            </div>
+            <RosterCsvImportModal
+              entryId={entryId}
+              existingRoster={roster.data.map((r) => ({
+                jersey_number: r.jersey_number,
+                status: r.status,
+                display_name: players.find((p) => p.id === r.player_id)?.display_name ?? "Player",
+              }))}
+              rosterLimit={settings.data?.roster_limit ?? 25}
+            />
+          </div>
 
           <div className="roster-create">
             <PlayerForm />

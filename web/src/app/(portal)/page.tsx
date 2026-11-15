@@ -470,7 +470,10 @@ export default async function Home({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gridTemplateColumns:
+              data.teams.length <= 2
+                ? `repeat(${Math.max(1, data.teams.length)}, 1fr)`
+                : "repeat(auto-fit, minmax(340px, 1fr))",
             gap: "20px",
           }}
         >
@@ -539,9 +542,10 @@ export default async function Home({
 
       {/* 5. Quick Portal Navigation Cards */}
       <section
+        className="homepage-quick-cards"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
           gap: "20px",
           marginBottom: "36px",
         }}
