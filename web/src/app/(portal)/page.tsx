@@ -104,6 +104,7 @@ export default async function Home({
               display: "flex",
               flexDirection: "column",
               gap: "14px",
+              marginTop: 0,
               marginBottom: 0,
               background: "#0c1822",
               border: "1px solid var(--line)",
@@ -234,6 +235,7 @@ export default async function Home({
             display: "flex",
             flexDirection: "column",
             gap: "16px",
+            marginTop: 0,
             marginBottom: 0,
             background: "#0c1822",
             border: "1px solid var(--line)",
@@ -495,6 +497,7 @@ export default async function Home({
                   alignItems: "center",
                   justifyContent: "space-between",
                   gap: "14px",
+                  marginTop: 0,
                   marginBottom: 0,
                   background: "#0c1822",
                   border: "1px solid var(--line)",
@@ -550,35 +553,74 @@ export default async function Home({
           marginBottom: "36px",
         }}
       >
-        <div className="panel" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", marginBottom: 0 }}>
-          <div style={{ fontSize: "28px" }}>✍</div>
-          <h3 style={{ margin: 0, fontSize: "17px" }}>Player Registration</h3>
-          <p style={{ margin: 0, fontSize: "13.5px", color: "var(--muted)", flex: 1, lineHeight: 1.5 }}>
-            Sign digital waivers with GoHighLevel CRM sync and choose individual or team payment options.
-          </p>
-          <Link href="/registration" className="button button-sm primary">
+        <div
+          className="panel"
+          style={{
+            padding: "24px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minHeight: "240px",
+            marginTop: 0,
+            marginBottom: 0,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: "28px", marginBottom: "8px" }}>✍</div>
+            <h3 style={{ margin: 0, fontSize: "17px" }}>Player Registration</h3>
+            <p style={{ margin: "6px 0 0", fontSize: "13.5px", color: "var(--muted)", lineHeight: 1.5 }}>
+              Sign digital waivers with GoHighLevel CRM sync and choose individual or team payment options.
+            </p>
+          </div>
+          <Link href="/registration" className="button button-sm primary" style={{ marginTop: "16px", width: "100%", justifyContent: "center" }}>
             Register Player ↗
           </Link>
         </div>
 
-        <div className="panel" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", marginBottom: 0 }}>
-          <div style={{ fontSize: "28px" }}>🎯</div>
-          <h3 style={{ margin: 0, fontSize: "17px" }}>Stats &amp; Scoring Race</h3>
-          <p style={{ margin: 0, fontSize: "13.5px", color: "var(--muted)", flex: 1, lineHeight: 1.5 }}>
-            Follow the skater scoring race, goals, assists, goaltender save percentage, and GAA leaderboards.
-          </p>
-          <Link href="/leaders" className="button button-sm button-outline">
+        <div
+          className="panel"
+          style={{
+            padding: "24px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minHeight: "240px",
+            marginTop: 0,
+            marginBottom: 0,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: "28px", marginBottom: "8px" }}>🎯</div>
+            <h3 style={{ margin: 0, fontSize: "17px" }}>Stats &amp; Scoring Race</h3>
+            <p style={{ margin: "6px 0 0", fontSize: "13.5px", color: "var(--muted)", lineHeight: 1.5 }}>
+              Follow the skater scoring race, goals, assists, goaltender save percentage, and GAA leaderboards.
+            </p>
+          </div>
+          <Link href="/leaders" className="button button-sm button-outline" style={{ marginTop: "16px", width: "100%", justifyContent: "center" }}>
             View Leaders ↗
           </Link>
         </div>
 
-        <div className="panel" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", marginBottom: 0 }}>
-          <div style={{ fontSize: "28px" }}>🏆</div>
-          <h3 style={{ margin: 0, fontSize: "17px" }}>Playoffs &amp; Championship</h3>
-          <p style={{ margin: 0, fontSize: "13.5px", color: "var(--muted)", flex: 1, lineHeight: 1.5 }}>
-            View championship playoff brackets, series matchups, elimination schedules, and past champions.
-          </p>
-          <Link href="/playoffs" className="button button-sm button-outline">
+        <div
+          className="panel"
+          style={{
+            padding: "24px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minHeight: "240px",
+            marginTop: 0,
+            marginBottom: 0,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: "28px", marginBottom: "8px" }}>🏆</div>
+            <h3 style={{ margin: 0, fontSize: "17px" }}>Playoffs &amp; Championship</h3>
+            <p style={{ margin: "6px 0 0", fontSize: "13.5px", color: "var(--muted)", lineHeight: 1.5 }}>
+              View championship playoff brackets, series matchups, elimination schedules, and past champions.
+            </p>
+          </div>
+          <Link href="/playoffs" className="button button-sm button-outline" style={{ marginTop: "16px", width: "100%", justifyContent: "center" }}>
             Championship Brackets ↗
           </Link>
         </div>

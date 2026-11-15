@@ -1165,10 +1165,18 @@ button:disabled, .button:disabled {
   margin-bottom: 0;
 }
 
+/* Any panel inside a grid, flex container, cards group, or list MUST NOT inherit .panel + .panel margin */
+[style*="grid"] > .panel,
+[style*="flex"] > .panel,
+[class*="grid"] > .panel,
 .roster-create > .panel,
+.roster-create > form.panel,
+.roster-create > form,
 .settings-grid > .panel,
 .metrics > .panel,
-.cards > .panel {
+.cards > .panel,
+.homepage-quick-cards > .panel,
+.scoreboard-grid > .panel {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
 }
