@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getLeagueContext } from "@/lib/supabase/session";
 import { revalidatePath } from "next/cache";
+import { sanitizeSeasonName } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,10 @@ export default async function LeagueMigrationPage() {
       .order("created_at", { ascending: false }),
   ]);
 
-  const seasons = seasonsRes.data || [];
+  const seasons = (seasonsRes.data || []).map((s) => ({
+    ...s,
+    name: sanitizeSeasonName(s.name),
+  }));
   const jobs: MigrationJob[] = jobsRes.data || [];
 
   async function executeMigrationAction(formData: FormData) {

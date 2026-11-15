@@ -5,6 +5,7 @@ import {
   RegistrationPublication,
   RegistrationDocumentUpload,
 } from "@/components/registration-forms";
+import { sanitizeSeasonName } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,11 @@ export default async function ReviewRegistrations() {
       </section>
     );
   }
+
+  const sanitizedSeasons = seasons.data.map((s) => ({
+    ...s,
+    name: sanitizeSeasonName(s.name),
+  }));
 
   const profiles = requests.data.length
     ? await supabase
@@ -124,13 +130,13 @@ export default async function ReviewRegistrations() {
           Upload the league’s approved waiver before registration. Each upload creates an immutable
           version, and players must accept the latest waiver and any current code of conduct.
         </p>
-        <RegistrationDocumentUpload leagueId={league.id} seasons={seasons.data} />
+        <RegistrationDocumentUpload leagueId={league.id} seasons={sanitizedSeasons} />
         {!documentLinks.length && <p>No documents have been published.</p>}
         {documentLinks.map((document) => (
           <div className="list-row" key={document.id}>
             <strong>{document.title}</strong>
             <p>
-              {seasons.data.find((season) => season.id === document.season_id)?.name} ·{" "}
+              {sanitizedSeasons.find((season) => season.id === document.season_id)?.name} ·{" "}
               {document.document_type.replace("_", " ")} · version {document.version} ·{" "}
               {document.file_name}
             </p>
@@ -151,7 +157,7 @@ export default async function ReviewRegistrations() {
           Set opening and closing dates in Season settings, then publish. Dates are inclusive and use
           UTC. Published seasons are discoverable by signed-in applicants.
         </p>
-        {seasons.data.map((season) => {
+        {sanitizedSeasons.map((season) => {
           const config = settings.data.find((s) => s.season_id === season.id);
           return (
             <div className="list-row" key={season.id}>
@@ -198,7 +204,7 @@ export default async function ReviewRegistrations() {
             <small>({r.player_id.slice(0, 8)})</small>
           </h3>
           <p>
-            {seasons.data.find((s) => s.id === r.season_id)?.name} · Position: {r.position} ·{" "}
+            {sanitizedSeasons.find((s) => s.id === r.season_id)?.name} · Position: {r.position} ·{" "}
             <span className="badge">{r.status.toUpperCase()}</span>
           </p>
 

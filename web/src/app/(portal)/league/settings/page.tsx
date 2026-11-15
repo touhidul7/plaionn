@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getLeagueContext } from "@/lib/supabase/session";
 import { SeasonSettingsForm } from "@/components/season-settings-form";
 import type { SeasonSettings } from "@/lib/season-settings-schema";
+import { sanitizeSeasonName } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ export default async function SettingsPage({
               <select name="season" defaultValue={selected.id}>
                 {seasons.data.map((season) => (
                   <option value={season.id} key={season.id}>
-                    {season.name}
+                    {sanitizeSeasonName(season.name)}
                   </option>
                 ))}
               </select>

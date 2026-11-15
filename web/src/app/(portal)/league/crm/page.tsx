@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getLeagueContext } from "@/lib/supabase/session";
 import { revalidatePath } from "next/cache";
+import { sanitizeSeasonName } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,10 @@ export default async function CRMAndRetentionPage({
     .eq("league_id", league.id)
     .order("created_at", { ascending: false });
 
-  const activeSeasons = seasons || [];
+  const activeSeasons = (seasons || []).map((s) => ({
+    ...s,
+    name: sanitizeSeasonName(s.name),
+  }));
   const baseSeasonId = searchParams?.baseSeason || (activeSeasons.length > 1 ? activeSeasons[1].id : activeSeasons[0]?.id);
   const compareSeasonId = searchParams?.compareSeason || activeSeasons[0]?.id;
 

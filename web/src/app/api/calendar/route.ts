@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { sanitizeVenueName, sanitizeSeasonName } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -66,10 +67,10 @@ export async function GET(req: NextRequest) {
         );
 
     const summary = `${game.home_team_name} vs ${game.away_team_name}`;
-    const location = `${game.venue_name || "TBD"} - ${game.rink_name || "Rink"}`;
+    const location = `${sanitizeVenueName(game.venue_name)} - ${game.rink_name || "Rink 1"}`;
     const status = game.status === "cancelled" ? "CANCELLED" : "CONFIRMED";
 
-    let description = `League: ${game.season_name} (${game.division_name})\\nMatchup: ${game.home_team_name} vs ${game.away_team_name}`;
+    let description = `League: ${sanitizeSeasonName(game.season_name)} (${game.division_name})\\nMatchup: ${game.home_team_name} vs ${game.away_team_name}`;
     if (game.home_score !== null && game.away_score !== null) {
       description += `\\nFinal Score: ${game.home_score} - ${game.away_score}`;
     }
