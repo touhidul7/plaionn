@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 600" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="arenaGlow" cx="50%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#183c72" stop-opacity="0.85" />
+      <stop offset="45%" stop-color="#0a1a33" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#050c14" stop-opacity="1" />
+    </radialGradient>
+    <linearGradient id="iceRink" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#0d2238" stop-opacity="0.9" />
+      <stop offset="60%" stop-color="#122f4d" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#081422" stop-opacity="0" />
+    </linearGradient>
+    <radialGradient id="spotlight1" cx="25%" cy="15%" r="35%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="spotlight2" cx="75%" cy="15%" r="35%">
+      <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#60a5fa" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="redLine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0" />
+      <stop offset="50%" stop-color="#ef4444" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Stadium Arena Background -->
+  <rect width="1920" height="600" fill="url(#arenaGlow)" />
+
+  <!-- Overhead Arena Spotlights -->
+  <rect width="1920" height="600" fill="url(#spotlight1)" />
+  <rect width="1920" height="600" fill="url(#spotlight2)" />
+
+  <!-- Arena Glass & Ice Perspective -->
+  <path d="M0,380 L1920,380 L1920,600 L0,600 Z" fill="url(#iceRink)" />
+
+  <!-- Center Ice Red Line & Circle -->
+  <path d="M0,520 L1920,520" stroke="url(#redLine)" stroke-width="4" stroke-dasharray="16,8" opacity="0.6" />
+  <ellipse cx="960" cy="520" rx="260" ry="60" fill="none" stroke="#3b82f6" stroke-width="3" opacity="0.3" />
+  <ellipse cx="960" cy="520" rx="30" ry="8" fill="#ef4444" opacity="0.4" />
+
+  <!-- Arena Dasher Board Graphic -->
+  <path d="M0,420 L1920,420" stroke="#1e3a5f" stroke-width="6" opacity="0.5" />
+  <path d="M0,426 L1920,426" stroke="#fbbf24" stroke-width="3" opacity="0.35" />
+
+  <!-- Atmospheric Arena Dust / Light Streaks -->
+  <circle cx="340" cy="180" r="2" fill="#fff" opacity="0.4" />
+  <circle cx="890" cy="120" r="3" fill="#fff" opacity="0.3" />
+  <circle cx="1450" cy="220" r="2.5" fill="#fff" opacity="0.4" />
+  <circle cx="1680" cy="140" r="1.5" fill="#fff" opacity="0.5" />
+</svg>
