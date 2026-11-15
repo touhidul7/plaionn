@@ -21,7 +21,7 @@ export default async function AccountPage() {
   const isCommissioner = memberships?.some((m) => m.role === "commissioner");
 
   return (
-    <>
+    <main id="main" className="public-portal-container">
       <div className="page-heading">
         <div>
           <p className="eyebrow">YOUR ACCOUNT</p>
@@ -95,6 +95,6 @@ export default async function AccountPage() {
 
       {/* Demo League quick access for clients/reviewers */}
       <ExploreDemoLeagueButton />
-    </>
+    </main>
   );
 }

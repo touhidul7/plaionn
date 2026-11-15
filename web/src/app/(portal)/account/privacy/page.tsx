@@ -63,7 +63,7 @@ export default async function AccountPrivacyPage() {
   }
 
   return (
-    <>
+    <main id="main" className="public-portal-container">
       <div className="page-heading">
         <div>
           <p className="eyebrow">PRIVACY &amp; DATA CONTROL</p>
@@ -200,6 +200,6 @@ export default async function AccountPrivacyPage() {
           </div>
         </form>
       </section>
-    </>
+    </main>
   );
 }

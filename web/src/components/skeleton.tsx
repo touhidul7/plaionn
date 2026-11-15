@@ -44,7 +44,7 @@ export function PageHeaderSkeleton({ actionButtons = 2 }: { actionButtons?: numb
 // 1. Player Hub Skeleton (/dashboard)
 export function PlayerDashboardSkeleton() {
   return (
-    <div role="status" aria-label="Loading player dashboard">
+    <div className="public-portal-container" role="status" aria-label="Loading player dashboard">
       <PageHeaderSkeleton actionButtons={3} />
 
       {/* 5 Stats Cards Grid */}
@@ -113,7 +113,7 @@ export function PlayerDashboardSkeleton() {
 // 2. Schedule & Scores Skeleton (/schedule)
 export function SchedulePageSkeleton() {
   return (
-    <div role="status" aria-label="Loading game schedules">
+    <div className="public-portal-container" role="status" aria-label="Loading game schedules">
       <PageHeaderSkeleton actionButtons={2} />
 
       {/* Filter / Calendar Tabs Bar */}
@@ -162,7 +162,7 @@ export function SchedulePageSkeleton() {
 // 3. Standings Table Skeleton (/standings)
 export function StandingsPageSkeleton() {
   return (
-    <div role="status" aria-label="Loading standings">
+    <div className="public-portal-container" role="status" aria-label="Loading standings">
       <PageHeaderSkeleton actionButtons={1} />
 
       {/* Division Picker Tabs */}
@@ -207,7 +207,7 @@ export function StandingsPageSkeleton() {
 // 4. Leaders Page Skeleton (/leaders)
 export function LeadersPageSkeleton() {
   return (
-    <div role="status" aria-label="Loading scoring leaders">
+    <div className="public-portal-container" role="status" aria-label="Loading scoring leaders">
       <PageHeaderSkeleton actionButtons={2} />
 
       {/* Top 3 Podium Cards */}
@@ -249,7 +249,7 @@ export function LeadersPageSkeleton() {
 // 5. Teams Directory Skeleton (/teams)
 export function TeamsPageSkeleton() {
   return (
-    <div role="status" aria-label="Loading teams directory">
+    <div className="public-portal-container" role="status" aria-label="Loading teams directory">
       <PageHeaderSkeleton actionButtons={2} />
 
       {/* Team Cards Grid */}
@@ -277,7 +277,7 @@ export function TeamsPageSkeleton() {
 // 6. Generic Fallback Page Skeleton
 export function PortalPageSkeleton() {
   return (
-    <div role="status" aria-label="Loading page content">
+    <div className="public-portal-container" role="status" aria-label="Loading page content">
       <PageHeaderSkeleton />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "24px" }}>
         {Array.from({ length: 4 }).map((_, i) => (

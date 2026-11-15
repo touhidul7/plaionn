@@ -51,7 +51,7 @@ export default async function AccountNotificationsPage() {
     : []) as InboxItem[];
 
   return (
-    <>
+    <main id="main" className="public-portal-container">
       <div className="page-heading">
         <div>
           <p className="eyebrow">YOUR ACCOUNT</p>
@@ -139,6 +139,6 @@ export default async function AccountNotificationsPage() {
           )}
         </section>
       </div>
-    </>
+    </main>
   );
 }

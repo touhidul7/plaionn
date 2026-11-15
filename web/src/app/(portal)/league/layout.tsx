@@ -62,7 +62,7 @@ export default async function LeagueAdminLayout({
             ← View Public League Site
           </Link>
           <Link href="/admin" className="button button-sm button-outline">
-            Super Admin Platform ↗
+            Admin Platform ↗
           </Link>
         </div>
       </div>

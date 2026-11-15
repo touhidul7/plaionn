@@ -241,9 +241,9 @@ export function PublicHeaderClient({
                     fontSize: "12px",
                     padding: "6px 12px",
                   }}
-                  title="Super Admin Platform"
+                  title="Admin Platform"
                 >
-                  Super Admin
+                  Admin
                 </Link>
                 <Link
                   href="/account"

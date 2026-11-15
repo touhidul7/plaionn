@@ -85,7 +85,7 @@ export default async function AdminManagementPage() {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+    <main id="main" className="public-portal-container" style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
       {/* Super Admin Top Header */}
       <section
         style={{
@@ -188,13 +188,12 @@ export default async function AdminManagementPage() {
               Each league operates as an independent branded public website with unique domain routing.
             </p>
           </div>
-          <button
-            type="button"
+          <Link
+            href="/account"
             className="button button-sm primary"
-            onClick={() => alert("League creation dialog: Enter League Name, Custom Domain (e.g. bhl.com), and Commissioner Email.")}
           >
             + Create New League
-          </button>
+          </Link>
         </div>
 
         <div style={{ overflowX: "auto" }}>
@@ -289,6 +288,6 @@ export default async function AdminManagementPage() {
           ))}
         </div>
       </section>
-    </div>
+    </main>
   );
 }
