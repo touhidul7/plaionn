@@ -189,7 +189,7 @@ export default async function Home({
               }}
             >
               <span>
-                📍 {featuredGame.venue_name ? `${featuredGame.venue_name} - ${featuredGame.rink_name}` : "Demo Arena"}
+                📍 {featuredGame.venue_name ? `${featuredGame.venue_name} - ${featuredGame.rink_name}` : "Main Arena"}
               </span>
               <Link
                 href={`/schedule/${featuredGame.game_id || featuredGame.id}/live`}

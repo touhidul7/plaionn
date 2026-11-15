@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getVerifiedSession } from "@/lib/supabase/session";
 import { selectLeague, signOut } from "@/app/login/actions";
-import { CreateLeagueForm, ExploreDemoLeagueButton } from "@/components/create-league-form";
+import { CreateLeagueForm } from "@/components/create-league-form";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +63,7 @@ export default async function AccountPage() {
           <div className="empty">
             <h2>No leagues yet</h2>
             <p>
-              You can create your own league, explore the pre-seeded demo, or apply to an open season.
+              You can create your own league or apply to an open season.
             </p>
             <p style={{ fontSize: "12px", color: "var(--muted)" }}>
               Account ID: <code>{user.id}</code>
@@ -92,9 +92,6 @@ export default async function AccountPage() {
       <div style={{ marginTop: "24px" }}>
         <CreateLeagueForm hasLeagues={hasLeagues} />
       </div>
-
-      {/* Demo League quick access for clients/reviewers */}
-      <ExploreDemoLeagueButton />
     </main>
   );
 }
