@@ -39,7 +39,7 @@ export default async function StandingsPage({
 
   if (!selectedSeason)
     return (
-      <>
+      <main id="main" className="public-portal-container">
         <div className="page-heading">
           <div>
             <p className="eyebrow">OFFICIAL TABLE</p>
@@ -61,7 +61,7 @@ export default async function StandingsPage({
               : "Standings will be posted once the season begins."}
           </p>
         </section>
-      </>
+      </main>
     );
 
   const { supabase } = await getLeagueContext();
@@ -74,7 +74,7 @@ export default async function StandingsPage({
   const rows = parsedRows.success ? parsedRows.data : null;
 
   return (
-    <>
+    <main id="main" className="public-portal-container">
       <div className="page-heading">
         <div>
           <p className="eyebrow">OFFICIAL TABLE</p>
@@ -133,73 +133,131 @@ export default async function StandingsPage({
                     <table className="table">
                       <thead>
                         <tr>
-                          <th scope="col" style={{ width: "3rem" }}>#</th>
-                          <th scope="col">Team</th>
-                          <th scope="col">GP</th>
-                          <th scope="col">W</th>
-                          <th scope="col">T</th>
-                          <th scope="col">L</th>
-                          <th scope="col">OTL</th>
-                          <th scope="col">GF</th>
-                          <th scope="col">GA</th>
-                          <th scope="col">GD</th>
-                          <th scope="col">PIM</th>
-                          <th scope="col" style={{ color: "var(--lime)", fontWeight: 800 }}>PTS</th>
+                          <th scope="col" className="rank-col">#</th>
+                          <th scope="col" className="team-col">Team</th>
+                          <th scope="col" className="stat-col">GP</th>
+                          <th scope="col" className="stat-col">W</th>
+                          <th scope="col" className="stat-col">T</th>
+                          <th scope="col" className="stat-col">L</th>
+                          <th scope="col" className="stat-col">OTL</th>
+                          <th scope="col" className="stat-col">GF</th>
+                          <th scope="col" className="stat-col">GA</th>
+                          <th scope="col" className="stat-col">GD</th>
+                          <th scope="col" className="stat-col">PIM</th>
+                          <th scope="col" className="stat-pts">PTS</th>
                         </tr>
                       </thead>
                       <tbody>
                         {hasRows ? (
-                          divisionRows.map((row) => (
-                            <tr key={row.team_entry_id}>
-                              <td><strong>{row.rank}</strong></td>
-                              <td>
-                                <Link
-                                  href={`/teams/${row.team_entry_id}`}
-                                  className="text-link"
-                                  style={{ fontWeight: 700, fontSize: "0.95rem" }}
-                                  title={`View ${row.team_name} team page`}
-                                >
-                                  {row.team_name}
-                                </Link>
-                              </td>
-                              <td>{row.games_played}</td>
-                              <td>{row.wins}</td>
-                              <td>{row.ties}</td>
-                              <td>{row.losses}</td>
-                              <td>{row.overtime_losses}</td>
-                              <td>{row.goals_for}</td>
-                              <td>{row.goals_against}</td>
-                              <td>
-                                {row.goal_difference > 0 ? "+" : ""}
-                                {row.goal_difference}
-                              </td>
-                              <td>{row.penalty_minutes}</td>
-                              <td>
-                                <strong style={{ color: "var(--lime)", fontSize: "1.05rem" }}>{row.points}</strong>
-                              </td>
-                            </tr>
-                          ))
+                          divisionRows.map((row) => {
+                            const initials = (row.team_name || "TM")
+                              .split(/\s+/)
+                              .map((w) => w[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 3);
+
+                            return (
+                              <tr key={row.team_entry_id}>
+                                <td className="rank-col"><strong>{row.rank}</strong></td>
+                                <td className="team-col">
+                                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                    <span
+                                      style={{
+                                        width: "26px",
+                                        height: "26px",
+                                        borderRadius: "6px",
+                                        background: "#162734",
+                                        border: "1px solid var(--line)",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: "10.5px",
+                                        fontWeight: 800,
+                                        color: "var(--lime)",
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      {initials}
+                                    </span>
+                                    <Link
+                                      href={`/teams/${row.team_entry_id}`}
+                                      className="text-link"
+                                      style={{ fontWeight: 700, fontSize: "0.95rem" }}
+                                      title={`View ${row.team_name} team page`}
+                                    >
+                                      {row.team_name}
+                                    </Link>
+                                  </div>
+                                </td>
+                                <td className="stat-col">{row.games_played}</td>
+                                <td className="stat-col">{row.wins}</td>
+                                <td className="stat-col">{row.ties}</td>
+                                <td className="stat-col">{row.losses}</td>
+                                <td className="stat-col">{row.overtime_losses}</td>
+                                <td className="stat-col">{row.goals_for}</td>
+                                <td className="stat-col">{row.goals_against}</td>
+                                <td className="stat-col">
+                                  {row.goal_difference > 0 ? "+" : ""}
+                                  {row.goal_difference}
+                                </td>
+                                <td className="stat-col">{row.penalty_minutes}</td>
+                                <td className="stat-pts">
+                                  {row.points}
+                                </td>
+                              </tr>
+                            );
+                          })
                         ) : (
-                          divisionTeams.map((t, idx) => (
-                            <tr key={t.entry_id}>
-                              <td><strong>{idx + 1}</strong></td>
-                              <td>
-                                <Link href={`/teams/${t.entry_id}`} className="text-link" style={{ fontWeight: 700 }}>
-                                  {t.name}
-                                </Link>
-                              </td>
-                              <td>0</td>
-                              <td>0</td>
-                              <td>0</td>
-                              <td>0</td>
-                              <td>0</td>
-                              <td>0</td>
-                              <td>0</td>
-                              <td>0</td>
-                              <td>0</td>
-                              <td><strong style={{ color: "var(--lime)" }}>0</strong></td>
-                            </tr>
-                          ))
+                          divisionTeams.map((t, idx) => {
+                            const initials = (t.name || "TM")
+                              .split(/\s+/)
+                              .map((w) => w[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 3);
+
+                            return (
+                              <tr key={t.entry_id}>
+                                <td className="rank-col"><strong>{idx + 1}</strong></td>
+                                <td className="team-col">
+                                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                    <span
+                                      style={{
+                                        width: "26px",
+                                        height: "26px",
+                                        borderRadius: "6px",
+                                        background: "#162734",
+                                        border: "1px solid var(--line)",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: "10.5px",
+                                        fontWeight: 800,
+                                        color: "var(--lime)",
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      {initials}
+                                    </span>
+                                    <Link href={`/teams/${t.entry_id}`} className="text-link" style={{ fontWeight: 700 }}>
+                                      {t.name}
+                                    </Link>
+                                  </div>
+                                </td>
+                                <td className="stat-col">0</td>
+                                <td className="stat-col">0</td>
+                                <td className="stat-col">0</td>
+                                <td className="stat-col">0</td>
+                                <td className="stat-col">0</td>
+                                <td className="stat-col">0</td>
+                                <td className="stat-col">0</td>
+                                <td className="stat-col">0</td>
+                                <td className="stat-col">0</td>
+                                <td className="stat-pts">0</td>
+                              </tr>
+                            );
+                          })
                         )}
                       </tbody>
                     </table>
@@ -214,6 +272,6 @@ export default async function StandingsPage({
           season settings. Pending, corrected, and unreviewed scores are excluded.
         </p>
       </section>
-    </>
+    </main>
   );
 }

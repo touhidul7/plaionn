@@ -63,7 +63,7 @@ export default async function SchedulePage({
 
   if (!user) {
     return (
-      <>
+      <main id="main" className="public-portal-container">
         <div className="page-heading">
           <div>
             <p className="eyebrow">FIXTURES &amp; RESULTS</p>
@@ -215,7 +215,7 @@ export default async function SchedulePage({
             </div>
           )}
         </section>
-      </>
+      </main>
     );
   }
 
@@ -397,7 +397,7 @@ export default async function SchedulePage({
   );
 
   return (
-    <>
+    <main id="main" className="public-portal-container">
       <div className="page-heading">
         <div>
           <p className="eyebrow">FIXTURES &amp; RESULTS</p>
@@ -813,6 +813,6 @@ export default async function SchedulePage({
           <p>Schedule analysis needs the inventory migration and readable saved fixture data. Existing fixtures are unchanged.</p>
         </section>
       )}
-    </>
+    </main>
   );
 }

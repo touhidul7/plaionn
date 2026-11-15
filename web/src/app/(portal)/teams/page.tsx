@@ -7,7 +7,7 @@ export default async function TeamsPage() {
   const { teams, canManage, league } = await getLeagueData();
 
   return (
-    <>
+    <main id="main" className="public-portal-container">
       <div className="page-heading" style={{ marginBottom: "28px" }}>
         <div>
           <span className="badge" style={{ marginBottom: "8px" }}>
@@ -181,6 +181,6 @@ export default async function TeamsPage() {
           </section>
         </>
       )}
-    </>
+    </main>
   );
 }

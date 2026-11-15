@@ -18,7 +18,9 @@ export default async function PortalLayout({
       <PublicHeader />
       <div className="public-portal-body">
         {children}
-        <SponsorBanner />
+        <div style={{ maxWidth: "1200px", margin: "0 auto", width: "100%", padding: "0 24px" }}>
+          <SponsorBanner />
+        </div>
       </div>
       <PublicFooter leagueName={league.name} />
     </div>

@@ -84,15 +84,17 @@ export default async function Home({
         </div>
       </section>
 
-      {/* 2. League Game Day Hub & Season Center (Two-Column Balanced Grid) */}
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
-          gap: "24px",
-          marginBottom: "36px",
-        }}
-      >
+      {/* Main Bounded Public Portal Container */}
+      <main id="main" className="public-portal-container">
+        {/* 2. League Game Day Hub & Season Center (Two-Column Balanced Grid) */}
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+            gap: "24px",
+            marginBottom: "36px",
+          }}
+        >
         {/* Left Card: Featured Game Center */}
         {featuredGame ? (
           <div
@@ -314,89 +316,140 @@ export default async function Home({
         </div>
 
         <section className="panel" style={{ padding: 0, overflow: "hidden", borderRadius: "14px" }}>
-          <table className="table" style={{ width: "100%", margin: 0 }}>
-            <thead>
-              <tr>
-                <th style={{ width: "50px" }}>#</th>
-                <th>Team</th>
-                <th style={{ textAlign: "center" }}>GP</th>
-                <th style={{ textAlign: "center" }}>W</th>
-                <th style={{ textAlign: "center" }}>L</th>
-                <th style={{ textAlign: "center" }}>OTL</th>
-                <th style={{ textAlign: "center", fontWeight: 800, color: "var(--lime)" }}>PTS</th>
-                <th style={{ textAlign: "center" }}>GF</th>
-                <th style={{ textAlign: "center" }}>GA</th>
-                <th style={{ textAlign: "center" }}>DIFF</th>
-              </tr>
-            </thead>
-            <tbody>
-              {standingsRows.length > 0 ? (
-                standingsRows.map((row, idx) => (
-                  <tr key={row.team_entry_id || idx}>
-                    <td style={{ fontWeight: 800, color: "var(--muted)" }}>{idx + 1}</td>
-                    <td style={{ fontWeight: 800 }}>
-                      <Link
-                        href={`/teams/${row.team_entry_id}`}
-                        className="text-link"
-                        style={{ color: "var(--text)", fontSize: "14px" }}
-                      >
-                        {row.team_name}
-                      </Link>
-                    </td>
-                    <td style={{ textAlign: "center" }}>{row.games_played}</td>
-                    <td style={{ textAlign: "center" }}>{row.wins}</td>
-                    <td style={{ textAlign: "center" }}>{row.losses}</td>
-                    <td style={{ textAlign: "center" }}>{row.ot_losses}</td>
-                    <td
-                      style={{
-                        textAlign: "center",
-                        fontWeight: 900,
-                        color: "var(--lime)",
-                        fontSize: "15px",
-                      }}
-                    >
-                      {row.points}
-                    </td>
-                    <td style={{ textAlign: "center" }}>{row.goals_for}</td>
-                    <td style={{ textAlign: "center" }}>{row.goals_against}</td>
-                    <td
-                      style={{
-                        textAlign: "center",
-                        fontWeight: 700,
-                        color:
-                          row.goal_difference > 0
-                            ? "var(--lime)"
-                            : row.goal_difference < 0
-                            ? "#f87171"
-                            : "inherit",
-                      }}
-                    >
-                      {row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                data.teams.map((t, idx) => (
-                  <tr key={t.entry_id}>
-                    <td style={{ fontWeight: 800, color: "var(--muted)" }}>{idx + 1}</td>
-                    <td style={{ fontWeight: 800 }}>
-                      <Link href={`/teams/${t.entry_id}`} className="text-link">
-                        {t.name}
-                      </Link>
-                    </td>
-                    <td style={{ textAlign: "center" }}>0</td>
-                    <td style={{ textAlign: "center" }}>0</td>
-                    <td style={{ textAlign: "center" }}>0</td>
-                    <td style={{ textAlign: "center" }}>0</td>
-                    <td style={{ textAlign: "center", fontWeight: 900, color: "var(--lime)" }}>0</td>
-                    <td style={{ textAlign: "center" }}>0</td>
-                    <td style={{ textAlign: "center" }}>0</td>
-                    <td style={{ textAlign: "center" }}>0</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          <div className="table-wrap" style={{ margin: 0 }}>
+            <table className="table" style={{ width: "100%", margin: 0 }}>
+              <thead>
+                <tr>
+                  <th className="rank-col">#</th>
+                  <th className="team-col">Team</th>
+                  <th className="stat-col">GP</th>
+                  <th className="stat-col">W</th>
+                  <th className="stat-col">L</th>
+                  <th className="stat-col">OTL</th>
+                  <th className="stat-pts">PTS</th>
+                  <th className="stat-col">GF</th>
+                  <th className="stat-col">GA</th>
+                  <th className="stat-col">DIFF</th>
+                </tr>
+              </thead>
+              <tbody>
+                {standingsRows.length > 0 ? (
+                  standingsRows.map((row, idx) => {
+                    const initials = (row.team_name || "TM")
+                      .split(/\s+/)
+                      .map((w: string) => w[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 3);
+
+                    return (
+                      <tr key={row.team_entry_id || idx}>
+                        <td className="rank-col">{idx + 1}</td>
+                        <td className="team-col">
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <span
+                              style={{
+                                width: "26px",
+                                height: "26px",
+                                borderRadius: "6px",
+                                background: "#162734",
+                                border: "1px solid var(--line)",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "10.5px",
+                                fontWeight: 800,
+                                color: "var(--lime)",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {initials}
+                            </span>
+                            <Link
+                              href={`/teams/${row.team_entry_id}`}
+                              className="text-link"
+                              style={{ color: "var(--text)", fontSize: "14px", fontWeight: 700 }}
+                            >
+                              {row.team_name}
+                            </Link>
+                          </div>
+                        </td>
+                        <td className="stat-col">{row.games_played}</td>
+                        <td className="stat-col">{row.wins}</td>
+                        <td className="stat-col">{row.losses}</td>
+                        <td className="stat-col">{row.ot_losses}</td>
+                        <td className="stat-pts">{row.points}</td>
+                        <td className="stat-col">{row.goals_for}</td>
+                        <td className="stat-col">{row.goals_against}</td>
+                        <td
+                          className="stat-col"
+                          style={{
+                            fontWeight: 700,
+                            color:
+                              row.goal_difference > 0
+                                ? "var(--lime)"
+                                : row.goal_difference < 0
+                                ? "#f87171"
+                                : "inherit",
+                          }}
+                        >
+                          {row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  data.teams.map((t, idx) => {
+                    const initials = t.name
+                      .split(/\s+/)
+                      .map((w) => w[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 3);
+
+                    return (
+                      <tr key={t.entry_id}>
+                        <td className="rank-col">{idx + 1}</td>
+                        <td className="team-col">
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <span
+                              style={{
+                                width: "26px",
+                                height: "26px",
+                                borderRadius: "6px",
+                                background: "#162734",
+                                border: "1px solid var(--line)",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "10.5px",
+                                fontWeight: 800,
+                                color: "var(--lime)",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {initials}
+                            </span>
+                            <Link href={`/teams/${t.entry_id}`} className="text-link" style={{ fontWeight: 700 }}>
+                              {t.name}
+                            </Link>
+                          </div>
+                        </td>
+                        <td className="stat-col">0</td>
+                        <td className="stat-col">0</td>
+                        <td className="stat-col">0</td>
+                        <td className="stat-col">0</td>
+                        <td className="stat-pts">0</td>
+                        <td className="stat-col">0</td>
+                        <td className="stat-col">0</td>
+                        <td className="stat-col">0</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
       </section>
 
@@ -526,6 +579,7 @@ export default async function Home({
           </Link>
         </div>
       </section>
+    </main>
     </>
   );
 }

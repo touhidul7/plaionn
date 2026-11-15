@@ -61,12 +61,39 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   overflow-x: hidden;
 }
 
+.public-portal-body {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.public-portal-container,
+.public-portal-body > main,
 .public-portal-root main {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   width: 100%;
-  padding: 32px 24px 60px;
-  flex: 1;
+  padding: 32px 24px 64px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .public-portal-container,
+  .public-portal-body > main,
+  .public-portal-root main {
+    padding: 20px 16px 48px;
+  }
+}
+
+/* Fallback: ensure direct panels or headings in portal body are constrained */
+.public-portal-body > .panel,
+.public-portal-body > .page-heading {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Plaionn Public Header Section */
@@ -91,7 +118,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .plaionn-header-top-inner {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
   display: flex;
@@ -302,7 +329,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .plaionn-navbar-inner {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
   display: flex;
@@ -585,7 +612,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .public-footer-inner {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -1373,6 +1400,44 @@ form h2 {
 
 .table tr:last-child td {
   border-bottom: 0;
+}
+
+/* Sports Stat Columns */
+.table th.stat-col,
+.table td.stat-col {
+  width: 58px;
+  max-width: 68px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  padding: 12px 6px;
+}
+
+.table th.stat-pts,
+.table td.stat-pts {
+  width: 66px;
+  max-width: 76px;
+  text-align: center;
+  font-weight: 900;
+  color: var(--lime);
+  font-size: 14.5px;
+  font-variant-numeric: tabular-nums;
+  padding: 12px 6px;
+}
+
+.table th.rank-col,
+.table td.rank-col {
+  width: 48px;
+  max-width: 48px;
+  text-align: center;
+  font-weight: 800;
+  color: var(--muted);
+  padding: 12px 8px;
+}
+
+.table th.team-col,
+.table td.team-col {
+  text-align: left;
+  padding: 12px 16px;
 }
 
 .empty {

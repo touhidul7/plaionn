@@ -26,22 +26,22 @@ export function SeasonLeaderboards({ skaters, goalies }: LeaderboardsProps) {
             <table className="table">
               <thead>
                 <tr>
-                  <th scope="col" style={{ width: "3rem" }}>#</th>
-                  <th scope="col">Player</th>
+                  <th scope="col" className="rank-col">#</th>
+                  <th scope="col" className="team-col">Player</th>
                   <th scope="col">Team</th>
-                  <th scope="col">Pos</th>
-                  <th scope="col">GP</th>
-                  <th scope="col">G</th>
-                  <th scope="col">A</th>
-                  <th scope="col" style={{ color: "var(--lime)", fontWeight: 800 }}>PTS</th>
-                  <th scope="col">PIM</th>
+                  <th scope="col" style={{ width: "52px", textAlign: "center" }}>Pos</th>
+                  <th scope="col" className="stat-col">GP</th>
+                  <th scope="col" className="stat-col">G</th>
+                  <th scope="col" className="stat-col">A</th>
+                  <th scope="col" className="stat-pts">PTS</th>
+                  <th scope="col" className="stat-col">PIM</th>
                 </tr>
               </thead>
               <tbody>
                 {skaters.map((player, idx) => (
                   <tr key={player.player_id}>
-                    <td><strong>{idx + 1}</strong></td>
-                    <td>
+                    <td className="rank-col"><strong>{idx + 1}</strong></td>
+                    <td className="team-col">
                       <Link
                         href={`/players/${player.player_id}`}
                         className="text-link"
@@ -55,12 +55,12 @@ export function SeasonLeaderboards({ skaters, goalies }: LeaderboardsProps) {
                       )}
                     </td>
                     <td>{player.team_name}</td>
-                    <td><span className="badge">{player.player_position}</span></td>
-                    <td>{player.games_played}</td>
-                    <td>{player.goals}</td>
-                    <td>{player.assists}</td>
-                    <td style={{ color: "var(--lime)", fontWeight: 800, fontSize: "1.05rem" }}>{player.points}</td>
-                    <td>{player.penalty_minutes}</td>
+                    <td style={{ textAlign: "center" }}><span className="badge">{player.player_position}</span></td>
+                    <td className="stat-col">{player.games_played}</td>
+                    <td className="stat-col">{player.goals}</td>
+                    <td className="stat-col">{player.assists}</td>
+                    <td className="stat-pts">{player.points}</td>
+                    <td className="stat-col">{player.penalty_minutes}</td>
                   </tr>
                 ))}
               </tbody>
@@ -89,20 +89,20 @@ export function SeasonLeaderboards({ skaters, goalies }: LeaderboardsProps) {
             <table className="table">
               <thead>
                 <tr>
-                  <th scope="col" style={{ width: "3rem" }}>#</th>
-                  <th scope="col">Goaltender</th>
+                  <th scope="col" className="rank-col">#</th>
+                  <th scope="col" className="team-col">Goaltender</th>
                   <th scope="col">Team</th>
-                  <th scope="col">GP</th>
-                  <th scope="col">GA</th>
-                  <th scope="col" style={{ color: "var(--lime)", fontWeight: 800 }}>GAA</th>
-                  <th scope="col">SO</th>
+                  <th scope="col" className="stat-col">GP</th>
+                  <th scope="col" className="stat-col">GA</th>
+                  <th scope="col" className="stat-pts">GAA</th>
+                  <th scope="col" className="stat-col">SO</th>
                 </tr>
               </thead>
               <tbody>
                 {goalies.map((goalie, idx) => (
                   <tr key={goalie.player_id}>
-                    <td><strong>{idx + 1}</strong></td>
-                    <td>
+                    <td className="rank-col"><strong>{idx + 1}</strong></td>
+                    <td className="team-col">
                       <Link
                         href={`/players/${goalie.player_id}`}
                         className="text-link"
@@ -116,12 +116,12 @@ export function SeasonLeaderboards({ skaters, goalies }: LeaderboardsProps) {
                       )}
                     </td>
                     <td>{goalie.team_name}</td>
-                    <td>{goalie.games_played}</td>
-                    <td>{goalie.goals_against}</td>
-                    <td style={{ color: "#34d399", fontWeight: 700, fontSize: "1.05rem" }}>
+                    <td className="stat-col">{goalie.games_played}</td>
+                    <td className="stat-col">{goalie.goals_against}</td>
+                    <td className="stat-pts">
                       {Number(goalie.goals_against_average).toFixed(2)}
                     </td>
-                    <td>{goalie.shutouts}</td>
+                    <td className="stat-col">{goalie.shutouts}</td>
                   </tr>
                 ))}
               </tbody>

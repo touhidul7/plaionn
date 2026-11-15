@@ -176,10 +176,24 @@ export function PublicHeaderClient({
 
           <ul className={`plaionn-nav-menu ${mobileOpen ? "open" : ""}`}>
             {navLinks.map((link) => {
-              const isActive =
-                link.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(link.href.split("?")[0]);
+              const isScores = link.href.includes("view=scores");
+              const isSchedule = link.href === "/schedule";
+              let isActive = false;
+              if (link.href === "/") {
+                isActive = pathname === "/";
+              } else if (isScores) {
+                isActive =
+                  pathname === "/schedule" &&
+                  typeof window !== "undefined" &&
+                  window.location.search.includes("view=scores");
+              } else if (isSchedule) {
+                isActive =
+                  pathname.startsWith("/schedule") &&
+                  (typeof window === "undefined" ||
+                    !window.location.search.includes("view=scores"));
+              } else {
+                isActive = pathname.startsWith(link.href.split("?")[0]);
+              }
 
               return (
                 <li key={link.href} className="plaionn-nav-item">

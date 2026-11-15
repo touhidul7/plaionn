@@ -23,7 +23,7 @@ export default async function AnnouncementsPage() {
   }));
 
   return (
-    <>
+    <main id="main" className="public-portal-container">
       <div className="page-heading">
         <div>
           <p className="eyebrow">BROADCASTS &amp; ALERTS</p>
@@ -45,7 +45,7 @@ export default async function AnnouncementsPage() {
         teams={teamsList}
         canManage={canManage}
       />
-    </>
+    </main>
   );
 }
 

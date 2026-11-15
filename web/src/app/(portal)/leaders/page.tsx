@@ -23,7 +23,7 @@ export default async function LeadersPage({
 
   if (!selectedSeason) {
     return (
-      <>
+      <main id="main" className="public-portal-container">
         <div className="page-heading">
           <div>
             <p className="eyebrow">INDIVIDUAL STATISTICS</p>
@@ -42,7 +42,7 @@ export default async function LeadersPage({
               : "Statistics will be posted once the season begins."}
           </p>
         </section>
-      </>
+      </main>
     );
   }
 
@@ -64,7 +64,7 @@ export default async function LeadersPage({
       : [];
 
   return (
-    <>
+    <main id="main" className="public-portal-container">
       <div className="page-heading">
         <div>
           <p className="eyebrow">INDIVIDUAL STATISTICS</p>
@@ -102,6 +102,6 @@ export default async function LeadersPage({
 
       {/* Season Honors & Trophies */}
       <SeasonAwardsShowcase seasonId={selectedSeason.id} />
-    </>
+    </main>
   );
 }

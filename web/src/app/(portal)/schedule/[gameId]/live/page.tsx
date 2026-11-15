@@ -119,7 +119,7 @@ export default async function LiveGamePage({
   const penalties = events.filter((e) => e.event_type === "penalty");
 
   return (
-    <>
+    <main id="main" className="public-portal-container">
       {/* 1. Header & Navigation Controls */}
       <div className="page-heading">
         <div>
@@ -359,6 +359,6 @@ export default async function LiveGamePage({
       <div className="mt-6">
         <ShotsAndGoalieBoxscore summary={shotsSummary} canScore={false} />
       </div>
-    </>
+    </main>
   );
 }

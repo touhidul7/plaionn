@@ -66,26 +66,30 @@ export default async function TeamRosterPage({
 
   if (roster.error || links.error || settings.error || eligibilityResult.error) {
     return (
-      <section className="panel empty">
-        <h1>Roster setup is pending.</h1>
-        <p>Check that the roster and eligibility migrations have been applied before managing this team.</p>
-        <Link href="/teams" className="button">
-          Back to teams
-        </Link>
-      </section>
+      <main id="main" className="public-portal-container">
+        <section className="panel empty">
+          <h1>Roster setup is pending.</h1>
+          <p>Check that the roster and eligibility migrations have been applied before managing this team.</p>
+          <Link href="/teams" className="button">
+            Back to teams
+          </Link>
+        </section>
+      </main>
     );
   }
 
   const eligibility = teamEligibilitySchema.safeParse(eligibilityResult.data);
   if (!eligibility.success) {
     return (
-      <section className="panel empty">
-        <h1>Eligibility data unavailable.</h1>
-        <p>The database returned an unexpected eligibility response. Contact your administrator.</p>
-        <Link href="/teams" className="button">
-          Back to teams
-        </Link>
-      </section>
+      <main id="main" className="public-portal-container">
+        <section className="panel empty">
+          <h1>Eligibility data unavailable.</h1>
+          <p>The database returned an unexpected eligibility response. Contact your administrator.</p>
+          <Link href="/teams" className="button">
+            Back to teams
+          </Link>
+        </section>
+      </main>
     );
   }
 
@@ -135,7 +139,7 @@ export default async function TeamRosterPage({
     : null;
 
   return (
-    <>
+    <main id="main" className="public-portal-container">
       <div className="page-heading">
         <div>
           <p className="eyebrow">{division.data.name} · TEAM ROSTER</p>
@@ -329,6 +333,6 @@ export default async function TeamRosterPage({
           )}
         </>
       )}
-    </>
+    </main>
   );
 }

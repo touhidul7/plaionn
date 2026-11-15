@@ -11,8 +11,9 @@ export default async function RegistrationPage() {
 
   if (!user) {
     return (
-      <div style={{ maxWidth: "860px", margin: "0 auto", padding: "20px 0" }}>
-        <div className="page-heading" style={{ marginBottom: "24px" }}>
+      <main id="main" className="public-portal-container">
+        <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+          <div className="page-heading" style={{ marginBottom: "24px" }}>
           <div>
             <span className="badge" style={{ marginBottom: "8px" }}>
               PLAYER REGISTRATION &amp; WAIVERS
@@ -69,8 +70,9 @@ export default async function RegistrationPage() {
           </div>
         </section>
       </div>
-    );
-  }
+    </main>
+  );
+}
 
   const [available, profile, requests] = await Promise.all([
     supabase.rpc("open_registration_seasons"),
@@ -160,7 +162,7 @@ export default async function RegistrationPage() {
   );
 
   return (
-    <>
+    <main id="main" className="public-portal-container">
       <div className="page-heading">
         <div>
           <p className="eyebrow">JOIN THE ICE</p>
@@ -256,6 +258,6 @@ export default async function RegistrationPage() {
           )}
         </section>
       ))}
-    </>
+    </main>
   );
 }

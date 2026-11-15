@@ -19,7 +19,7 @@ export default async function PlayoffsPage({
 
   if (!selectedSeason) {
     return (
-      <>
+      <main id="main" className="public-portal-container">
         <div className="page-heading">
           <div>
             <p className="eyebrow">POSTSEASON</p>
@@ -38,7 +38,7 @@ export default async function PlayoffsPage({
               : "Playoff brackets will be available once the season is announced."}
           </p>
         </section>
-      </>
+      </main>
     );
   }
 
@@ -65,7 +65,7 @@ export default async function PlayoffsPage({
   }
 
   return (
-    <>
+    <main id="main" className="public-portal-container">
       <div className="page-heading">
         <div>
           <p className="eyebrow">POSTSEASON CHAMPIONSHIP</p>
@@ -124,7 +124,7 @@ export default async function PlayoffsPage({
           <p>Add divisions in League HQ to generate playoff tournament brackets.</p>
         </section>
       )}
-    </>
+    </main>
   );
 }
 
