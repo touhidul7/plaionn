@@ -33,7 +33,7 @@ export function SeasonLeaderboards({ skaters, goalies }: LeaderboardsProps) {
                   <th scope="col">GP</th>
                   <th scope="col">G</th>
                   <th scope="col">A</th>
-                  <th scope="col" style={{ color: "#38bdf8", fontWeight: 700 }}>PTS</th>
+                  <th scope="col" style={{ color: "var(--lime)", fontWeight: 800 }}>PTS</th>
                   <th scope="col">PIM</th>
                 </tr>
               </thead>
@@ -59,7 +59,7 @@ export function SeasonLeaderboards({ skaters, goalies }: LeaderboardsProps) {
                     <td>{player.games_played}</td>
                     <td>{player.goals}</td>
                     <td>{player.assists}</td>
-                    <td style={{ color: "#38bdf8", fontWeight: 700, fontSize: "1.05rem" }}>{player.points}</td>
+                    <td style={{ color: "var(--lime)", fontWeight: 800, fontSize: "1.05rem" }}>{player.points}</td>
                     <td>{player.penalty_minutes}</td>
                   </tr>
                 ))}
@@ -94,7 +94,7 @@ export function SeasonLeaderboards({ skaters, goalies }: LeaderboardsProps) {
                   <th scope="col">Team</th>
                   <th scope="col">GP</th>
                   <th scope="col">GA</th>
-                  <th scope="col" style={{ color: "#34d399", fontWeight: 700 }}>GAA</th>
+                  <th scope="col" style={{ color: "var(--lime)", fontWeight: 800 }}>GAA</th>
                   <th scope="col">SO</th>
                 </tr>
               </thead>

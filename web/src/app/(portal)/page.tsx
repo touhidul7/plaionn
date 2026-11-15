@@ -52,6 +52,8 @@ export default async function Home({
     .order("published_at", { ascending: false })
     .limit(3);
 
+  const featuredGame = games[0] || null;
+
   return (
     <>
       {/* 1. Cinematic Photographic Arena Hero */}
@@ -82,199 +84,240 @@ export default async function Home({
         </div>
       </section>
 
-      {/* 2. Season Selector & League Metrics Strip */}
+      {/* 2. League Game Day Hub & Season Center (Two-Column Balanced Grid) */}
       <section
         style={{
-          background: "#0d1a22",
-          border: "1px solid var(--line)",
-          borderRadius: "14px",
-          padding: "18px 24px",
-          marginBottom: "32px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "16px",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+          gap: "24px",
+          marginBottom: "36px",
         }}
       >
-        <form
-          action="/"
-          method="get"
-          style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", margin: 0 }}
-        >
-          <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--muted)" }}>
-            Season:
-          </span>
-          <select
-            name="season"
-            defaultValue={selectedSeason?.id ?? ""}
+        {/* Left Card: Featured Game Center */}
+        {featuredGame ? (
+          <div
+            className="panel"
             style={{
-              minWidth: "220px",
-              height: "38px",
-              background: "#13232e",
+              padding: "24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+              marginBottom: 0,
+              background: "#0c1822",
               border: "1px solid var(--line)",
-              borderRadius: "6px",
-              color: "var(--text)",
-              padding: "0 12px",
-              fontSize: "13px",
-              fontWeight: 600,
+              borderRadius: "14px",
             }}
           >
-            {data.seasons.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="button button-sm primary"
-            style={{ height: "38px", padding: "0 18px", fontSize: "12.5px" }}
-          >
-            Apply Filter
-          </button>
-        </form>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--lime)", letterSpacing: "1px", textTransform: "uppercase" }}>
+                ● FEATURED MATCHUP · {featuredGame.division_name || "LEAGUE"}
+              </span>
+              <span className="badge" style={{ fontSize: "10px", padding: "2px 8px" }}>
+                {featuredGame.status ? featuredGame.status.toUpperCase() : "SCHEDULED"}
+              </span>
+            </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", fontSize: "12.5px", color: "var(--muted)" }}>
-          <div>
-            <strong style={{ color: "var(--text)" }}>{data.teams.length}</strong> Teams Registered
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "8px 0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "8px",
+                      background: "#162734",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 900,
+                      fontSize: "12px",
+                      color: "var(--text)",
+                    }}
+                  >
+                    AW
+                  </div>
+                  <strong style={{ fontSize: "16px", color: "var(--text)" }}>
+                    {featuredGame.away_team_name}
+                  </strong>
+                </div>
+                <span style={{ fontSize: "18px", fontWeight: 900, color: "var(--lime)" }}>
+                  {typeof featuredGame.away_score === "number" ? featuredGame.away_score : "—"}
+                </span>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "8px",
+                      background: "#162734",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 900,
+                      fontSize: "12px",
+                      color: "var(--text)",
+                    }}
+                  >
+                    HM
+                  </div>
+                  <strong style={{ fontSize: "16px", color: "var(--text)" }}>
+                    {featuredGame.home_team_name}
+                  </strong>
+                </div>
+                <span style={{ fontSize: "18px", fontWeight: 900, color: "var(--lime)" }}>
+                  {typeof featuredGame.home_score === "number" ? featuredGame.home_score : "—"}
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                borderTop: "1px solid var(--line)",
+                paddingTop: "12px",
+                marginTop: "auto",
+                fontSize: "12px",
+                color: "var(--muted)",
+              }}
+            >
+              <span>
+                📍 {featuredGame.venue_name ? `${featuredGame.venue_name} - ${featuredGame.rink_name}` : "Demo Arena"}
+              </span>
+              <Link
+                href={`/schedule/${featuredGame.game_id || featuredGame.id}/live`}
+                className="button button-sm primary"
+                style={{ fontSize: "11.5px", padding: "6px 14px" }}
+              >
+                Live Boxscore ↗
+              </Link>
+            </div>
           </div>
-          <span style={{ opacity: 0.3 }}>|</span>
-          <div>
-            <strong style={{ color: "var(--text)" }}>{data.divisions.length}</strong> Divisions
+        ) : (
+          <div
+            className="panel"
+            style={{
+              padding: "24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+              marginBottom: 0,
+              background: "#0c1822",
+              border: "1px solid var(--line)",
+              borderRadius: "14px",
+            }}
+          >
+            <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--lime)", letterSpacing: "1px" }}>
+              LEAGUE GAME CENTER
+            </span>
+            <h3 style={{ margin: 0, fontSize: "18px" }}>Next Matchups</h3>
+            <p style={{ margin: 0, fontSize: "13.5px", color: "var(--muted)", flex: 1 }}>
+              Official schedule updates and live boxscores will stream here.
+            </p>
+            <Link href="/schedule" className="button button-sm button-outline">
+              View Schedules →
+            </Link>
           </div>
-          {canManage && (
-            <>
-              <span style={{ opacity: 0.3 }}>|</span>
-              <Link href="/league" className="text-link" style={{ fontSize: "12.5px", fontWeight: 700 }}>
+        )}
+
+        {/* Right Card: Season & League Quick Hub */}
+        <div
+          className="panel"
+          style={{
+            padding: "24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+            marginBottom: 0,
+            background: "#0c1822",
+            border: "1px solid var(--line)",
+            borderRadius: "14px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--muted)", letterSpacing: "1px", textTransform: "uppercase" }}>
+              SEASON SELECTOR
+            </span>
+            {canManage && (
+              <Link href="/league" className="text-link" style={{ fontSize: "12px", fontWeight: 700 }}>
                 Commissioner HQ ⚙️
               </Link>
-            </>
-          )}
+            )}
+          </div>
+
+          <form action="/" method="get" style={{ display: "flex", gap: "10px", margin: 0 }}>
+            <select
+              name="season"
+              defaultValue={selectedSeason?.id ?? ""}
+              style={{
+                flex: 1,
+                height: "40px",
+                background: "#13232e",
+                border: "1px solid var(--line)",
+                borderRadius: "8px",
+                color: "var(--text)",
+                padding: "0 12px",
+                fontSize: "13px",
+                fontWeight: 700,
+              }}
+            >
+              {data.seasons.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <button type="submit" className="button button-sm primary" style={{ height: "40px", padding: "0 18px" }}>
+              Switch
+            </button>
+          </form>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "10px",
+              paddingTop: "6px",
+              marginTop: "auto",
+            }}
+          >
+            <div style={{ background: "#111f2a", padding: "12px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.04)" }}>
+              <span style={{ fontSize: "11px", color: "var(--muted)", display: "block" }}>Active Teams</span>
+              <strong style={{ fontSize: "18px", color: "var(--lime)" }}>{data.teams.length}</strong>
+            </div>
+            <div style={{ background: "#111f2a", padding: "12px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.04)" }}>
+              <span style={{ fontSize: "11px", color: "var(--muted)", display: "block" }}>Divisions</span>
+              <strong style={{ fontSize: "18px", color: "var(--text)" }}>{data.divisions.length}</strong>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* 3. Featured Matchups & Upcoming Games (Bounded Card Grid) */}
-      <div className="section-heading" style={{ marginBottom: "16px" }}>
-        <div>
-          <h2 style={{ fontSize: "20px", margin: 0 }}>Featured Matchups &amp; Upcoming Games</h2>
-          <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
-            Official game center with real-time boxscores and schedule tracking.
-          </p>
+      {/* 3. Official Division Standings Table */}
+      <section style={{ marginBottom: "36px" }}>
+        <div className="section-heading" style={{ marginBottom: "16px" }}>
+          <div>
+            <h2 style={{ fontSize: "20px", margin: 0 }}>
+              {selectedSeason ? `${selectedSeason.name} Standings` : "Division Standings"}
+            </h2>
+            <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
+              Official points race, wins, goal differential, and tiebreakers.
+            </p>
+          </div>
+          <Link href="/standings" className="text-link" style={{ fontSize: "13px", fontWeight: 700 }}>
+            Full Standings Table →
+          </Link>
         </div>
-        <Link href="/schedule" className="text-link" style={{ fontSize: "13px", fontWeight: 700 }}>
-          Full Schedule &amp; Scores →
-        </Link>
-      </div>
 
-      {games.length === 0 ? (
-        <section className="panel empty" style={{ marginBottom: "32px", padding: "36px", textAlign: "center" }}>
-          <p style={{ margin: 0, fontSize: "14px", color: "var(--muted)" }}>
-            No upcoming games scheduled for this season. Check back soon for opening day.
-          </p>
-        </section>
-      ) : (
-        <div className="matchups-grid">
-          {games.map((g) => {
-            const isCompleted = g.status === "completed" || g.status === "final";
-            const isLive = g.status === "in_progress" || g.status === "live";
-
-            return (
-              <div key={g.game_id || g.id} className="matchup-card">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px" }}>
-                  <span style={{ color: "var(--lime)", fontWeight: 800, textTransform: "uppercase" }}>
-                    {new Date(g.starts_at).toLocaleDateString(undefined, {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })}{" "}
-                    @{" "}
-                    {new Date(g.starts_at).toLocaleTimeString(undefined, {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                  <span
-                    className={`badge ${isLive ? "primary" : isCompleted ? "primary" : ""}`}
-                    style={{ fontSize: "10px", padding: "2px 8px" }}
-                  >
-                    {isLive ? "LIVE" : isCompleted ? "FINAL" : "SCHEDULED"}
-                  </span>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "6px 0" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontWeight: 800, fontSize: "15px", color: "var(--text)" }}>
-                      {g.away_team_name}
-                    </span>
-                    <span style={{ fontWeight: 900, fontSize: "16px", color: "var(--lime)" }}>
-                      {typeof g.away_score === "number" ? g.away_score : "—"}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontWeight: 800, fontSize: "15px", color: "var(--text)" }}>
-                      {g.home_team_name}
-                    </span>
-                    <span style={{ fontWeight: 900, fontSize: "16px", color: "var(--lime)" }}>
-                      {typeof g.home_score === "number" ? g.home_score : "—"}
-                    </span>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    borderTop: "1px solid var(--line)",
-                    paddingTop: "12px",
-                    marginTop: "auto",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <span style={{ fontSize: "11.5px", color: "var(--muted)" }}>
-                    📍 {g.venue_name ? `${g.venue_name} - ${g.rink_name ?? "Main"}` : "Arena Rink"}
-                  </span>
-                  <Link
-                    href={`/schedule/${g.game_id || g.id}/live`}
-                    className="button button-sm button-outline"
-                    style={{ fontSize: "11.5px", padding: "4px 10px" }}
-                  >
-                    Game Details →
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* 4. Division Standings Snapshot */}
-      <div className="section-heading" style={{ marginBottom: "16px" }}>
-        <div>
-          <h2 style={{ fontSize: "20px", margin: 0 }}>
-            {selectedSeason ? `${selectedSeason.name} Standings` : "Division Standings"}
-          </h2>
-          <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
-            Current points and division race tiebreakers.
-          </p>
-        </div>
-        <Link href="/standings" className="text-link" style={{ fontSize: "13px", fontWeight: 700 }}>
-          Complete Standings Table →
-        </Link>
-      </div>
-
-      {standingsRows.length === 0 ? (
-        <section className="panel empty" style={{ marginBottom: "32px", padding: "36px", textAlign: "center" }}>
-          <p style={{ margin: 0, fontSize: "14px", color: "var(--muted)" }}>
-            Standings will calculate automatically once official league games are completed.
-          </p>
-        </section>
-      ) : (
-        <section className="panel" style={{ marginBottom: "36px", overflowX: "auto", padding: 0 }}>
+        <section className="panel" style={{ padding: 0, overflow: "hidden", borderRadius: "14px" }}>
           <table className="table" style={{ width: "100%", margin: 0 }}>
             <thead>
               <tr>
-                <th style={{ width: "40px" }}>#</th>
+                <th style={{ width: "50px" }}>#</th>
                 <th>Team</th>
                 <th style={{ textAlign: "center" }}>GP</th>
                 <th style={{ textAlign: "center" }}>W</th>
@@ -287,98 +330,161 @@ export default async function Home({
               </tr>
             </thead>
             <tbody>
-              {standingsRows.map((row, idx) => (
-                <tr key={row.team_entry_id || idx}>
-                  <td style={{ fontWeight: 700, color: "var(--muted)" }}>{idx + 1}</td>
-                  <td style={{ fontWeight: 800 }}>
-                    <Link
-                      href={`/teams/${row.team_entry_id}`}
-                      className="text-link"
-                      style={{ color: "var(--text)" }}
+              {standingsRows.length > 0 ? (
+                standingsRows.map((row, idx) => (
+                  <tr key={row.team_entry_id || idx}>
+                    <td style={{ fontWeight: 800, color: "var(--muted)" }}>{idx + 1}</td>
+                    <td style={{ fontWeight: 800 }}>
+                      <Link
+                        href={`/teams/${row.team_entry_id}`}
+                        className="text-link"
+                        style={{ color: "var(--text)", fontSize: "14px" }}
+                      >
+                        {row.team_name}
+                      </Link>
+                    </td>
+                    <td style={{ textAlign: "center" }}>{row.games_played}</td>
+                    <td style={{ textAlign: "center" }}>{row.wins}</td>
+                    <td style={{ textAlign: "center" }}>{row.losses}</td>
+                    <td style={{ textAlign: "center" }}>{row.ot_losses}</td>
+                    <td
+                      style={{
+                        textAlign: "center",
+                        fontWeight: 900,
+                        color: "var(--lime)",
+                        fontSize: "15px",
+                      }}
                     >
-                      {row.team_name}
-                    </Link>
-                  </td>
-                  <td style={{ textAlign: "center" }}>{row.games_played}</td>
-                  <td style={{ textAlign: "center" }}>{row.wins}</td>
-                  <td style={{ textAlign: "center" }}>{row.losses}</td>
-                  <td style={{ textAlign: "center" }}>{row.ot_losses}</td>
-                  <td
-                    style={{
-                      textAlign: "center",
-                      fontWeight: 800,
-                      color: "var(--lime)",
-                      fontSize: "15px",
-                    }}
-                  >
-                    {row.points}
-                  </td>
-                  <td style={{ textAlign: "center" }}>{row.goals_for}</td>
-                  <td style={{ textAlign: "center" }}>{row.goals_against}</td>
-                  <td
-                    style={{
-                      textAlign: "center",
-                      fontWeight: 600,
-                      color:
-                        row.goal_differential > 0
-                          ? "var(--lime)"
-                          : row.goal_differential < 0
-                          ? "#f87171"
-                          : "inherit",
-                    }}
-                  >
-                    {row.goal_differential > 0 ? `+${row.goal_differential}` : row.goal_differential}
-                  </td>
-                </tr>
-              ))}
+                      {row.points}
+                    </td>
+                    <td style={{ textAlign: "center" }}>{row.goals_for}</td>
+                    <td style={{ textAlign: "center" }}>{row.goals_against}</td>
+                    <td
+                      style={{
+                        textAlign: "center",
+                        fontWeight: 700,
+                        color:
+                          row.goal_difference > 0
+                            ? "var(--lime)"
+                            : row.goal_difference < 0
+                            ? "#f87171"
+                            : "inherit",
+                      }}
+                    >
+                      {row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                data.teams.map((t, idx) => (
+                  <tr key={t.entry_id}>
+                    <td style={{ fontWeight: 800, color: "var(--muted)" }}>{idx + 1}</td>
+                    <td style={{ fontWeight: 800 }}>
+                      <Link href={`/teams/${t.entry_id}`} className="text-link">
+                        {t.name}
+                      </Link>
+                    </td>
+                    <td style={{ textAlign: "center" }}>0</td>
+                    <td style={{ textAlign: "center" }}>0</td>
+                    <td style={{ textAlign: "center" }}>0</td>
+                    <td style={{ textAlign: "center" }}>0</td>
+                    <td style={{ textAlign: "center", fontWeight: 900, color: "var(--lime)" }}>0</td>
+                    <td style={{ textAlign: "center" }}>0</td>
+                    <td style={{ textAlign: "center" }}>0</td>
+                    <td style={{ textAlign: "center" }}>0</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </section>
-      )}
+      </section>
 
-      {/* 5. League Notices & Bulletins */}
-      {announcements && announcements.length > 0 && (
-        <section style={{ marginBottom: "36px" }}>
-          <div className="section-heading" style={{ marginBottom: "16px" }}>
-            <div>
-              <h2 style={{ fontSize: "20px", margin: 0 }}>League Bulletins &amp; Notices</h2>
-              <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
-                Official communication from league administration.
-              </p>
-            </div>
-            <Link href="/announcements" className="text-link" style={{ fontSize: "13px", fontWeight: 700 }}>
-              All Announcements →
-            </Link>
+      {/* 4. Active Member Clubs Showcase */}
+      <section style={{ marginBottom: "36px" }}>
+        <div className="section-heading" style={{ marginBottom: "16px" }}>
+          <div>
+            <h2 style={{ fontSize: "20px", margin: 0 }}>League Member Clubs</h2>
+            <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
+              Explore active team profiles, rosters, and schedules.
+            </p>
           </div>
-          <div style={{ display: "grid", gap: "12px" }}>
-            {announcements.map((ann) => (
+          <Link href="/teams" className="text-link" style={{ fontSize: "13px", fontWeight: 700 }}>
+            All Teams Directory →
+          </Link>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gap: "20px",
+          }}
+        >
+          {data.teams.map((t) => {
+            const initials = t.name
+              .split(/\s+/)
+              .map((w) => w[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 3);
+
+            return (
               <div
-                key={ann.id}
+                key={t.entry_id}
                 className="panel"
                 style={{
-                  padding: "20px 24px",
+                  padding: "22px",
                   display: "flex",
-                  flexDirection: "column",
-                  gap: "6px",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "14px",
                   marginBottom: 0,
+                  background: "#0c1822",
+                  border: "1px solid var(--line)",
+                  borderRadius: "12px",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h3 style={{ margin: 0, fontSize: "16px" }}>{ann.title}</h3>
-                  <small style={{ color: "var(--muted)", fontSize: "11.5px" }}>
-                    {new Date(ann.published_at).toLocaleDateString()}
-                  </small>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      width: "42px",
+                      height: "42px",
+                      borderRadius: "10px",
+                      background: "#162734",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 900,
+                      fontSize: "15px",
+                      color: "var(--lime)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {initials}
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "16px", color: "var(--text)" }}>{t.name}</h3>
+                    <span style={{ fontSize: "12px", color: "var(--muted)" }}>
+                      {t.division_name} · {t.season_name}
+                    </span>
+                  </div>
                 </div>
-                <p style={{ margin: 0, color: "var(--muted)", fontSize: "13.5px", lineHeight: 1.5 }}>
-                  {ann.message}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
-      {/* 6. Quick Portal Action Cards */}
+                <Link
+                  href={`/teams/${t.entry_id}`}
+                  className="button button-sm button-outline"
+                  style={{ fontSize: "11.5px", padding: "6px 12px", flexShrink: 0 }}
+                >
+                  Roster →
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 5. Quick Portal Navigation Cards */}
       <section
         style={{
           display: "grid",

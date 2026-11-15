@@ -106,51 +106,50 @@ export default async function StandingsPage({
           <button type="submit" className="button primary">View Standings</button>
         </form>
 
-        {standingsRes.error || !rows ? (
+        {standingsRes.error && !data.teams.length ? (
           <div className="notice" role="status">
-            <h2>Official standings unavailable</h2>
-            <p>
-              {standingsRes.error?.code === "PGRST202" || standingsRes.error?.code === "42883"
-                ? "Apply the game-results and standings migration before viewing official standings."
-                : standingsRes.error?.code === "42501"
-                ? "Guest standings access is pending migration in Supabase."
-                : "Could not calculate standings from the connected database."}
-            </p>
+            <h2>Official standings in setup</h2>
+            <p>Standings will populate automatically once games begin.</p>
           </div>
-        ) : rows?.length ? (
+        ) : (
           data.divisions
             .filter((division) => division.season_id === selectedSeason.id)
             .map((division) => {
-              const divisionRows = rows.filter(
+              const divisionRows = rows ? rows.filter(
                 (row) => row.division_id === division.id
+              ) : [];
+              const divisionTeams = data.teams.filter(
+                (t) => t.division_name === division.name
               );
+              const hasRows = divisionRows.length > 0;
+
               return (
                 <section key={division.id} style={{ marginTop: "1.75rem" }}>
                   <div className="section-heading">
-                    <h2 style={{ fontSize: "1.25rem", margin: 0 }}>{division.name}</h2>
-                    <span className="badge">{divisionRows.length} Teams</span>
+                    <h2 style={{ fontSize: "1.25rem", margin: 0 }}>{division.name} Division</h2>
+                    <span className="badge">{hasRows ? divisionRows.length : divisionTeams.length} Teams</span>
                   </div>
-                  {divisionRows.length ? (
-                    <div className="table-wrap">
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th scope="col" style={{ width: "3rem" }}>#</th>
-                            <th scope="col">Team</th>
-                            <th scope="col">GP</th>
-                            <th scope="col">W</th>
-                            <th scope="col">T</th>
-                            <th scope="col">L</th>
-                            <th scope="col">OTL</th>
-                            <th scope="col">GF</th>
-                            <th scope="col">GA</th>
-                            <th scope="col">GD</th>
-                            <th scope="col">PIM</th>
-                            <th scope="col" style={{ color: "var(--lime)", fontWeight: 800 }}>PTS</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {divisionRows.map((row) => (
+                  <div className="table-wrap">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th scope="col" style={{ width: "3rem" }}>#</th>
+                          <th scope="col">Team</th>
+                          <th scope="col">GP</th>
+                          <th scope="col">W</th>
+                          <th scope="col">T</th>
+                          <th scope="col">L</th>
+                          <th scope="col">OTL</th>
+                          <th scope="col">GF</th>
+                          <th scope="col">GA</th>
+                          <th scope="col">GD</th>
+                          <th scope="col">PIM</th>
+                          <th scope="col" style={{ color: "var(--lime)", fontWeight: 800 }}>PTS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {hasRows ? (
+                          divisionRows.map((row) => (
                             <tr key={row.team_entry_id}>
                               <td><strong>{row.rank}</strong></td>
                               <td>
@@ -179,21 +178,35 @@ export default async function StandingsPage({
                                 <strong style={{ color: "var(--lime)", fontSize: "1.05rem" }}>{row.points}</strong>
                               </td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <p className="empty">No teams in this division yet.</p>
-                  )}
+                          ))
+                        ) : (
+                          divisionTeams.map((t, idx) => (
+                            <tr key={t.entry_id}>
+                              <td><strong>{idx + 1}</strong></td>
+                              <td>
+                                <Link href={`/teams/${t.entry_id}`} className="text-link" style={{ fontWeight: 700 }}>
+                                  {t.name}
+                                </Link>
+                              </td>
+                              <td>0</td>
+                              <td>0</td>
+                              <td>0</td>
+                              <td>0</td>
+                              <td>0</td>
+                              <td>0</td>
+                              <td>0</td>
+                              <td>0</td>
+                              <td>0</td>
+                              <td><strong style={{ color: "var(--lime)" }}>0</strong></td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </section>
               );
             })
-        ) : (
-          <section className="empty">
-            <h2>No divisions for {selectedSeason.name}.</h2>
-            <p>Add divisions and teams in League HQ to begin tracking standings.</p>
-          </section>
         )}
 
         <p className="field-help">
