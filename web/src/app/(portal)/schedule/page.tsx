@@ -2,6 +2,7 @@ import Link from "next/link";
 import { randomUUID } from "node:crypto";
 import { getLeagueData } from "@/lib/league";
 import { getLeagueContext } from "@/lib/supabase/session";
+import { sanitizeVenueName } from "@/lib/sanitize";
 import {
   BlackoutForm,
   BlackoutRemoveForm,
@@ -170,9 +171,9 @@ export default async function SchedulePage({
                           <small>{game.time_zone}</small>
                         </td>
                         <td>
-                          {game.venue_name}
+                          {sanitizeVenueName(game.venue_name)}
                           <br />
-                          <small>{game.rink_name}</small>
+                          <small>{game.rink_name ?? "Rink 1"}</small>
                         </td>
                         <td>
                           <span className="badge">

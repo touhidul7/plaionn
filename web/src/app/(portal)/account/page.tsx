@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getVerifiedSession } from "@/lib/supabase/session";
 import { selectLeague, signOut } from "@/app/login/actions";
 import { CreateLeagueForm } from "@/components/create-league-form";
+import { sanitizeLeagueName } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +74,7 @@ export default async function AccountPage() {
           result.data?.map((league) => (
             <form action={selectLeague} className="list-row" key={league.id}>
               <input type="hidden" name="leagueId" value={league.id} />
-              <h2>{league.name}</h2>
+              <h2>{sanitizeLeagueName(league.name)}</h2>
               <p>
                 {memberships
                   ?.filter((m) => m.league_id === league.id)

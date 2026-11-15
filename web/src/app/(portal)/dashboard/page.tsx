@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getVerifiedSession } from "@/lib/supabase/session";
+import { sanitizeVenueName, sanitizeSeasonName } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -263,7 +264,7 @@ export default async function PlayerDashboardPage() {
                     {g.my_team_name} {g.is_home ? "vs" : "@"} {g.opponent_team_name}
                   </strong>
                   <p style={{ fontSize: "0.85rem", color: "var(--muted)", margin: "4px 0 8px 0" }}>
-                    📍 {g.venue_name} · {g.rink_name}
+                    📍 {sanitizeVenueName(g.venue_name)} · {g.rink_name ?? "Rink 1"}
                   </p>
                 </div>
                 <div style={{ marginTop: "1rem", borderTop: "1px solid var(--line)", paddingTop: "0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

@@ -3,6 +3,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "./server";
+import { sanitizeLeagueName, sanitizeSeasonName } from "@/lib/sanitize";
 
 export interface PublicLeagueOverview {
   league_id: string;
@@ -57,7 +58,10 @@ export const getLeagueContext = cache(async () => {
         return {
           supabase,
           user,
-          league,
+          league: {
+            id: league.id,
+            name: sanitizeLeagueName(league.name),
+          },
           leagueId: league.id,
           canManage: memberships.some(
             (m) => m.league_id === league.id && m.role === "commissioner"
@@ -77,24 +81,37 @@ export const getLeagueContext = cache(async () => {
 
   const overview = overviewRows?.[0] as PublicLeagueOverview | undefined;
   if (overview) {
+    const sanitizedOverview: PublicLeagueOverview = {
+      ...overview,
+      league_name: sanitizeLeagueName(overview.league_name),
+      seasons: (overview.seasons || []).map((s) => ({
+        ...s,
+        name: sanitizeSeasonName(s.name),
+      })),
+      divisions: overview.divisions || [],
+      teams: (overview.teams || []).map((t) => ({
+        ...t,
+        season_name: sanitizeSeasonName(t.season_name),
+      })),
+    };
     return {
       supabase,
       user,
-      league: { id: overview.league_id, name: overview.league_name },
+      league: { id: overview.league_id, name: sanitizedOverview.league_name },
       leagueId: overview.league_id,
       canManage: false,
       isGuest: true,
-      publicData: overview,
+      publicData: sanitizedOverview,
     };
   }
 
-  // Graceful fallback to client demo
+  // Clean fallback
   return {
     supabase,
     user,
     league: {
       id: "60000000-0000-4000-8000-000000000001",
-      name: "PLAIONN Client Demo",
+      name: "PLAIONN Hockey League",
     },
     leagueId: "60000000-0000-4000-8000-000000000001",
     canManage: false,

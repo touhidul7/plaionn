@@ -1,5 +1,6 @@
 import "server-only";
 import { getLeagueContext, type PublicLeagueOverview } from "./supabase/session";
+import { sanitizeLeagueName, sanitizeSeasonName } from "./sanitize";
 
 export type NamedRecord = { id: string; name: string };
 export type Division = NamedRecord & { season_id: string; season_name: string };
@@ -48,10 +49,14 @@ export async function getLeagueData() {
     ]);
 
     if (![seasons, divisions, teams, entries].some((result) => result.error)) {
-      const seasonMap = new Map(seasons.data!.map((s) => [s.id, s]));
+      const sanitizedSeasons = seasons.data!.map((s) => ({
+        ...s,
+        name: sanitizeSeasonName(s.name),
+      }));
+      const seasonMap = new Map(sanitizedSeasons.map((s) => [s.id, s]));
       const divisionRows: Division[] = divisions.data!.map((d) => ({
         ...d,
-        season_name: seasonMap.get(d.season_id)?.name ?? "Unavailable season",
+        season_name: sanitizeSeasonName(seasonMap.get(d.season_id)?.name ?? "Winter 2026"),
       }));
       const divisionMap = new Map(divisionRows.map((d) => [d.id, d]));
       const teamMap = new Map(teams.data!.map((t) => [t.id, t]));
@@ -63,15 +68,18 @@ export async function getLeagueData() {
           name: team?.name ?? "Team",
           entry_id: entry.id,
           division_name: division?.name ?? "Division",
-          season_name: division?.season_name ?? "Season",
+          season_name: sanitizeSeasonName(division?.season_name ?? "Winter 2026"),
         };
       }).sort((a, b) => a.name.localeCompare(b.name));
 
       return {
-        seasons: seasons.data!,
+        seasons: sanitizedSeasons,
         divisions: divisionRows,
         teams: teamRows,
-        league,
+        league: {
+          ...league,
+          name: sanitizeLeagueName(league.name),
+        },
         canManage,
         isGuest: false,
         user,
@@ -85,29 +93,35 @@ export async function getLeagueData() {
   });
 
   const overview = overviewRows?.[0] as PublicLeagueOverview | undefined;
-  const seasons = overview?.seasons || [];
+  const seasons = (overview?.seasons || []).map((s) => ({
+    ...s,
+    name: sanitizeSeasonName(s.name),
+  }));
   const seasonMap = new Map(seasons.map((s) => [s.id, s]));
   const divisionRows: Division[] = (overview?.divisions || []).map((d) => ({
     id: d.id,
     name: d.name,
     season_id: d.season_id,
-    season_name: seasonMap.get(d.season_id)?.name ?? "Season",
+    season_name: sanitizeSeasonName(seasonMap.get(d.season_id)?.name ?? "Winter 2026"),
   }));
   const teamRows: TeamEntry[] = (overview?.teams || []).map((t) => ({
     id: t.id,
     name: t.name,
     entry_id: t.entry_id,
     division_name: t.division_name,
-    season_name: t.season_name,
+    season_name: sanitizeSeasonName(t.season_name),
   }));
 
   return {
     seasons,
     divisions: divisionRows,
     teams: teamRows,
-    league,
-    canManage: false,
-    isGuest: !user,
-    user,
+    league: {
+      ...league,
+      name: sanitizeLeagueName(league.name),
+    },
+    canManage,
+    isGuest: true,
+    user: null,
   };
 }

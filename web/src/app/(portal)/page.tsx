@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getLeagueData } from "@/lib/league";
 import { getLeagueContext } from "@/lib/supabase/session";
+import { sanitizeVenueName } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -189,7 +190,7 @@ export default async function Home({
               }}
             >
               <span>
-                📍 {featuredGame.venue_name ? `${featuredGame.venue_name} - ${featuredGame.rink_name}` : "Main Arena"}
+                📍 {featuredGame.venue_name ? `${sanitizeVenueName(featuredGame.venue_name)} - ${featuredGame.rink_name ?? "Rink 1"}` : "Metro Arena"}
               </span>
               <Link
                 href={`/schedule/${featuredGame.game_id || featuredGame.id}/live`}

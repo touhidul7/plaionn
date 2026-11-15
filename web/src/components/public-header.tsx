@@ -1,5 +1,6 @@
 import { getLeagueContext } from "@/lib/supabase/session";
 import { PublicHeaderClient, type TickerGameItem } from "./public-header-client";
+import { sanitizeVenueName } from "@/lib/sanitize";
 
 export async function PublicHeader() {
   const { supabase, league, user, canManage } = await getLeagueContext();
@@ -30,7 +31,9 @@ export async function PublicHeader() {
         awayTeam: g.away_team_name ?? "Away",
         homeScore: g.home_score,
         awayScore: g.away_score,
-        arena: g.venue_name ? `${g.venue_name} - ${g.rink_name ?? "Main"}` : "Arena",
+        arena: g.venue_name
+          ? `${sanitizeVenueName(g.venue_name)} - ${g.rink_name ?? "Rink 1"}`
+          : "Metro Arena",
       }));
     } else {
       // Fallback query to games table

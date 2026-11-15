@@ -9,6 +9,7 @@ import { getLeagueData } from "@/lib/league";
 import { liveScoreboardSchema, type LiveScoreboardData } from "@/lib/live-scoreboard";
 import type { GameShotsSummary } from "@/lib/shots-schema";
 import { getLeagueContext } from "@/lib/supabase/session";
+import { sanitizeVenueName } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,9 @@ export default async function LiveGamePage({
 
   const allPlayers: { id: string; display_name: string }[] = (playersRes.data as any[]) || [];
   const rinkData = rinkRes.data as any;
-  const arenaLocation = rinkData ? `${rinkData.venues?.name ?? "Arena"} · ${rinkData.name}` : "Main Arena Rink";
+  const arenaLocation = rinkData
+    ? `${sanitizeVenueName(rinkData.venues?.name)} · ${rinkData.name ?? "Rink 1"}`
+    : "Metro Arena Rink";
 
   // Load raw game events for linescore, scoring summary, and penalties
   const { data: rawEvents } = await supabase
