@@ -112,7 +112,7 @@ export default function PlaionnPlatformPage() {
           >
             P
           </div>
-          <span style={{ fontFamily: "var(--font-archivo), sans-serif", fontSize: "20px", fontWeight: 900, color: "var(--text)" }}>
+          <span style={{ fontFamily: "var(--font-inter), 'Inter', 'Inter Fallback', sans-serif", fontSize: "20px", fontWeight: 900, color: "var(--text)" }}>
             PLAIONN <span style={{ color: "var(--lime)", fontSize: "14px" }}>SPORTS</span>
           </span>
         </div>

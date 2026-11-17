@@ -14,27 +14,25 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-inter), "Inter", "Inter Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
   font-size: 14.5px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, .brand-title, .thescore-title, .section-heading h2, .page-heading h1 {
-  font-family: var(--font-thescore), var(--font-archivo), var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
-  letter-spacing: -0.01em;
-  font-weight: 800;
-}
-
-.thescore-headline, .thescore-badge, .thescore-sport-nav, .eyebrow, th, .plaionn-nav-item a {
-  font-family: var(--font-thescore), var(--font-archivo), sans-serif;
-  letter-spacing: 0.5px;
-  font-weight: 700;
+*, button, input, select, textarea,
+h1, h2, h3, h4, h5, h6,
+.brand-title, .thescore-title, .section-heading h2, .page-heading h1,
+.thescore-headline, .thescore-badge, .thescore-sport-nav, .eyebrow, th, td,
+.plaionn-nav-item a, .plaionn-hero-title, .plaionn-hero-btn, .plaionn-hero-btn-secondary,
+.plaionn-brand-name, .plaionn-brand-logo, .plaionn-admin-login-btn,
+.score-card-score {
+  font-family: var(--font-inter), "Inter", "Inter Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
 }
 
 .table td, .table th, .stat-num, .score-num, .badge, time {
@@ -157,7 +155,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   height: 42px;
   min-width: 42px;
   flex-shrink: 0;
-  font-family: var(--font-archivo), sans-serif;
+  font-family: var(--font-inter), "Inter", "Inter Fallback", sans-serif;
   font-size: 22px;
   font-weight: 900;
   line-height: 1;
@@ -172,7 +170,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .plaionn-brand-name {
-  font-family: var(--font-archivo), sans-serif;
+  font-family: var(--font-inter), "Inter", "Inter Fallback", sans-serif;
   font-size: 17px;
   font-weight: 900;
   letter-spacing: -0.01em;
@@ -366,7 +364,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   height: 52px;
   padding: 0 11px;
   color: #94a3b8;
-  font-family: var(--font-archivo), sans-serif;
+  font-family: var(--font-inter), "Inter", "Inter Fallback", sans-serif;
   font-size: 12.5px;
   font-weight: 800;
   letter-spacing: 0.4px;
@@ -400,7 +398,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .plaionn-admin-login-btn {
   background: var(--lime);
   color: #091219 !important;
-  font-family: var(--font-archivo), sans-serif;
+  font-family: var(--font-inter), "Inter", "Inter Fallback", sans-serif;
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.5px;
@@ -505,7 +503,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .plaionn-hero-title {
-  font-family: var(--font-archivo), sans-serif;
+  font-family: var(--font-inter), "Inter", "Inter Fallback", sans-serif;
   font-size: clamp(2rem, 5.2vw, 3.8rem);
   font-weight: 900;
   letter-spacing: -0.02em;
@@ -541,7 +539,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   gap: 8px;
   background: var(--lime);
   color: #091219 !important;
-  font-family: var(--font-archivo), sans-serif;
+  font-family: var(--font-inter), "Inter", "Inter Fallback", sans-serif;
   font-size: 14.5px;
   font-weight: 900;
   letter-spacing: 1px;
@@ -566,7 +564,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   background: rgba(13, 26, 34, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #ffffff !important;
-  font-family: var(--font-archivo), sans-serif;
+  font-family: var(--font-inter), "Inter", "Inter Fallback", sans-serif;
   font-size: 13.5px;
   font-weight: 800;
   letter-spacing: 0.8px;
@@ -1722,7 +1720,7 @@ main.auth-content { width: 100%; max-width: 480px; margin: 0; padding: 0; }
   color: var(--muted);
 }
 .score-card-score {
-  font-family: var(--font-archivo), var(--font-inter), sans-serif;
+  font-family: var(--font-inter), "Inter", "Inter Fallback", sans-serif;
   font-size: 18px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;

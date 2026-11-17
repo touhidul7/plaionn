@@ -6,7 +6,7 @@ export function PublicFooter({ leagueName }: { leagueName: string }) {
       <div className="public-footer-inner">
         <div className="public-footer-top">
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <span style={{ fontFamily: "var(--font-archivo), sans-serif", fontSize: "16px", fontWeight: 900, color: "var(--text)" }}>
+            <span style={{ fontFamily: "var(--font-inter), 'Inter', 'Inter Fallback', sans-serif", fontSize: "16px", fontWeight: 900, color: "var(--text)" }}>
               {leagueName}
             </span>
             <span style={{ fontSize: "12px", color: "var(--muted)" }}>
