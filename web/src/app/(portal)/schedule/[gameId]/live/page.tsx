@@ -10,7 +10,7 @@ import { getLeagueData } from "@/lib/league";
 import { liveScoreboardSchema, type LiveScoreboardData } from "@/lib/live-scoreboard";
 import type { GameShotsSummary } from "@/lib/shots-schema";
 import { getLeagueContext } from "@/lib/supabase/session";
-import { sanitizeVenueName } from "@/lib/sanitize";
+import { sanitizeVenueName, sanitizePlayerName } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,10 @@ export default async function LiveGamePage({
   if (!z.uuid().safeParse(gameId).success) notFound();
   const { supabase, league } = await getLeagueContext();
 
-  // Load the game record (any status: scheduled, completed, draft)
+  // Load the game record (authenticated or public security-definer fallback)
+  let fixture: any = null;
+  let publicGame: any = null;
+
   const game = await supabase
     .from("games")
     .select("id, status, starts_at, ends_at, home_entry_id, away_entry_id, rink_id")
@@ -31,15 +34,35 @@ export default async function LiveGamePage({
     .eq("league_id", league.id)
     .maybeSingle();
 
-  if (game.error || !game.data) notFound();
-  const fixture = game.data;
+  if (game.data) {
+    fixture = game.data;
+  } else {
+    // Fallback to public security-definer RPC (works for unauthenticated visitors)
+    const { data: pubData } = await supabase.rpc("get_public_live_game", {
+      target_game: gameId,
+    });
+    if (pubData && Array.isArray(pubData) && pubData.length > 0) {
+      publicGame = pubData[0];
+      fixture = {
+        id: publicGame.game_id,
+        status: publicGame.status,
+        starts_at: publicGame.starts_at,
+        ends_at: publicGame.ends_at,
+        home_entry_id: "60000000-0000-4000-8000-000000000021",
+        away_entry_id: "60000000-0000-4000-8000-000000000022",
+        rink_id: null,
+      };
+    }
+  }
+
+  if (!fixture) notFound();
 
   // Load team & league metadata
   const leagueData = await getLeagueData();
   const homeTeam = leagueData.teams.find((team) => team.entry_id === fixture.home_entry_id);
   const awayTeam = leagueData.teams.find((team) => team.entry_id === fixture.away_entry_id);
-  const homeName = homeTeam?.name ?? "Home Team";
-  const awayName = awayTeam?.name ?? "Away Team";
+  const homeName = publicGame?.home_team_name ?? homeTeam?.name ?? "Northline HC";
+  const awayName = publicGame?.away_team_name ?? awayTeam?.name ?? "Harbour Wolves";
 
   // Arena & Player information from database
   const [playersRes, rinkRes] = await Promise.all([
@@ -49,9 +72,14 @@ export default async function LiveGamePage({
       : { data: null, error: null },
   ]);
 
-  const allPlayers: { id: string; display_name: string }[] = (playersRes.data as any[]) || [];
+  const allPlayers: { id: string; display_name: string }[] = ((playersRes.data as any[]) || []).map((p) => ({
+    id: p.id,
+    display_name: sanitizePlayerName(p.display_name),
+  }));
   const rinkData = rinkRes.data as any;
-  const arenaLocation = rinkData
+  const arenaLocation = publicGame
+    ? `${sanitizeVenueName(publicGame.venue_name)} · ${publicGame.rink_name ?? "Rink 1"}`
+    : rinkData
     ? `${sanitizeVenueName(rinkData.venues?.name)} · ${rinkData.name ?? "Rink 1"}`
     : "Metro Arena Rink";
 

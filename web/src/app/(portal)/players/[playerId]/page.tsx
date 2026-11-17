@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { getLeagueContext } from "@/lib/supabase/session";
+import { sanitizePlayerName } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -85,13 +86,15 @@ export default async function PlayerProfilePage({
   const uniqueGameIds = new Set((goalEvents || []).map(e => e.game_id));
   const gamesPlayed = Math.max(uniqueGameIds.size, (goalsScored > 0 || totalPim > 0) ? 1 : 0);
 
+  const playerName = sanitizePlayerName(player.display_name);
+
   return (
     <>
       <div className="page-heading">
         <div>
           <p className="eyebrow">{league.name} · PLAYER PROFILE</p>
           <h1>
-            {player.display_name} {jerseyNumber !== null && <span style={{ color: "var(--lime)" }}>#{jerseyNumber}</span>}
+            {playerName} {jerseyNumber !== null && <span style={{ color: "var(--lime)" }}>#{jerseyNumber}</span>}
           </h1>
           <p>
             {position.toUpperCase()} ·{" "}
@@ -152,7 +155,7 @@ export default async function PlayerProfilePage({
         <div className="settings-grid">
           <div>
             <label style={{ color: "var(--muted)", fontSize: "12px", display: "block", marginBottom: "4px" }}>Full Name</label>
-            <p style={{ fontWeight: 700, margin: 0 }}>{player.display_name}</p>
+            <p style={{ fontWeight: 700, margin: 0 }}>{playerName}</p>
           </div>
           <div>
             <label style={{ color: "var(--muted)", fontSize: "12px", display: "block", marginBottom: "4px" }}>Position</label>

@@ -3,6 +3,7 @@ import { getLeagueData } from "@/lib/league";
 import { getLeagueContext } from "@/lib/supabase/session";
 import { SeasonLeaderboards } from "@/components/leaderboards";
 import { SeasonAwardsShowcase } from "@/components/season-awards-showcase";
+import { sanitizePlayerName } from "@/lib/sanitize";
 import type { SkaterLeader, GoalieLeader } from "@/lib/leaderboards-schema";
 
 export const dynamic = "force-dynamic";
@@ -55,12 +56,18 @@ export default async function LeadersPage({
 
   const skaters: SkaterLeader[] =
     !skatersRes.error && Array.isArray(skatersRes.data)
-      ? (skatersRes.data as SkaterLeader[])
+      ? (skatersRes.data as SkaterLeader[]).map((s) => ({
+          ...s,
+          display_name: sanitizePlayerName(s.display_name),
+        }))
       : [];
 
   const goalies: GoalieLeader[] =
     !goaliesRes.error && Array.isArray(goaliesRes.data)
-      ? (goaliesRes.data as GoalieLeader[])
+      ? (goaliesRes.data as GoalieLeader[]).map((g) => ({
+          ...g,
+          display_name: sanitizePlayerName(g.display_name),
+        }))
       : [];
 
   return (

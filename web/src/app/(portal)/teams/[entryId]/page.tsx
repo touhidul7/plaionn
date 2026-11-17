@@ -6,7 +6,7 @@ import { getLeagueContext } from "@/lib/supabase/session";
 import { PlayerForm, RosterForm, EligibilityCard } from "@/components/roster-forms";
 import { RosterCsvImportModal } from "@/components/roster-csv-import";
 import { teamEligibilitySchema, type PlayerOption, type RosterRow } from "@/lib/roster-schema";
-import { sanitizeLeagueName, sanitizeSeasonName } from "@/lib/sanitize";
+import { sanitizeLeagueName, sanitizeSeasonName, sanitizePlayerName } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +60,7 @@ export default async function TeamRosterPage({
         .filter((r: any) => r.team_entry_id === entryId)
         .map((r: any) => ({
           player_id: r.player_id,
-          display_name: r.display_name,
+          display_name: sanitizePlayerName(r.display_name),
           team_entry_id: r.team_entry_id,
           team_name: r.team_name,
           jersey_number: r.jersey_number,
@@ -125,8 +125,9 @@ export default async function TeamRosterPage({
           .order("display_name")
           .returns<PlayerOption[]>();
         if (pData) {
-          allPlayersList = pData;
-          availablePlayers = pData.filter((p) => !rosterData.some((r) => r.player_id === p.id));
+          const sanitized = pData.map((p) => ({ ...p, display_name: sanitizePlayerName(p.display_name) }));
+          allPlayersList = sanitized;
+          availablePlayers = sanitized.filter((p) => !rosterData.some((r) => r.player_id === p.id));
         }
       }
 
