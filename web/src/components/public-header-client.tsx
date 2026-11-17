@@ -52,6 +52,34 @@ export function PublicHeaderClient({
     { href: "/registration", label: "REGISTRATION" },
   ];
 
+  if (pathname?.startsWith("/admin")) {
+    return (
+      <header className="plaionn-header-wrap" style={{ borderBottom: "1px solid var(--line)" }}>
+        <div className="plaionn-header-top" style={{ padding: "14px 0", background: "#081017" }}>
+          <div className="plaionn-header-top-inner" style={{ maxWidth: "1260px", margin: "0 auto", padding: "0 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Link href="/admin" className="plaionn-brand-wedge" title="Central Administration">
+              <div className="plaionn-brand-logo" aria-hidden="true" style={{ background: "var(--lime)", color: "#000", fontWeight: 900 }}>
+                ⚙
+              </div>
+              <div className="plaionn-brand-text">
+                <span className="plaionn-brand-name" style={{ color: "var(--text)" }}>PLAIONN Multi-League Admin</span>
+                <span className="plaionn-brand-sub" style={{ color: "var(--lime)", fontWeight: 700 }}>Central Management Console</span>
+              </div>
+            </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <Link href="/" className="button button-sm button-outline" style={{ fontSize: "12px", padding: "6px 14px" }}>
+                Public League Website ↗
+              </Link>
+              <Link href="/account" className="button button-sm button-outline" style={{ fontSize: "12px", padding: "6px 14px" }}>
+                Account
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="plaionn-header-wrap">
       {/* 1. TOP TICKER ROW (Centered, Framed, No Empty Void) */}

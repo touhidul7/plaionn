@@ -5,6 +5,7 @@ import { LiveScoreboard } from "@/components/live-scoreboard";
 import { ShotsAndGoalieBoxscore } from "@/components/shots-and-goalie-boxscore";
 import { GameStarsBanner } from "@/components/game-stars-banner";
 import { GameVideoPackage } from "@/components/game-video-package";
+import { TheScoreClipsCarousel } from "@/components/thescore-clips";
 import { getLeagueData } from "@/lib/league";
 import { liveScoreboardSchema, type LiveScoreboardData } from "@/lib/live-scoreboard";
 import type { GameShotsSummary } from "@/lib/shots-schema";
@@ -187,6 +188,9 @@ export default async function LiveGamePage({
           </div>
         </div>
       </section>
+
+      {/* 2b. theScore-Style Clips Video Carousel */}
+      <TheScoreClipsCarousel />
 
       {/* 3. Linescore Boxscore Table (theScore style) */}
       <section className="panel" style={{ marginBottom: "24px" }}>

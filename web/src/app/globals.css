@@ -25,10 +25,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, .brand-title, .thescore-title {
-  font-family: var(--font-archivo), var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
-  letter-spacing: -0.025em;
+h1, h2, h3, h4, .brand-title, .thescore-title, .section-heading h2, .page-heading h1 {
+  font-family: var(--font-thescore), var(--font-archivo), var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.01em;
   font-weight: 800;
+}
+
+.thescore-headline, .thescore-badge, .thescore-sport-nav, .eyebrow, th, .plaionn-nav-item a {
+  font-family: var(--font-thescore), var(--font-archivo), sans-serif;
+  letter-spacing: 0.5px;
+  font-weight: 700;
 }
 
 .table td, .table th, .stat-num, .score-num, .badge, time {
