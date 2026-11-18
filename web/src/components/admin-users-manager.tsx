@@ -161,19 +161,32 @@ export function AdminUsersManager() {
   const [formWaiver, setFormWaiver] = useState("Cleared via GHL");
   const [formStatus, setFormStatus] = useState<PlatformUser["status"]>("Active");
 
-  // Load from localStorage on client mount
+  // Load from API + localStorage on client mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("plaionn-admin-users");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setUsers(parsed);
+    fetch("/api/admin/users")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.users) && data.users.length > 0) {
+          setUsers(data.users);
+          return;
         }
-      }
-    } catch {
-      // Fallback to default
-    }
+        const stored = localStorage.getItem("plaionn-admin-users");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) setUsers(parsed);
+        }
+      })
+      .catch(() => {
+        try {
+          const stored = localStorage.getItem("plaionn-admin-users");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) setUsers(parsed);
+          }
+        } catch {
+          // Ignored
+        }
+      });
   }, []);
 
   const saveUsers = (updated: PlatformUser[]) => {
@@ -200,9 +213,36 @@ export function AdminUsersManager() {
     setIsAddOpen(true);
   };
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim() || !formEmail.trim()) return;
+
+    const payload = {
+      name: formName.trim(),
+      email: formEmail.trim(),
+      userType: formRole,
+      scope: formScope.trim() || "Global Platform",
+      status: formStatus,
+      waiverStatus: formWaiver,
+    };
+
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        const updated = [data.user, ...users.filter((u) => u.email !== data.user.email)];
+        saveUsers(updated);
+        setIsAddOpen(false);
+        showToast(`User ${data.user.name} added to Supabase Auth!`);
+        return;
+      }
+    } catch {
+      // Fallback
+    }
 
     const newUser: PlatformUser = {
       id: `usr-${Date.now().toString().slice(-6)}`,
@@ -231,9 +271,29 @@ export function AdminUsersManager() {
     setFormStatus(u.status);
   };
 
-  const handleUpdateUser = (e: React.FormEvent) => {
+  const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
+
+    const payload = {
+      id: editingUser.id,
+      name: formName.trim(),
+      email: formEmail.trim(),
+      userType: formRole,
+      scope: formScope.trim() || editingUser.scope,
+      waiverStatus: formWaiver,
+      status: formStatus,
+    };
+
+    try {
+      await fetch("/api/admin/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      // Ignored
+    }
 
     const updated = users.map((u) => {
       if (u.id === editingUser.id) {
@@ -256,8 +316,15 @@ export function AdminUsersManager() {
     showToast(`Updated ${formName}'s user type to ${formRole}!`);
   };
 
-  const handleDeleteUser = (u: PlatformUser) => {
+  const handleDeleteUser = async (u: PlatformUser) => {
     if (confirm(`Are you sure you want to delete user "${u.name}" (${u.email})?`)) {
+      try {
+        await fetch(`/api/admin/users?id=${encodeURIComponent(u.id)}`, {
+          method: "DELETE",
+        });
+      } catch {
+        // Ignored
+      }
       const updated = users.filter((x) => x.id !== u.id);
       saveUsers(updated);
       showToast(`User ${u.name} deleted.`);
