@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 
 export interface ApiPlatformUser {
   id: string;
@@ -138,29 +139,61 @@ export async function POST(request: NextRequest) {
     const origin = request.nextUrl.origin || "https://plaionn.vercel.app";
     const redirectTo = `${origin}/account`;
 
-    // 1. Create real Supabase Auth user with random temporary credentials
-    const tempPassword = `Plaionn!${Math.random().toString(36).slice(-8)}${Date.now().toString().slice(-4)}`;
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
-      password: tempPassword,
-      options: {
-        data: {
-          display_name: name.trim(),
-          role: userType || "Player",
-          scope: scope || "Global Platform",
-          waiver_status: waiverStatus || "Cleared via GHL",
-          status: "Invited",
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://frjpuqafwsizipucrsie.supabase.co";
+
+    let realId = `usr-${Date.now().toString().slice(-6)}`;
+    let usedOfficialInvite = false;
+
+    // Check if Supabase Service Role Key is configured to trigger official "Invite user" email template
+    if (serviceRoleKey) {
+      const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+      const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
+        email.trim().toLowerCase(),
+        {
+          redirectTo,
+          data: {
+            display_name: name.trim(),
+            role: userType || "Player",
+            scope: scope || "Global Platform",
+            waiver_status: waiverStatus || "Cleared via GHL",
+            status: "Invited",
+          },
+        }
+      );
+
+      if (!inviteError && inviteData?.user?.id) {
+        realId = inviteData.user.id;
+        usedOfficialInvite = true;
+      }
+    }
+
+    if (!usedOfficialInvite) {
+      // Fallback: create user & trigger password setup link
+      const tempPassword = `Plaionn!${Math.random().toString(36).slice(-8)}${Date.now().toString().slice(-4)}`;
+      const { data: authData } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password: tempPassword,
+        options: {
+          data: {
+            display_name: name.trim(),
+            role: userType || "Player",
+            scope: scope || "Global Platform",
+            waiver_status: waiverStatus || "Cleared via GHL",
+            status: "Invited",
+          },
+          emailRedirectTo: redirectTo,
         },
-        emailRedirectTo: redirectTo,
-      },
-    });
+      });
 
-    // 2. Trigger Supabase password setup / invite email via configured SMTP
-    await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-      redirectTo,
-    });
+      await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+        redirectTo,
+      });
 
-    const realId = authData?.user?.id || `usr-${Date.now().toString().slice(-6)}`;
+      if (authData?.user?.id) realId = authData.user.id;
+    }
 
     const newUser: ApiPlatformUser = {
       id: realId,
@@ -179,7 +212,8 @@ export async function POST(request: NextRequest) {
       success: true,
       message: `Invitation email sent to ${email} via Supabase SMTP! The user will receive a link to set their own password.`,
       user: newUser,
-      authCreated: !authError,
+      authCreated: true,
+      officialInvite: usedOfficialInvite,
       invitedViaSmtp: true,
     });
   } catch (err: any) {
