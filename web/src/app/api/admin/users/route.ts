@@ -128,27 +128,36 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password, userType, scope, waiverStatus, status } = body;
+    const { name, email, userType, scope, waiverStatus } = body;
 
     if (!name || !email) {
       return NextResponse.json({ success: false, message: "Name and email are required" }, { status: 400 });
     }
 
     const supabase = await createSupabaseServerClient(false);
+    const origin = request.nextUrl.origin || "https://plaionn.vercel.app";
+    const redirectTo = `${origin}/account`;
 
-    // Create real Supabase Auth user
+    // 1. Create real Supabase Auth user with random temporary credentials
+    const tempPassword = `Plaionn!${Math.random().toString(36).slice(-8)}${Date.now().toString().slice(-4)}`;
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password: password && password.length >= 8 ? password : "Password123!",
+      email: email.trim().toLowerCase(),
+      password: tempPassword,
       options: {
         data: {
-          display_name: name,
+          display_name: name.trim(),
           role: userType || "Player",
           scope: scope || "Global Platform",
           waiver_status: waiverStatus || "Cleared via GHL",
-          status: status || "Active",
+          status: "Invited",
         },
+        emailRedirectTo: redirectTo,
       },
+    });
+
+    // 2. Trigger Supabase password setup / invite email via configured SMTP
+    await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo,
     });
 
     const realId = authData?.user?.id || `usr-${Date.now().toString().slice(-6)}`;
@@ -159,7 +168,7 @@ export async function POST(request: NextRequest) {
       email: email.trim().toLowerCase(),
       userType: userType || "Player",
       scope: scope || "Global Platform",
-      status: status || "Active",
+      status: "Pending",
       waiverStatus: waiverStatus || "Cleared via GHL",
       color: ROLE_COLORS[userType] || "#8b5cf6",
     };
@@ -168,9 +177,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `User ${name} successfully created in Supabase Auth!`,
+      message: `Invitation email sent to ${email} via Supabase SMTP! The user will receive a link to set their own password.`,
       user: newUser,
       authCreated: !authError,
+      invitedViaSmtp: true,
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });

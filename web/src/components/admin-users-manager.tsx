@@ -207,7 +207,6 @@ export function AdminUsersManager() {
   const openAddModal = () => {
     setFormName("");
     setFormEmail("");
-    setFormPassword("12345678");
     setFormRole("Player");
     setFormScope("Northline HC");
     setFormWaiver("Cleared via GHL");
@@ -222,7 +221,6 @@ export function AdminUsersManager() {
     const payload = {
       name: formName.trim(),
       email: formEmail.trim(),
-      password: formPassword.trim() || "12345678",
       userType: formRole,
       scope: formScope.trim() || "Global Platform",
       status: formStatus,
@@ -240,7 +238,7 @@ export function AdminUsersManager() {
         const updated = [data.user, ...users.filter((u) => u.email !== data.user.email)];
         saveUsers(updated);
         setIsAddOpen(false);
-        showToast(`User ${data.user.name} added to Supabase Auth!`);
+        showToast(`Invitation email sent to ${payload.email} via Supabase SMTP!`);
         return;
       }
     } catch {
@@ -653,25 +651,18 @@ export function AdminUsersManager() {
                 />
               </div>
 
-              <div>
-                <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "6px" }}>
-                  Login Password (min 8 characters)
-                </label>
-                <input
-                  type="text"
-                  value={formPassword}
-                  onChange={(e) => setFormPassword(e.target.value)}
-                  placeholder="Default: 12345678"
-                  style={{
-                    width: "100%",
-                    background: "#13232e",
-                    border: "1px solid var(--line)",
-                    borderRadius: "6px",
-                    padding: "8px 12px",
-                    color: "var(--text)",
-                    fontSize: "13.5px",
-                  }}
-                />
+              <div
+                style={{
+                  background: "rgba(103, 232, 249, 0.08)",
+                  border: "1px solid rgba(103, 232, 249, 0.25)",
+                  borderRadius: "8px",
+                  padding: "12px 14px",
+                  fontSize: "12.5px",
+                  color: "var(--text)",
+                  lineHeight: "1.5",
+                }}
+              >
+                ✉️ <strong style={{ color: "var(--accent)" }}>Supabase SMTP Invite:</strong> No password needed. An invitation email with a secure link to set their own password will be sent automatically to this address.
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
@@ -782,7 +773,7 @@ export function AdminUsersManager() {
                   Cancel
                 </button>
                 <button type="submit" className="button primary" style={{ fontSize: "13px", fontWeight: 700 }}>
-                  Create User
+                  Send Invitation Email
                 </button>
               </div>
             </form>
