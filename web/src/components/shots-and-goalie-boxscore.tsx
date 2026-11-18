@@ -7,6 +7,7 @@ import {
   type ActionResult,
 } from "@/app/(portal)/schedule/[gameId]/scorekeeping/shots-actions";
 import type { GameShotsSummary } from "@/lib/shots-schema";
+import { sanitizePlayerName } from "@/lib/sanitize";
 
 interface ShotsAndGoalieBoxscoreProps {
   summary: GameShotsSummary;
@@ -222,7 +223,7 @@ export function ShotsAndGoalieBoxscore({
                 {summary.goalies.map((g) => (
                   <tr key={g.stint_id}>
                     <td className="px-4 py-2.5 font-sans font-semibold text-white">
-                      {g.player_name}
+                      {sanitizePlayerName(g.player_name)}
                       {g.is_empty_net && (
                         <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-amber-950/70 text-amber-300 border border-amber-500/20">
                           Empty Net

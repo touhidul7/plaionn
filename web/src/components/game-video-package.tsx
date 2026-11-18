@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { sanitizePlayerName } from "@/lib/sanitize";
 
 interface StreamItem {
   id: string;
@@ -234,7 +235,7 @@ export function GameVideoPackage({ streams, highlights, stories = [] }: VideoPac
                   </strong>
                   {h.player_name && (
                     <span className="hint" style={{ fontSize: "0.8rem", marginTop: "4px", display: "block" }}>
-                      ⭐ {h.player_name}
+                      ⭐ {sanitizePlayerName(h.player_name)}
                     </span>
                   )}
                 </div>

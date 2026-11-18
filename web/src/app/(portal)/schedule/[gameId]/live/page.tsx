@@ -137,15 +137,24 @@ export default async function LiveGamePage({
     snapshot_at: new Date().toISOString(),
   };
 
-  const shotsSummary: GameShotsSummary = (shotsResult?.data as GameShotsSummary) || {
-    game_id: gameId,
-    home_entry_id: fixture.home_entry_id,
-    away_entry_id: fixture.away_entry_id,
-    home_name: homeName,
-    away_name: awayName,
-    period_shots: [],
-    goalies: [],
-  };
+  const rawShots = shotsResult?.data as GameShotsSummary | null;
+  const shotsSummary: GameShotsSummary = rawShots
+    ? {
+        ...rawShots,
+        goalies: (rawShots.goalies || []).map((g) => ({
+          ...g,
+          player_name: sanitizePlayerName(g.player_name),
+        })),
+      }
+    : {
+        game_id: gameId,
+        home_entry_id: fixture.home_entry_id,
+        away_entry_id: fixture.away_entry_id,
+        home_name: homeName,
+        away_name: awayName,
+        period_shots: [],
+        goalies: [],
+      };
 
   const goals = events.filter((e) => e.event_type === "goal");
   const penalties = events.filter((e) => e.event_type === "penalty");
