@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { authenticate } from "@/app/login/actions";
 
 export function AuthForm() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [state, action, pending] = useActionState(authenticate, {
     error: false,
     message: "",
@@ -14,32 +14,48 @@ export function AuthForm() {
     <form action={action} className="panel form-stack auth-panel">
       {/* Mode Switcher Tabs */}
       <div className="auth-mode-switch" style={{ marginBottom: "1rem" }}>
-        <button
-          type="button"
-          className={`auth-switch-btn ${mode === "login" ? "active" : ""}`}
-          onClick={() => setMode("login")}
-          disabled={pending}
-        >
-          Sign In
-        </button>
-        <button
-          type="button"
-          className={`auth-switch-btn ${mode === "signup" ? "active" : ""}`}
-          onClick={() => setMode("signup")}
-          disabled={pending}
-        >
-          Create Account
-        </button>
+        {mode === "forgot" ? (
+          <div style={{ textAlign: "center", width: "100%", padding: "4px 0" }}>
+            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--accent, #67e8f9)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+              🔑 Account Recovery
+            </span>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              className={`auth-switch-btn ${mode === "login" ? "active" : ""}`}
+              onClick={() => setMode("login")}
+              disabled={pending}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              className={`auth-switch-btn ${mode === "signup" ? "active" : ""}`}
+              onClick={() => setMode("signup")}
+              disabled={pending}
+            >
+              Create Account
+            </button>
+          </>
+        )}
       </div>
 
       <div>
         <h2 style={{ margin: "0 0 6px 0", fontSize: "1.35rem" }}>
-          {mode === "login" ? "Welcome back" : "Join the Hockey Network"}
+          {mode === "login"
+            ? "Welcome back"
+            : mode === "signup"
+            ? "Join the Hockey Network"
+            : "Reset your password"}
         </h2>
         <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--muted)" }}>
           {mode === "login"
             ? "Enter your credentials to access your league and roster."
-            : "Register your account for instant portal and season access."}
+            : mode === "signup"
+            ? "Register your account for instant portal and season access."
+            : "Enter your registered email and we'll send you a link to reset your password."}
         </p>
       </div>
 
@@ -57,18 +73,39 @@ export function AuthForm() {
         />
       </label>
 
-      <label style={{ display: "grid", gap: "6px" }}>
-        <span>Password</span>
-        <input
-          type="password"
-          name="password"
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
-          minLength={8}
-          maxLength={128}
-          required
-          placeholder="••••••••"
-        />
-      </label>
+      {mode !== "forgot" && (
+        <label style={{ display: "grid", gap: "6px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>Password</span>
+            {mode === "login" && (
+              <button
+                type="button"
+                onClick={() => setMode("forgot")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--accent, #67e8f9)",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                  padding: 0,
+                  textDecoration: "underline",
+                }}
+              >
+                Forgot password?
+              </button>
+            )}
+          </div>
+          <input
+            type="password"
+            name="password"
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            minLength={8}
+            maxLength={128}
+            required
+            placeholder="••••••••"
+          />
+        </label>
+      )}
 
       <div style={{ marginTop: "0.5rem" }}>
         <button
@@ -81,7 +118,9 @@ export function AuthForm() {
             ? "Please wait…"
             : mode === "login"
             ? "Sign In to PLAIONN →"
-            : "Create Free Account →"}
+            : mode === "signup"
+            ? "Create Free Account →"
+            : "Send Password Reset Link →"}
         </button>
       </div>
 
@@ -101,17 +140,29 @@ export function AuthForm() {
       )}
 
       <div style={{ borderTop: "1px solid var(--line)", paddingTop: "1rem", marginTop: "0.5rem", textAlign: "center" }}>
-        <button
-          type="button"
-          className="button button-outline"
-          style={{ width: "100%" }}
-          disabled={pending}
-          onClick={() => setMode(mode === "login" ? "signup" : "login")}
-        >
-          {mode === "login"
-            ? "Don't have an account yet? Register here"
-            : "Already have an account? Sign in"}
-        </button>
+        {mode === "forgot" ? (
+          <button
+            type="button"
+            className="button button-outline"
+            style={{ width: "100%" }}
+            disabled={pending}
+            onClick={() => setMode("login")}
+          >
+            ← Back to Sign In
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="button button-outline"
+            style={{ width: "100%" }}
+            disabled={pending}
+            onClick={() => setMode(mode === "login" ? "signup" : "login")}
+          >
+            {mode === "login"
+              ? "Don't have an account yet? Register here"
+              : "Already have an account? Sign in"}
+          </button>
+        )}
       </div>
 
       <p style={{ fontSize: "0.75rem", color: "var(--muted)", margin: "0.5rem 0 0 0", textAlign: "center" }}>

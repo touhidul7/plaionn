@@ -8,11 +8,43 @@ import { getVerifiedSession } from "@/lib/supabase/session";
 import { appOrigin } from "@/lib/app-origin";
 
 export type AuthState={error:boolean;message:string};
-const credentials=z.object({email:z.email().max(254),password:z.string().min(8).max(128),mode:z.enum(["login","signup"])});
+const credentials=z.object({
+  email:z.string().email().max(254),
+  password:z.string().min(8).max(128).optional(),
+  mode:z.enum(["login","signup","forgot"])
+});
 export async function authenticate(_state:AuthState,form:FormData):Promise<AuthState> {
  const input=credentials.safeParse(Object.fromEntries(form));
- if(!input.success) return {error:true,message:"Enter a valid email and a password between 8 and 128 characters."};
+ if(!input.success) return {error:true,message:"Enter a valid email address."};
  const {email,password,mode}=input.data;
+
+ if(mode==="forgot") {
+  try {
+   const supabase=await createSupabaseServerClient(false);
+   const siteUrl=appOrigin(process.env.NEXT_PUBLIC_APP_URL,process.env.NODE_ENV==="production");
+   const redirectTo=new URL("/auth/callback",siteUrl).href;
+   const result=await supabase.auth.resetPasswordForEmail(email,{redirectTo});
+   if(result.error) {
+    return {
+     error:true,
+     message:result.error.status===429
+      ?"Too many reset requests. Please wait before trying again."
+      :result.error.message||"Could not send reset link."
+    };
+   }
+   return {
+    error:false,
+    message:"✓ Reset link sent! Please check your email inbox to reset your password."
+   };
+  } catch {
+   return {error:true,message:"The reset service is unavailable. Please try again later."};
+  }
+ }
+
+ if(!password||password.length<8) {
+  return {error:true,message:"Password must be at least 8 characters."};
+ }
+
  let signedIn=false;
  try {
   const supabase=await createSupabaseServerClient();
