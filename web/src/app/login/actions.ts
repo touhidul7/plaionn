@@ -9,6 +9,7 @@ import { appOrigin } from "@/lib/app-origin";
 
 export type AuthState={error:boolean;message:string};
 const credentials=z.object({
+  fullName:z.string().max(100).optional(),
   email:z.string().email().max(254),
   password:z.string().min(8).max(128).optional(),
   mode:z.enum(["login","signup","forgot"])
@@ -16,7 +17,7 @@ const credentials=z.object({
 export async function authenticate(_state:AuthState,form:FormData):Promise<AuthState> {
  const input=credentials.safeParse(Object.fromEntries(form));
  if(!input.success) return {error:true,message:"Enter a valid email address."};
- const {email,password,mode}=input.data;
+ const {fullName,email,password,mode}=input.data;
 
  if(mode==="forgot") {
   try {
@@ -41,6 +42,10 @@ export async function authenticate(_state:AuthState,form:FormData):Promise<AuthS
   }
  }
 
+ if(mode==="signup" && (!fullName || fullName.trim().length === 0)) {
+  return {error:true,message:"Please enter your full name."};
+ }
+
  if(!password||password.length<8) {
   return {error:true,message:"Password must be at least 8 characters."};
  }
@@ -50,7 +55,19 @@ export async function authenticate(_state:AuthState,form:FormData):Promise<AuthS
   const supabase=await createSupabaseServerClient();
   if(mode==="signup") {
    const siteUrl=appOrigin(process.env.NEXT_PUBLIC_APP_URL,process.env.NODE_ENV==="production");
-   const result=await supabase.auth.signUp({email,password,options:{emailRedirectTo:new URL("/auth/callback",siteUrl).href}});
+   const displayName = (fullName || "").trim();
+   const result=await supabase.auth.signUp({
+     email,
+     password,
+     options:{
+       emailRedirectTo:new URL("/auth/callback",siteUrl).href,
+       data: {
+         display_name: displayName,
+         full_name: displayName,
+         role: "Player",
+       }
+     }
+   });
    if(result.error) return {error:true,message:result.error.status===429?"Too many attempts. Please wait before trying again.":"Could not create your account. If you already have an account, try signing in."};
    signedIn=!!result.data.session;
    // Confirm Email is disabled for this deployment. Supabase should return a

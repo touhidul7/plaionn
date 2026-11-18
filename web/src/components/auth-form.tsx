@@ -61,6 +61,20 @@ export function AuthForm() {
 
       <input type="hidden" name="mode" value={mode} />
 
+      {mode === "signup" && (
+        <label style={{ display: "grid", gap: "6px" }}>
+          <span>Full Name</span>
+          <input
+            type="text"
+            name="fullName"
+            autoComplete="name"
+            required
+            maxLength={100}
+            placeholder="e.g. Connor McDavid"
+          />
+        </label>
+      )}
+
       <label style={{ display: "grid", gap: "6px" }}>
         <span>Email Address</span>
         <input
