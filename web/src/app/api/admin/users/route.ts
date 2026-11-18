@@ -128,7 +128,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, userType, scope, waiverStatus, status } = body;
+    const { name, email, password, userType, scope, waiverStatus, status } = body;
 
     if (!name || !email) {
       return NextResponse.json({ success: false, message: "Name and email are required" }, { status: 400 });
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     // Create real Supabase Auth user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
-      password: "Password123!",
+      password: password && password.length >= 8 ? password : "Password123!",
       options: {
         data: {
           display_name: name,

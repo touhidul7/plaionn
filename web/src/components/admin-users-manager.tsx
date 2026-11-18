@@ -156,6 +156,7 @@ export function AdminUsersManager() {
   // Form states for Add/Edit
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
+  const [formPassword, setFormPassword] = useState("12345678");
   const [formRole, setFormRole] = useState<PlatformUser["userType"]>("Player");
   const [formScope, setFormScope] = useState("");
   const [formWaiver, setFormWaiver] = useState("Cleared via GHL");
@@ -206,6 +207,7 @@ export function AdminUsersManager() {
   const openAddModal = () => {
     setFormName("");
     setFormEmail("");
+    setFormPassword("12345678");
     setFormRole("Player");
     setFormScope("Northline HC");
     setFormWaiver("Cleared via GHL");
@@ -220,6 +222,7 @@ export function AdminUsersManager() {
     const payload = {
       name: formName.trim(),
       email: formEmail.trim(),
+      password: formPassword.trim() || "12345678",
       userType: formRole,
       scope: formScope.trim() || "Global Platform",
       status: formStatus,
@@ -638,6 +641,27 @@ export function AdminUsersManager() {
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
                   placeholder="e.g. cbedard@chicago.com"
+                  style={{
+                    width: "100%",
+                    background: "#13232e",
+                    border: "1px solid var(--line)",
+                    borderRadius: "6px",
+                    padding: "8px 12px",
+                    color: "var(--text)",
+                    fontSize: "13.5px",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "6px" }}>
+                  Login Password (min 8 characters)
+                </label>
+                <input
+                  type="text"
+                  value={formPassword}
+                  onChange={(e) => setFormPassword(e.target.value)}
+                  placeholder="Default: 12345678"
                   style={{
                     width: "100%",
                     background: "#13232e",
