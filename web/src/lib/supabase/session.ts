@@ -1,9 +1,20 @@
 import "server-only";
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "./server";
 import { sanitizeLeagueName, sanitizeSeasonName } from "@/lib/sanitize";
+
+export const DOMAIN_LEAGUE_MAP: Record<string, string> = {
+  "league1.dealioadvisors.com": "60000000-0000-4000-8000-000000000001",
+  "bhl.com": "60000000-0000-4000-8000-000000000001",
+  "league2.dealioadvisors.com": "60000000-0000-4000-8000-000000000003",
+  "waveadulthockeyleague.ca": "60000000-0000-4000-8000-000000000003",
+  "league3.dealioadvisors.com": "60000000-0000-4000-8000-000000000004",
+  "chl.com": "60000000-0000-4000-8000-000000000004",
+  "league4.dealioadvisors.com": "60000000-0000-4000-8000-000000000005",
+  "ihl.com": "60000000-0000-4000-8000-000000000005",
+};
 
 export interface PublicLeagueOverview {
   league_id: string;
@@ -36,6 +47,17 @@ export const getOptionalSession = cache(async () => {
 export const getLeagueContext = cache(async () => {
   const { supabase, user } = await getOptionalSession();
 
+  let domainLeagueId: string | undefined;
+  try {
+    const headerList = await headers();
+    const host = (headerList.get("x-forwarded-host") || headerList.get("host") || "").toLowerCase().split(":")[0];
+    if (DOMAIN_LEAGUE_MAP[host]) {
+      domainLeagueId = DOMAIN_LEAGUE_MAP[host];
+    }
+  } catch {
+    // Graceful fallback
+  }
+
   if (user) {
     const { data: memberships, error } = await supabase
       .from("league_memberships")
@@ -43,7 +65,7 @@ export const getLeagueContext = cache(async () => {
       .eq("user_id", user.id);
 
     if (!error && memberships && memberships.length > 0) {
-      const selected = (await cookies()).get("plaionn-league")?.value;
+      const selected = domainLeagueId || (await cookies()).get("plaionn-league")?.value;
       const membership =
         memberships.find((m) => m.league_id === selected) ??
         [...memberships].sort((a, b) => a.league_id.localeCompare(b.league_id))[0];
@@ -74,7 +96,7 @@ export const getLeagueContext = cache(async () => {
   }
 
   // Guest or unauthenticated visitor:
-  const selected = (await cookies()).get("plaionn-league")?.value;
+  const selected = domainLeagueId || (await cookies()).get("plaionn-league")?.value;
   const { data: overviewRows } = await supabase.rpc("get_public_league_overview", {
     target_league: selected || "60000000-0000-4000-8000-000000000001",
   });

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getLeagueContext } from "@/lib/supabase/session";
+import { AdminUsersManager } from "@/components/admin-users-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -8,143 +9,44 @@ export default async function AdminManagementPage() {
 
   const leaguesList = [
     {
-      id: "60000000-0000-4000-8000-000000000002",
+      id: "60000000-0000-4000-8000-000000000001",
       name: "Bangladesh Hockey League (BHL)",
       domain: "bhl.com",
+      subdomain: "league1.dealioadvisors.com",
       status: "Active",
       season: "Winter 2026",
       teams: 8,
       commissioner: "commissioner@bhl.com",
     },
     {
-      id: "60000000-0000-4000-8000-000000000001",
+      id: "60000000-0000-4000-8000-000000000003",
       name: "Wave Adult Hockey League (WAHL)",
       domain: "waveadulthockeyleague.ca",
+      subdomain: "league2.dealioadvisors.com",
       status: "Active",
       season: "Winter 2026",
       teams: 12,
       commissioner: "league@wavehockey.ca",
     },
     {
-      id: "60000000-0000-4000-8000-000000000003",
+      id: "60000000-0000-4000-8000-000000000004",
       name: "Canada Hockey League (CHL)",
       domain: "chl.com",
+      subdomain: "league3.dealioadvisors.com",
       status: "Active",
       season: "Winter 2026",
       teams: 16,
       commissioner: "admin@chl.com",
     },
     {
-      id: "60000000-0000-4000-8000-000000000004",
+      id: "60000000-0000-4000-8000-000000000005",
       name: "Italy Hockey League (IHL)",
       domain: "ihl.com",
+      subdomain: "league4.dealioadvisors.com",
       status: "Active",
       season: "Winter 2026",
       teams: 6,
       commissioner: "direttore@ihl.com",
-    },
-  ];
-
-  const userDirectory = [
-    {
-      id: "usr-01",
-      name: "Platform Owner",
-      email: "touhiduliet@gmail.com",
-      userType: "Super Admin",
-      scope: "Global Platform",
-      status: "Active",
-      waiverStatus: "Exempt",
-      color: "#ef4444",
-    },
-    {
-      id: "usr-02",
-      name: "Operations Manager",
-      email: "operations@plaionn.com",
-      userType: "Regular Admin",
-      scope: "Global Platform",
-      status: "Active",
-      waiverStatus: "Exempt",
-      color: "#f59e0b",
-    },
-    {
-      id: "usr-03",
-      name: "BHL Commissioner",
-      email: "commissioner@bhl.com",
-      userType: "League Admin",
-      scope: "Bangladesh Hockey League",
-      status: "Active",
-      waiverStatus: "Exempt",
-      color: "#10b981",
-    },
-    {
-      id: "usr-04",
-      name: "WAHL Director",
-      email: "league@wavehockey.ca",
-      userType: "League Admin",
-      scope: "Wave Adult Hockey League",
-      status: "Active",
-      waiverStatus: "Exempt",
-      color: "#10b981",
-    },
-    {
-      id: "usr-05",
-      name: "Marcus Johansson",
-      email: "captain@northlinehc.com",
-      userType: "Team Admin / Manager",
-      scope: "Northline HC (Premier)",
-      status: "Active",
-      waiverStatus: "Cleared via GHL",
-      color: "#3b82f6",
-    },
-    {
-      id: "usr-06",
-      name: "Alexander Reed",
-      email: "manager@harbourwolves.com",
-      userType: "Team Admin / Manager",
-      scope: "Harbour Wolves (Premier)",
-      status: "Active",
-      waiverStatus: "Cleared via GHL",
-      color: "#3b82f6",
-    },
-    {
-      id: "usr-07",
-      name: "David Miller",
-      email: "ref.miller@ontariohockey.ca",
-      userType: "Referee",
-      scope: "Assigned Games",
-      status: "Certified",
-      waiverStatus: "Cleared via GHL",
-      color: "#eab308",
-    },
-    {
-      id: "usr-08",
-      name: "Sarah Chen",
-      email: "timekeeper@metroarena.ca",
-      userType: "Timekeeper",
-      scope: "Metro Arena Rink 1",
-      status: "Active",
-      waiverStatus: "Cleared via GHL",
-      color: "#06b6d4",
-    },
-    {
-      id: "usr-09",
-      name: "Nathan MacKinnon",
-      email: "mackinnon@proplayers.ca",
-      userType: "Player",
-      scope: "Northline HC",
-      status: "Active",
-      waiverStatus: "Cleared via GHL",
-      color: "#8b5cf6",
-    },
-    {
-      id: "usr-10",
-      name: "Cale Makar",
-      email: "makar@proplayers.ca",
-      userType: "Player",
-      scope: "Northline HC",
-      status: "Active",
-      waiverStatus: "Cleared via GHL",
-      color: "#8b5cf6",
     },
   ];
 
@@ -467,7 +369,7 @@ export default async function AdminManagementPage() {
               <div>
                 <h2 style={{ margin: 0, fontSize: "18px" }}>League Management &amp; Custom Domains</h2>
                 <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
-                  Each league operates as an independent branded public website with unique domain routing.
+                  Each league operates as an independent branded public website with unique domain and subdomain routing.
                 </p>
               </div>
               <Link href="/account" className="button button-sm primary">
@@ -475,12 +377,41 @@ export default async function AdminManagementPage() {
               </Link>
             </div>
 
+            {/* Custom Domain & Subdomain Notice */}
+            <div
+              style={{
+                background: "rgba(103, 232, 249, 0.06)",
+                border: "1px solid rgba(103, 232, 249, 0.25)",
+                borderRadius: "10px",
+                padding: "14px 18px",
+                marginBottom: "20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "14px",
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <span style={{ fontSize: "12px", fontWeight: 800, color: "#67e8f9", letterSpacing: "0.5px" }}>
+                  🌐 CUSTOM DOMAIN &amp; SUBDOMAIN ROUTING READY
+                </span>
+                <p style={{ margin: "4px 0 0", fontSize: "12.5px", color: "var(--muted)" }}>
+                  Ready to link your client domains: Point CNAME for <code style={{ color: "#67e8f9" }}>league1.dealioadvisors.com</code> and <code style={{ color: "#67e8f9" }}>league2.dealioadvisors.com</code> to <code style={{ color: "var(--lime)" }}>cname.vercel-dns.com</code>.
+                </p>
+              </div>
+              <span className="badge" style={{ background: "rgba(199, 244, 80, 0.15)", color: "var(--lime)", fontSize: "11px" }}>
+                Multi-Tenant Active
+              </span>
+            </div>
+
             <div style={{ overflowX: "auto" }}>
               <table className="table" style={{ width: "100%", margin: 0 }}>
                 <thead>
                   <tr>
                     <th>League Name</th>
-                    <th>Branded Domain</th>
+                    <th>Custom Domain</th>
+                    <th>Connected Subdomain</th>
                     <th>Current Season</th>
                     <th>Active Teams</th>
                     <th>Commissioner</th>
@@ -493,8 +424,13 @@ export default async function AdminManagementPage() {
                     <tr key={lg.id}>
                       <td style={{ fontWeight: 800, color: "var(--text)" }}>{lg.name}</td>
                       <td>
-                        <code style={{ background: "#172b38", padding: "2px 8px", borderRadius: "4px", color: "#67e8f9" }}>
+                        <code style={{ background: "#172b38", padding: "2px 8px", borderRadius: "4px", color: "#67e8f9", fontSize: "12px" }}>
                           {lg.domain}
+                        </code>
+                      </td>
+                      <td>
+                        <code style={{ background: "rgba(199, 244, 80, 0.08)", border: "1px solid rgba(199, 244, 80, 0.2)", padding: "2px 8px", borderRadius: "4px", color: "var(--lime)", fontSize: "11.5px" }}>
+                          {lg.subdomain}
                         </code>
                       </td>
                       <td>{lg.season}</td>
@@ -507,10 +443,10 @@ export default async function AdminManagementPage() {
                       </td>
                       <td style={{ textAlign: "right" }}>
                         <Link
-                          href="/"
+                          href={`/api/switch-league?league=${lg.id}&redirect=/`}
                           className="button button-sm button-outline"
                           style={{ fontSize: "11.5px", padding: "4px 10px" }}
-                          title={`Visit ${lg.domain} Public Portal`}
+                          title={`Launch ${lg.name} (${lg.subdomain})`}
                         >
                           Launch Portal ↗
                         </Link>
@@ -522,73 +458,8 @@ export default async function AdminManagementPage() {
             </div>
           </section>
 
-          {/* 2. Platform Users & User Types (Direct Client Request) */}
-          <section id="users" className="panel" style={{ padding: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: "18px" }}>Platform Users &amp; Permissions</h2>
-                <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
-                  Registered administrators, league commissioners, team managers, officials, and verified players.
-                </p>
-              </div>
-              <span className="badge" style={{ fontSize: "11px" }}>
-                {userDirectory.length} Active Accounts
-              </span>
-            </div>
-
-            <div style={{ overflowX: "auto" }}>
-              <table className="table" style={{ width: "100%", margin: 0 }}>
-                <thead>
-                  <tr>
-                    <th>User &amp; Email</th>
-                    <th>User Type / Role</th>
-                    <th>Assigned Scope</th>
-                    <th>Waiver &amp; GHL</th>
-                    <th style={{ textAlign: "right" }}>Account Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {userDirectory.map((usr) => (
-                    <tr key={usr.id}>
-                      <td>
-                        <div style={{ display: "flex", flexDirection: "column" }}>
-                          <strong style={{ color: "var(--text)" }}>{usr.name}</strong>
-                          <span style={{ fontSize: "12px", color: "var(--muted)" }}>{usr.email}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span
-                          className="badge"
-                          style={{
-                            background: `${usr.color}22`,
-                            color: usr.color,
-                            border: `1px solid ${usr.color}44`,
-                            fontSize: "11px",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {usr.userType}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: "13px", color: "var(--text)" }}>
-                        {usr.scope}
-                      </td>
-                      <td style={{ fontSize: "12.5px" }}>
-                        <span style={{ color: usr.waiverStatus.includes("Cleared") ? "var(--lime)" : "var(--muted)" }}>
-                          {usr.waiverStatus.includes("Cleared") ? "✓ " : ""}{usr.waiverStatus}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <span className="badge" style={{ fontSize: "10px" }}>
-                          {usr.status.toUpperCase()}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          {/* 2. Platform Users & User Types (Interactive Management for Super User Shadhin) */}
+          <AdminUsersManager />
 
           {/* 3. Teams Directory */}
           <section id="teams" className="panel" style={{ padding: "24px" }}>
