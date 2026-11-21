@@ -26,10 +26,12 @@ export function RegistrationForm({
   seasons,
   documents,
   name,
+  teams = [],
 }: {
   seasons: OpenSeason[];
   documents: RegistrationDocument[];
   name?: string;
+  teams?: Array<{ id: string; name: string }>;
 }) {
   const [state, action, pending] = useActionState(submitRegistration, initial);
   const [selectedSeason, setSelectedSeason] = useState("");
@@ -107,11 +109,22 @@ export function RegistrationForm({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
         <label style={{ display: "grid", gap: "6px" }}>
           <span style={{ fontWeight: 600 }}>Team Selection</span>
-          <input
+          <select
             name="preferred_team"
-            placeholder="Team name or 'Free Agent'"
             defaultValue="Free Agent / Unassigned"
-          />
+            style={{ width: "100%", background: "#13232e", border: "1px solid var(--line)", borderRadius: "6px", padding: "8px 12px", color: "var(--text)", fontSize: "13.5px" }}
+          >
+            <option value="Free Agent / Unassigned">Free Agent / Unassigned (Place me on a team)</option>
+            {teams && teams.length > 0 && (
+              <optgroup label="Registered Teams">
+                {teams.map((t) => (
+                  <option key={t.id} value={t.name}>
+                    {t.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
         </label>
 
         <label style={{ display: "grid", gap: "6px" }}>

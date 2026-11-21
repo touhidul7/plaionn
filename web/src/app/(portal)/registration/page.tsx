@@ -74,7 +74,7 @@ export default async function RegistrationPage() {
   );
 }
 
-  const [available, profile, requests] = await Promise.all([
+  const [available, profile, requests, teamsResult] = await Promise.all([
     supabase.rpc("open_registration_seasons"),
     supabase.from("players").select("display_name").eq("owner_user_id", user.id).maybeSingle(),
     supabase
@@ -82,6 +82,7 @@ export default async function RegistrationPage() {
       .select("id,season_id,season_name,league_name,status,position,revision,created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
+    supabase.from("teams").select("id, name, league_id"),
   ]);
 
   const seasons = openSeasonsSchema.safeParse(available.data);
@@ -180,6 +181,7 @@ export default async function RegistrationPage() {
         seasons={seasons.data.filter((s) => !requests.data.some((r) => r.season_id === s.season_id))}
         documents={signedDocuments}
         name={profile.data?.display_name}
+        teams={(teamsResult.data as Array<{ id: string; name: string }>) || []}
       />
 
       <div className="section-heading">
