@@ -143,6 +143,15 @@ const ROLE_COLORS: Record<PlatformUser["userType"], string> = {
   Player: "#8b5cf6",
 };
 
+function cleanWaiverStatus(status?: string): string {
+  if (!status) return "Cleared & Signed";
+  return status
+    .replace(/via GHL/gi, "& Signed")
+    .replace(/GHL Signature/gi, "Signature")
+    .replace(/GHL/gi, "")
+    .trim() || "Cleared & Signed";
+}
+
 export function AdminUsersManager() {
   const [users, setUsers] = useState<PlatformUser[]>(DEFAULT_USERS);
   const [searchTerm, setSearchTerm] = useState("");
@@ -168,13 +177,29 @@ export function AdminUsersManager() {
       .then((r) => r.json())
       .then((data) => {
         if (data.success && Array.isArray(data.users) && data.users.length > 0) {
-          setUsers(data.users);
+          const cleaned = data.users.map((u: PlatformUser) => ({
+            ...u,
+            waiverStatus: cleanWaiverStatus(u.waiverStatus),
+          }));
+          setUsers(cleaned);
+          try {
+            localStorage.setItem("plaionn-admin-users", JSON.stringify(cleaned));
+          } catch {}
           return;
         }
         const stored = localStorage.getItem("plaionn-admin-users");
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) setUsers(parsed);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const cleaned = parsed.map((u: PlatformUser) => ({
+              ...u,
+              waiverStatus: cleanWaiverStatus(u.waiverStatus),
+            }));
+            setUsers(cleaned);
+            try {
+              localStorage.setItem("plaionn-admin-users", JSON.stringify(cleaned));
+            } catch {}
+          }
         }
       })
       .catch(() => {
@@ -182,7 +207,13 @@ export function AdminUsersManager() {
           const stored = localStorage.getItem("plaionn-admin-users");
           if (stored) {
             const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed) && parsed.length > 0) setUsers(parsed);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              const cleaned = parsed.map((u: PlatformUser) => ({
+                ...u,
+                waiverStatus: cleanWaiverStatus(u.waiverStatus),
+              }));
+              setUsers(cleaned);
+            }
           }
         } catch {
           // Ignored
@@ -511,18 +542,25 @@ export function AdminUsersManager() {
                 </td>
                 <td style={{ fontSize: "13px", color: "var(--text)" }}>{usr.scope}</td>
                 <td style={{ fontSize: "12.5px" }}>
-                  <span
-                    style={{
-                      color: usr.waiverStatus.includes("Cleared")
-                        ? "var(--lime)"
-                        : usr.waiverStatus.includes("Exempt")
-                        ? "#67e8f9"
-                        : "#f59e0b",
-                    }}
-                  >
-                    {usr.waiverStatus.includes("Cleared") ? "✓ " : ""}
-                    {usr.waiverStatus}
-                  </span>
+                  {(() => {
+                    const statusText = cleanWaiverStatus(usr.waiverStatus);
+                    const isCleared = statusText.includes("Cleared") || statusText.includes("Signed");
+                    const isExempt = statusText.includes("Exempt");
+                    return (
+                      <span
+                        style={{
+                          color: isCleared
+                            ? "var(--lime)"
+                            : isExempt
+                            ? "#67e8f9"
+                            : "#f59e0b",
+                        }}
+                      >
+                        {isCleared ? "✓ " : ""}
+                        {statusText}
+                      </span>
+                    );
+                  })()}
                 </td>
                 <td>
                   <span
