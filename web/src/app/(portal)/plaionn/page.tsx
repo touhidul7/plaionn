@@ -16,7 +16,7 @@ export default function PlaionnPlatformPage() {
       name: "Bangladesh Hockey League (BHL)",
       acronym: "BHL",
       domain: "bhl.com",
-      description: "Official National Hockey Championship network with player registration and GoHighLevel digital waivers.",
+      description: "Official National Hockey Championship network with player registration and digital liability waivers.",
       teams: 8,
       seasons: "Winter 2026, Summer 2025",
       featured: true,
@@ -65,9 +65,9 @@ export default function PlaionnPlatformPage() {
     },
     {
       icon: "✍",
-      title: "GoHighLevel CRM & Digital Waivers",
+      title: "Digital Waivers & Registration",
       description:
-        "Player registration with digital waiver signing synced to GoHighLevel CRM, supporting individual online pay, team manager pay, and offline tracking.",
+        "Player registration with digital waiver signing and liability consent, supporting individual online pay, team manager pay, and offline tracking.",
     },
     {
       icon: "🔒",

@@ -121,7 +121,7 @@ export default async function AdminManagementPage() {
     {
       role: "Player",
       scope: "Individual",
-      permissions: "Sign digital waiver via GoHighLevel, pay registration fee, view verified stats, RSVP for games.",
+      permissions: "Sign digital liability waiver, pay registration fee, view verified stats, RSVP for games.",
       color: "#8b5cf6",
     },
     {

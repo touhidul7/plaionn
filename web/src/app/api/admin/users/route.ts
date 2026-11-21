@@ -71,7 +71,7 @@ const SEED_USERS: ApiPlatformUser[] = [
     userType: "Team Admin / Manager",
     scope: "Northline HC (Premier)",
     status: "Active",
-    waiverStatus: "Cleared via GHL",
+    waiverStatus: "Cleared & Signed",
     color: "#3b82f6",
   },
   {
@@ -81,7 +81,7 @@ const SEED_USERS: ApiPlatformUser[] = [
     userType: "Referee",
     scope: "Assigned Games",
     status: "Active",
-    waiverStatus: "Cleared via GHL",
+    waiverStatus: "Cleared & Signed",
     color: "#eab308",
   },
   {
@@ -91,7 +91,7 @@ const SEED_USERS: ApiPlatformUser[] = [
     userType: "Timekeeper",
     scope: "Metro Arena Rink 1",
     status: "Active",
-    waiverStatus: "Cleared via GHL",
+    waiverStatus: "Cleared & Signed",
     color: "#06b6d4",
   },
   {
@@ -101,7 +101,7 @@ const SEED_USERS: ApiPlatformUser[] = [
     userType: "Player",
     scope: "Northline HC",
     status: "Active",
-    waiverStatus: "Cleared via GHL",
+    waiverStatus: "Cleared & Signed",
     color: "#8b5cf6",
   },
 ];
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
             display_name: name.trim(),
             role: userType || "Player",
             scope: scope || "Global Platform",
-            waiver_status: waiverStatus || "Cleared via GHL",
+            waiver_status: waiverStatus || "Cleared & Signed",
             status: "Invited",
           },
         }
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
             display_name: name.trim(),
             role: userType || "Player",
             scope: scope || "Global Platform",
-            waiver_status: waiverStatus || "Cleared via GHL",
+            waiver_status: waiverStatus || "Cleared & Signed",
             status: "Invited",
           },
           emailRedirectTo: redirectTo,
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
       userType: userType || "Player",
       scope: scope || "Global Platform",
       status: "Pending",
-      waiverStatus: waiverStatus || "Cleared via GHL",
+      waiverStatus: waiverStatus || "Cleared & Signed",
       color: ROLE_COLORS[userType] || "#8b5cf6",
     };
 

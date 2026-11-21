@@ -570,7 +570,7 @@ export default async function Home({
             <div style={{ fontSize: "28px", marginBottom: "8px" }}>✍</div>
             <h3 style={{ margin: 0, fontSize: "17px" }}>Player Registration</h3>
             <p style={{ margin: "6px 0 0", fontSize: "13.5px", color: "var(--muted)", lineHeight: 1.5 }}>
-              Sign digital waivers with GoHighLevel CRM sync and choose individual or team payment options.
+              Sign digital liability waivers and choose individual or team payment options.
             </p>
           </div>
           <Link href="/registration" className="button button-sm primary" style={{ marginTop: "16px", width: "100%", justifyContent: "center" }}>

@@ -137,10 +137,6 @@ export function RegistrationForm({
         </label>
       </div>
 
-      <div className="notice" style={{ borderRadius: "8px", fontSize: "12px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
-        ⚡ <strong>GoHighLevel Integration:</strong> Registration information and signed waivers are synchronized with the Plaionn Sports Group CRM subaccount.
-      </div>
-
       {!selectedSeason ? (
         <div className="notice" style={{ borderRadius: "8px", margin: "8px 0" }}>
           ℹ️ Select an available season above to review its policies and required waivers.

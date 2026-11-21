@@ -78,7 +78,7 @@ const DEFAULT_USERS: PlatformUser[] = [
     userType: "Team Admin / Manager",
     scope: "Northline HC (Premier)",
     status: "Active",
-    waiverStatus: "Cleared via GHL",
+    waiverStatus: "Cleared & Signed",
     color: "#3b82f6",
   },
   {
@@ -88,7 +88,7 @@ const DEFAULT_USERS: PlatformUser[] = [
     userType: "Team Admin / Manager",
     scope: "Harbour Wolves (Premier)",
     status: "Active",
-    waiverStatus: "Cleared via GHL",
+    waiverStatus: "Cleared & Signed",
     color: "#3b82f6",
   },
   {
@@ -98,7 +98,7 @@ const DEFAULT_USERS: PlatformUser[] = [
     userType: "Referee",
     scope: "Assigned Games",
     status: "Active",
-    waiverStatus: "Cleared via GHL",
+    waiverStatus: "Cleared & Signed",
     color: "#eab308",
   },
   {
@@ -108,7 +108,7 @@ const DEFAULT_USERS: PlatformUser[] = [
     userType: "Timekeeper",
     scope: "Metro Arena Rink 1",
     status: "Active",
-    waiverStatus: "Cleared via GHL",
+    waiverStatus: "Cleared & Signed",
     color: "#06b6d4",
   },
   {
@@ -118,7 +118,7 @@ const DEFAULT_USERS: PlatformUser[] = [
     userType: "Player",
     scope: "Northline HC",
     status: "Active",
-    waiverStatus: "Cleared via GHL",
+    waiverStatus: "Cleared & Signed",
     color: "#8b5cf6",
   },
   {
@@ -128,7 +128,7 @@ const DEFAULT_USERS: PlatformUser[] = [
     userType: "Player",
     scope: "Northline HC",
     status: "Active",
-    waiverStatus: "Cleared via GHL",
+    waiverStatus: "Cleared & Signed",
     color: "#8b5cf6",
   },
 ];
@@ -159,7 +159,7 @@ export function AdminUsersManager() {
   const [formPassword, setFormPassword] = useState("12345678");
   const [formRole, setFormRole] = useState<PlatformUser["userType"]>("Player");
   const [formScope, setFormScope] = useState("");
-  const [formWaiver, setFormWaiver] = useState("Cleared via GHL");
+  const [formWaiver, setFormWaiver] = useState("Cleared & Signed");
   const [formStatus, setFormStatus] = useState<PlatformUser["status"]>("Active");
 
   // Load from API + localStorage on client mount
@@ -209,7 +209,7 @@ export function AdminUsersManager() {
     setFormEmail("");
     setFormRole("Player");
     setFormScope("Northline HC");
-    setFormWaiver("Cleared via GHL");
+    setFormWaiver("Cleared & Signed");
     setFormStatus("Active");
     setIsAddOpen(true);
   };
@@ -466,7 +466,7 @@ export function AdminUsersManager() {
               <th>User &amp; Email</th>
               <th>User Type / Role</th>
               <th>Assigned Scope</th>
-              <th>Waiver &amp; GHL</th>
+              <th>Waiver Status</th>
               <th>Status</th>
               <th style={{ textAlign: "right" }}>Actions</th>
             </tr>
@@ -718,7 +718,7 @@ export function AdminUsersManager() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
                 <div>
                   <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "6px" }}>
-                    Waiver &amp; GHL Status
+                    Waiver Status
                   </label>
                   <select
                     value={formWaiver}
@@ -733,8 +733,8 @@ export function AdminUsersManager() {
                       fontSize: "13px",
                     }}
                   >
-                    <option value="Cleared via GHL">Cleared via GHL</option>
-                    <option value="Pending GHL Signature">Pending GHL Signature</option>
+                    <option value="Cleared & Signed">Cleared & Signed</option>
+                    <option value="Pending Signature">Pending Signature</option>
                     <option value="Exempt">Exempt</option>
                   </select>
                 </div>
@@ -916,7 +916,7 @@ export function AdminUsersManager() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
                 <div>
                   <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "6px" }}>
-                    Waiver &amp; GHL Status
+                    Waiver Status
                   </label>
                   <select
                     value={formWaiver}
@@ -931,8 +931,8 @@ export function AdminUsersManager() {
                       fontSize: "13px",
                     }}
                   >
-                    <option value="Cleared via GHL">Cleared via GHL</option>
-                    <option value="Pending GHL Signature">Pending GHL Signature</option>
+                    <option value="Cleared & Signed">Cleared & Signed</option>
+                    <option value="Pending Signature">Pending Signature</option>
                     <option value="Exempt">Exempt</option>
                   </select>
                 </div>

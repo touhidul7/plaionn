@@ -29,7 +29,7 @@ export default async function RegistrationPage() {
           <div>
             <h2 style={{ fontSize: "20px", margin: "0 0 8px" }}>Welcome to Official Registration</h2>
             <p style={{ color: "var(--muted)", margin: 0, lineHeight: 1.6 }}>
-              To register as a player for an active team, sign required liability waivers with instant GoHighLevel CRM sync, and complete your league payment, please sign in to your player account.
+              To register as a player for an active team, sign required digital liability waivers, and complete your league payment, please sign in to your player account.
             </p>
           </div>
 
@@ -50,7 +50,7 @@ export default async function RegistrationPage() {
             <div style={{ padding: "16px", background: "#0c1822", borderRadius: "10px", border: "1px solid var(--line)" }}>
               <div style={{ fontSize: "22px", marginBottom: "6px" }}>2️⃣</div>
               <strong style={{ display: "block", fontSize: "14px", color: "var(--text)" }}>Digital Waiver</strong>
-              <small style={{ color: "var(--muted)" }}>Instant liability consent synced to GoHighLevel CRM.</small>
+              <small style={{ color: "var(--muted)" }}>Instant digital liability consent and player agreement.</small>
             </div>
 
             <div style={{ padding: "16px", background: "#0c1822", borderRadius: "10px", border: "1px solid var(--line)" }}>
