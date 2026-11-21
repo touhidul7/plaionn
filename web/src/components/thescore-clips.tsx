@@ -67,9 +67,31 @@ const DEFAULT_CLIPS: ClipItem[] = [
 ];
 
 export function TheScoreClipsCarousel({ customClips }: { customClips?: ClipItem[] }) {
-  const clips = customClips && customClips.length > 0 ? customClips : DEFAULT_CLIPS;
+  const [clips, setClips] = useState<ClipItem[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("plaionn-reels");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    return customClips && customClips.length > 0 ? customClips : DEFAULT_CLIPS;
+  });
+
   const [activeReelIndex, setActiveReelIndex] = useState<number | null>(null);
   const [likesMap, setLikesMap] = useState<Record<string, number>>({});
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+
+  // Upload Form states
+  const [uploadTitle, setUploadTitle] = useState("");
+  const [uploadTeam, setUploadTeam] = useState("Northline HC");
+  const [uploadPlayer, setUploadPlayer] = useState("Marcus Johansson (#11)");
+  const [uploadVideoUrl, setUploadVideoUrl] = useState("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4");
+  const [uploadCaption, setUploadCaption] = useState("");
 
   const currentReel = activeReelIndex !== null ? clips[activeReelIndex] : null;
 
@@ -92,16 +114,57 @@ export function TheScoreClipsCarousel({ customClips }: { customClips?: ClipItem[
     }
   };
 
+  const handleUploadSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadTitle.trim()) return;
+
+    const newClip: ClipItem = {
+      id: `clip-${Date.now()}`,
+      title: uploadTitle.trim(),
+      team: uploadTeam.trim() || "Northline HC",
+      timeAgo: "Just now",
+      durationSeconds: 15,
+      videoUrl: uploadVideoUrl.trim(),
+      thumbnailBg: "linear-gradient(180deg, rgba(16, 185, 129, 0.25) 0%, rgba(9, 18, 25, 0.95) 100%), #142838",
+      likes: 1,
+      caption: uploadCaption.trim() || "Uploaded game highlight reel.",
+      taggedPlayer: uploadPlayer.trim() || undefined,
+    };
+
+    const updated = [newClip, ...clips];
+    setClips(updated);
+    try {
+      localStorage.setItem("plaionn-reels", JSON.stringify(updated));
+    } catch {
+      // Ignore
+    }
+
+    setIsUploadOpen(false);
+    setUploadTitle("");
+    setUploadCaption("");
+    setActiveReelIndex(0); // Instantly open newly uploaded reel
+  };
+
   return (
     <section style={{ marginBottom: "24px" }}>
       {/* theScore Clips Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-        <h2 style={{ fontSize: "18px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.5px", margin: 0, color: "var(--text)" }}>
-          Clips
-        </h2>
-        <span style={{ fontSize: "12px", color: "var(--muted)" }}>
-          Tap clip to watch story reel ({clips.length})
-        </span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "10px" }}>
+        <div>
+          <h2 style={{ fontSize: "18px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.5px", margin: 0, color: "var(--text)" }}>
+            Game Reels &amp; Highlights
+          </h2>
+          <span style={{ fontSize: "12px", color: "var(--muted)" }}>
+            Tap clip to watch story reel ({clips.length} active)
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsUploadOpen(true)}
+          className="button button-sm primary"
+          style={{ fontSize: "12px", fontWeight: 700, padding: "6px 14px" }}
+        >
+          📹 + Upload Footage into Reel
+        </button>
       </div>
 
       {/* Horizontal Clips Carousel */}
@@ -419,6 +482,205 @@ export function TheScoreClipsCarousel({ customClips }: { customClips?: ClipItem[
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* UPLOAD REEL MODAL */}
+      {isUploadOpen && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.8)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10000,
+            padding: "20px",
+          }}
+          onClick={() => setIsUploadOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#0d1b24",
+              border: "1px solid var(--line)",
+              borderRadius: "14px",
+              padding: "24px",
+              width: "100%",
+              maxWidth: "480px",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.6)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3 style={{ margin: 0, fontSize: "17px", color: "var(--text)" }}>
+                📹 Upload Game Footage into Reels
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsUploadOpen(false)}
+                style={{ background: "none", border: "none", color: "var(--muted)", fontSize: "18px", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUploadSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "4px" }}>
+                  Reel Title
+                </label>
+                <input
+                  required
+                  type="text"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  placeholder="e.g. Coast to Coast OT Winner"
+                  style={{
+                    width: "100%",
+                    background: "#13232e",
+                    border: "1px solid var(--line)",
+                    borderRadius: "6px",
+                    padding: "8px 12px",
+                    color: "var(--text)",
+                    fontSize: "13.5px",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "4px" }}>
+                    Team
+                  </label>
+                  <input
+                    type="text"
+                    value={uploadTeam}
+                    onChange={(e) => setUploadTeam(e.target.value)}
+                    placeholder="e.g. Northline HC"
+                    style={{
+                      width: "100%",
+                      background: "#13232e",
+                      border: "1px solid var(--line)",
+                      borderRadius: "6px",
+                      padding: "8px 12px",
+                      color: "var(--text)",
+                      fontSize: "13px",
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "4px" }}>
+                    Tagged Player
+                  </label>
+                  <input
+                    type="text"
+                    value={uploadPlayer}
+                    onChange={(e) => setUploadPlayer(e.target.value)}
+                    placeholder="e.g. Nathan MacKinnon (#29)"
+                    style={{
+                      width: "100%",
+                      background: "#13232e",
+                      border: "1px solid var(--line)",
+                      borderRadius: "6px",
+                      padding: "8px 12px",
+                      color: "var(--text)",
+                      fontSize: "13px",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "4px" }}>
+                  Video Footage Source (MP4)
+                </label>
+                <input
+                  required
+                  type="url"
+                  value={uploadVideoUrl}
+                  onChange={(e) => setUploadVideoUrl(e.target.value)}
+                  placeholder="https://.../video.mp4"
+                  style={{
+                    width: "100%",
+                    background: "#13232e",
+                    border: "1px solid var(--line)",
+                    borderRadius: "6px",
+                    padding: "8px 12px",
+                    color: "var(--text)",
+                    fontSize: "13px",
+                  }}
+                />
+                <div style={{ display: "flex", gap: "6px", marginTop: "6px", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "11px", color: "var(--muted)" }}>Preset clips:</span>
+                  <button
+                    type="button"
+                    onClick={() => setUploadVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4")}
+                    style={{ fontSize: "10px", background: "rgba(255,255,255,0.08)", border: "none", color: "var(--accent)", padding: "2px 6px", borderRadius: "4px", cursor: "pointer" }}
+                  >
+                    Rush
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4")}
+                    style={{ fontSize: "10px", background: "rgba(255,255,255,0.08)", border: "none", color: "var(--accent)", padding: "2px 6px", borderRadius: "4px", cursor: "pointer" }}
+                  >
+                    Snipe
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4")}
+                    style={{ fontSize: "10px", background: "rgba(255,255,255,0.08)", border: "none", color: "var(--accent)", padding: "2px 6px", borderRadius: "4px", cursor: "pointer" }}
+                  >
+                    Glove Save
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "4px" }}>
+                  Reel Caption
+                </label>
+                <textarea
+                  rows={2}
+                  value={uploadCaption}
+                  onChange={(e) => setUploadCaption(e.target.value)}
+                  placeholder="Describe the play or sequence..."
+                  style={{
+                    width: "100%",
+                    background: "#13232e",
+                    border: "1px solid var(--line)",
+                    borderRadius: "6px",
+                    padding: "8px 12px",
+                    color: "var(--text)",
+                    fontSize: "13px",
+                    resize: "none",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => setIsUploadOpen(false)}
+                  className="button"
+                  style={{ fontSize: "13px" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="button primary"
+                  style={{ fontSize: "13px", fontWeight: 700 }}
+                >
+                  Publish to Game Reels
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
