@@ -108,6 +108,7 @@ export async function PublicHeader() {
   return (
     <PublicHeaderClient
       leagueName={league.name}
+      leagueId={league.id}
       games={games}
       user={user}
       canManage={canManage}

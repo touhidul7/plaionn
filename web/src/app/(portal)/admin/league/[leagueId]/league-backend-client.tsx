@@ -461,7 +461,7 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                   <th>Away Team</th>
                   <th>Venue / Rink</th>
                   <th>Status</th>
-                  <th style={{ textAlign: "right" }}>Scorekeeper</th>
+                  <th style={{ textAlign: "right" }}>Live Scorekeeper</th>
                 </tr>
               </thead>
               <tbody>
@@ -477,18 +477,62 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                       <span className="badge" style={{ fontSize: "10.5px" }}>{g.status.toUpperCase()}</span>
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      <Link
-                        href={`/schedule/${g.id}/scorekeeping`}
-                        className="button button-sm button-outline"
-                        style={{ fontSize: "11px", padding: "4px 10px" }}
-                      >
-                        Launch App →
-                      </Link>
+                      <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", alignItems: "center" }}>
+                        <Link
+                          href={`/schedule/${g.id}/scorekeeping`}
+                          className="button button-sm primary"
+                          style={{
+                            fontSize: "11.5px",
+                            padding: "6px 14px",
+                            fontWeight: 800,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            background: "var(--lime)",
+                            color: "#000",
+                          }}
+                          title="Open live scorekeeper to record goals, assists, penalties & shots"
+                        >
+                          ⏱ Score Game
+                        </Link>
+                        <Link
+                          href={`/schedule/${g.id}/live`}
+                          className="button button-sm button-outline"
+                          style={{ fontSize: "11px", padding: "6px 10px" }}
+                          title="View public live game center"
+                        >
+                          Game Center ↗
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Rink Scorekeeper Feature Spotlight (Requirement 4f) */}
+          <div
+            style={{
+              marginTop: "20px",
+              padding: "18px 22px",
+              background: "rgba(103, 232, 249, 0.06)",
+              border: "1px solid rgba(103, 232, 249, 0.25)",
+              borderRadius: "12px",
+              display: "flex",
+              gap: "14px",
+              alignItems: "flex-start",
+            }}
+          >
+            <span style={{ fontSize: "24px", flexShrink: 0 }}>⏱</span>
+            <div>
+              <strong style={{ color: "#67e8f9", fontSize: "14px", display: "block", marginBottom: "4px" }}>
+                Live Digital Rink Scorekeeping (Requirement 4f)
+              </strong>
+              <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)", lineHeight: 1.5 }}>
+                Click <strong style={{ color: "var(--lime)" }}>⏱ Score Game</strong> on any matchup above to record live game events while at the rink: goals, primary/secondary assists, penalty minutes, period-by-period shots on goal (SOG), goalie stints, and Three Stars selection. Real-time scores sync immediately to the public game center and fan mobile devices.
+              </p>
+            </div>
           </div>
         </section>
       )}

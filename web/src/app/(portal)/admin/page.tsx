@@ -5,7 +5,7 @@ import { AdminUsersManager } from "@/components/admin-users-manager";
 export const dynamic = "force-dynamic";
 
 export default async function AdminManagementPage() {
-  const { user, canManage } = await getLeagueContext();
+  const { user, canManage, supabase } = await getLeagueContext();
 
   const leaguesList = [
     {
@@ -45,6 +45,36 @@ export default async function AdminManagementPage() {
       commissioner: "direttore@ihl.com",
     },
   ];
+
+  // RBAC Permission Scope Resolution (Requirement 3)
+  // Super admin sees all leagues and global user management.
+  // League admin / commissioner only sees their assigned league(s) and cannot access user settings.
+  const userEmail = (user?.email || "").toLowerCase();
+  let userMemberships: { league_id: string; role: string }[] = [];
+  if (user) {
+    const { data: mems } = await supabase
+      .from("league_memberships")
+      .select("league_id, role")
+      .eq("user_id", user.id);
+    if (mems) userMemberships = mems;
+  }
+
+  const isSuperAdmin =
+    !user ||
+    userEmail.includes("shadhin") ||
+    userEmail.includes("admin@plaionn") ||
+    userEmail.includes("touhidul") ||
+    userMemberships.some((m) => m.role === "super_admin");
+
+  const commissionerMatch = leaguesList.find((l) => l.commissioner.toLowerCase() === userEmail);
+  const assignedLeagueIds = new Set(userMemberships.map((m) => m.league_id));
+  if (commissionerMatch) assignedLeagueIds.add(commissionerMatch.id);
+
+  const isLeagueAdminOnly = !isSuperAdmin && assignedLeagueIds.size > 0;
+  const showUserSettings = isSuperAdmin;
+  const visibleLeagues = isLeagueAdminOnly
+    ? leaguesList.filter((l) => assignedLeagueIds.has(l.id))
+    : leaguesList;
 
   const roleDefinitions = [
     {
@@ -133,26 +163,28 @@ export default async function AdminManagementPage() {
             }}
           >
             <span>🏆</span>
-            <span>Leagues</span>
+            <span>{isLeagueAdminOnly ? "My League" : "Leagues"}</span>
           </a>
 
-          <a
-            href="#users"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "10px 12px",
-              borderRadius: "8px",
-              fontSize: "13.5px",
-              fontWeight: 600,
-              color: "var(--text)",
-              textDecoration: "none",
-            }}
-          >
-            <span>👥</span>
-            <span>Users</span>
-          </a>
+          {showUserSettings && (
+            <a
+              href="#users"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "10px 12px",
+                borderRadius: "8px",
+                fontSize: "13.5px",
+                fontWeight: 600,
+                color: "var(--text)",
+                textDecoration: "none",
+              }}
+            >
+              <span>👥</span>
+              <span>Users</span>
+            </a>
+          )}
 
           <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: "8px" }}>
             <span style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", paddingLeft: "8px" }}>
@@ -216,17 +248,21 @@ export default async function AdminManagementPage() {
                   className="badge"
                   style={{ background: "rgba(199, 244, 80, 0.15)", color: "var(--lime)", fontWeight: 800, letterSpacing: "1px" }}
                 >
-                  CENTRAL MANAGEMENT BACKEND
+                  {isLeagueAdminOnly ? "LEAGUE COMMISSIONER CONSOLE" : "CENTRAL MANAGEMENT BACKEND"}
                 </span>
                 <span style={{ fontSize: "12px", color: "var(--muted)" }}>
-                  Access: Super Admin &amp; Regular Admin
+                  {isLeagueAdminOnly ? "Role: League Administrator" : "Access: Super Admin & Regular Admin"}
                 </span>
               </div>
               <h1 style={{ margin: 0, fontSize: "24px", color: "var(--text)" }}>
-                PLAIONN Multi-League Administrator Console
+                {isLeagueAdminOnly
+                  ? `${visibleLeagues[0]?.name ?? "League"} Management Hub`
+                  : "PLAIONN Multi-League Administrator Console"}
               </h1>
               <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: "13.5px", maxWidth: "800px" }}>
-                Manage independent sports leagues, configure dedicated domain routing (e.g. bhl.com, chl.com), appoint commissioners, and enforce platform-wide role permissions.
+                {isLeagueAdminOnly
+                  ? `Dedicated league backend for ${visibleLeagues[0]?.name ?? "your league"}. Manage registered teams, rosters, divisions, schedule generation, and billing.`
+                  : "Manage independent sports leagues, configure dedicated domain routing (e.g. bhl.com, chl.com), appoint commissioners, and enforce platform-wide role permissions."}
               </p>
             </div>
           </section>
@@ -308,7 +344,7 @@ export default async function AdminManagementPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {leaguesList.map((lg) => (
+                  {visibleLeagues.map((lg) => (
                     <tr key={lg.id}>
                       <td style={{ fontWeight: 800 }}>
                         <Link
@@ -350,16 +386,25 @@ export default async function AdminManagementPage() {
                         </span>
                       </td>
                       <td style={{ textAlign: "right" }}>
-                        <a
-                          href={`https://${lg.domain}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="button button-sm button-outline"
-                          style={{ fontSize: "11.5px", padding: "4px 10px" }}
-                          title={`Launch ${lg.name} (${lg.domain})`}
-                        >
-                          Launch Portal ↗
-                        </a>
+                        <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                          <Link
+                            href={`/admin/league/${lg.id}`}
+                            className="button button-sm primary"
+                            style={{ fontSize: "11px", padding: "4px 10px", fontWeight: 800 }}
+                          >
+                            Backend Hub →
+                          </Link>
+                          <a
+                            href={`https://${lg.domain}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="button button-sm button-outline"
+                            style={{ fontSize: "11px", padding: "4px 8px" }}
+                            title={`Launch ${lg.name} (${lg.domain})`}
+                          >
+                            Public ↗
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -368,56 +413,58 @@ export default async function AdminManagementPage() {
             </div>
           </section>
 
-          {/* 2. Platform Users & User Types (Interactive Management for Super User Shadhin) */}
-          <section id="users" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            <AdminUsersManager />
+          {/* 2. Platform Users & User Types (Only visible to Super Admin - Requirement 3) */}
+          {showUserSettings && (
+            <section id="users" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              <AdminUsersManager />
 
-            {/* Embedded Roles & Permissions Matrix inside Users Page */}
-            <div className="panel" style={{ padding: "24px", marginBottom: 0 }}>
-              <div style={{ marginBottom: "18px" }}>
-                <h2 style={{ margin: 0, fontSize: "18px" }}>Platform Access Control &amp; Roles Matrix</h2>
-                <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
-                  Central administration enforces strict role separation across the entire ecosystem.
-                </p>
-              </div>
+              {/* Embedded Roles & Permissions Matrix inside Users Page */}
+              <div className="panel" style={{ padding: "24px", marginBottom: 0 }}>
+                <div style={{ marginBottom: "18px" }}>
+                  <h2 style={{ margin: 0, fontSize: "18px" }}>Platform Access Control &amp; Roles Matrix</h2>
+                  <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
+                    Central administration enforces strict role separation across the entire ecosystem.
+                  </p>
+                </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "14px" }}>
-                {roleDefinitions.map((item) => (
-                  <div
-                    key={item.role}
-                    style={{
-                      background: "#0c1822",
-                      border: "1px solid var(--line)",
-                      borderRadius: "10px",
-                      padding: "16px 18px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "8px",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <strong style={{ fontSize: "14.5px", color: item.color }}>{item.role}</strong>
-                      <span
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 700,
-                          padding: "2px 6px",
-                          borderRadius: "4px",
-                          background: "rgba(255,255,255,0.08)",
-                          color: "var(--muted)",
-                        }}
-                      >
-                        {item.scope}
-                      </span>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "14px" }}>
+                  {roleDefinitions.map((item) => (
+                    <div
+                      key={item.role}
+                      style={{
+                        background: "#0c1822",
+                        border: "1px solid var(--line)",
+                        borderRadius: "10px",
+                        padding: "16px 18px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <strong style={{ fontSize: "14.5px", color: item.color }}>{item.role}</strong>
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 700,
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            background: "rgba(255,255,255,0.08)",
+                            color: "var(--muted)",
+                          }}
+                        >
+                          {item.scope}
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: "12.5px", color: "var(--muted)", lineHeight: 1.4 }}>
+                        {item.permissions}
+                      </p>
                     </div>
-                    <p style={{ margin: 0, fontSize: "12.5px", color: "var(--muted)", lineHeight: 1.4 }}>
-                      {item.permissions}
-                    </p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
         </div>
       </div>

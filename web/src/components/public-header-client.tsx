@@ -17,6 +17,7 @@ export interface TickerGameItem {
 
 interface PublicHeaderClientProps {
   leagueName: string;
+  leagueId?: string;
   games: TickerGameItem[];
   user: any;
   canManage: boolean;
@@ -24,6 +25,7 @@ interface PublicHeaderClientProps {
 
 export function PublicHeaderClient({
   leagueName,
+  leagueId,
   games,
   user,
   canManage,
@@ -309,16 +311,40 @@ export function PublicHeaderClient({
             })}
           </ul>
 
-          {/* Right side actions - Clean display-only for public visitors */}
+          {/* Right side actions - Admin, League HQ & Account links for management */}
           <div className="plaionn-nav-right">
             {user ? (
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Link
+                  href={leagueId && leagueId !== "platform" ? `/admin/league/${leagueId}` : "/admin"}
+                  className="button button-sm primary"
+                  style={{
+                    fontSize: "12px",
+                    padding: "6px 14px",
+                    fontWeight: 800,
+                  }}
+                  title="Open dedicated League Backend (Teams, Divisions, Schedule & Invoices)"
+                >
+                  League HQ
+                </Link>
+                <Link
+                  href="/admin"
+                  className="button button-sm button-outline"
+                  style={{
+                    fontSize: "12px",
+                    padding: "6px 12px",
+                    fontWeight: 700,
+                  }}
+                  title="Central Platform Admin"
+                >
+                  Admin
+                </Link>
                 <Link
                   href="/account"
                   className="button button-sm button-outline"
                   style={{
                     fontSize: "12px",
-                    padding: "6px 14px",
+                    padding: "6px 12px",
                   }}
                 >
                   Account
@@ -327,13 +353,14 @@ export function PublicHeaderClient({
             ) : (
               <Link
                 href="/login"
-                className="button button-sm button-outline"
+                className="button button-sm primary"
                 style={{
                   fontSize: "12px",
-                  padding: "6px 14px",
+                  padding: "6px 16px",
+                  fontWeight: 800,
                 }}
               >
-                Login
+                Admin Login
               </Link>
             )}
           </div>
