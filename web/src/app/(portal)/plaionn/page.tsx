@@ -167,7 +167,7 @@ export default function PlaionnPlatformPage() {
             margin: 0,
           }}
         >
-          Power your hockey league with branded public portals (like WAHL &amp; BHL), real-time rink scorekeeping, automated scheduling, and seamless GoHighLevel player registrations.
+          Power your hockey league with branded public portals (like WAHL &amp; BHL), real-time rink scorekeeping, automated scheduling, and seamless digital player registrations.
         </p>
 
         <div style={{ display: "flex", gap: "14px", marginTop: "10px", flexWrap: "wrap", justifyContent: "center" }}>

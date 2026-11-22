@@ -12,7 +12,7 @@ export default async function AdminManagementPage() {
       id: "60000000-0000-4000-8000-000000000001",
       name: "Bangladesh Hockey League (BHL)",
       domain: "bhl.com",
-      subdomain: "league1.dealioadvisors.com",
+      subdomain: "league1.plaionn.brittosoft.online",
       status: "Active",
       season: "Winter 2026",
       teams: 8,
@@ -22,7 +22,7 @@ export default async function AdminManagementPage() {
       id: "60000000-0000-4000-8000-000000000003",
       name: "Wave Adult Hockey League (WAHL)",
       domain: "waveadulthockeyleague.ca",
-      subdomain: "league2.dealioadvisors.com",
+      subdomain: "league2.plaionn.brittosoft.online",
       status: "Active",
       season: "Winter 2026",
       teams: 12,
@@ -32,7 +32,7 @@ export default async function AdminManagementPage() {
       id: "60000000-0000-4000-8000-000000000004",
       name: "Canada Hockey League (CHL)",
       domain: "chl.com",
-      subdomain: "league3.dealioadvisors.com",
+      subdomain: "league3.plaionn.brittosoft.online",
       status: "Active",
       season: "Winter 2026",
       teams: 16,
@@ -42,7 +42,7 @@ export default async function AdminManagementPage() {
       id: "60000000-0000-4000-8000-000000000005",
       name: "Italy Hockey League (IHL)",
       domain: "ihl.com",
-      subdomain: "league4.dealioadvisors.com",
+      subdomain: "league4.plaionn.brittosoft.online",
       status: "Active",
       season: "Winter 2026",
       teams: 6,
@@ -397,7 +397,7 @@ export default async function AdminManagementPage() {
                   🌐 CUSTOM DOMAIN &amp; SUBDOMAIN ROUTING READY
                 </span>
                 <p style={{ margin: "4px 0 0", fontSize: "12.5px", color: "var(--muted)" }}>
-                  Ready to link your client domains: Point CNAME for <code style={{ color: "#67e8f9" }}>league1.dealioadvisors.com</code> and <code style={{ color: "#67e8f9" }}>league2.dealioadvisors.com</code> to <code style={{ color: "var(--lime)" }}>cname.vercel-dns.com</code>.
+                  Ready to link your client or test domains: Point CNAME for <code style={{ color: "#67e8f9" }}>*.plaionn.brittosoft.online</code> (or <code style={{ color: "#67e8f9" }}>league1.dealioadvisors.com</code>) to <code style={{ color: "var(--lime)" }}>cname.vercel-dns.com</code>.
                 </p>
               </div>
               <span className="badge" style={{ background: "rgba(199, 244, 80, 0.15)", color: "var(--lime)", fontSize: "11px" }}>

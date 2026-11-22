@@ -6,6 +6,18 @@ import { createSupabaseServerClient } from "./server";
 import { sanitizeLeagueName, sanitizeSeasonName } from "@/lib/sanitize";
 
 export const DOMAIN_LEAGUE_MAP: Record<string, string> = {
+  // Test & Client domains: *.plaionn.brittosoft.online
+  "plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000001",
+  "league1.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000001",
+  "bhl.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000001",
+  "league2.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000003",
+  "wahl.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000003",
+  "league3.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000004",
+  "chl.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000004",
+  "league4.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000005",
+  "ihl.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000005",
+
+  // Production Client Domains
   "league1.dealioadvisors.com": "60000000-0000-4000-8000-000000000001",
   "bhl.com": "60000000-0000-4000-8000-000000000001",
   "league2.dealioadvisors.com": "60000000-0000-4000-8000-000000000003",
@@ -53,6 +65,17 @@ export const getLeagueContext = cache(async () => {
     const host = (headerList.get("x-forwarded-host") || headerList.get("host") || "").toLowerCase().split(":")[0];
     if (DOMAIN_LEAGUE_MAP[host]) {
       domainLeagueId = DOMAIN_LEAGUE_MAP[host];
+    } else {
+      // Dynamic prefix matching for any custom/subdomain hierarchy (*.plaionn.brittosoft.online, *.dealioadvisors.com, etc.)
+      if (host.startsWith("league1.") || host.startsWith("bhl.")) {
+        domainLeagueId = "60000000-0000-4000-8000-000000000001";
+      } else if (host.startsWith("league2.") || host.startsWith("wahl.")) {
+        domainLeagueId = "60000000-0000-4000-8000-000000000003";
+      } else if (host.startsWith("league3.") || host.startsWith("chl.")) {
+        domainLeagueId = "60000000-0000-4000-8000-000000000004";
+      } else if (host.startsWith("league4.") || host.startsWith("ihl.")) {
+        domainLeagueId = "60000000-0000-4000-8000-000000000005";
+      }
     }
   } catch {
     // Graceful fallback
