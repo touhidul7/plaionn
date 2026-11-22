@@ -88,54 +88,12 @@ export default function PlaionnPlatformPage() {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "48px", maxWidth: "1280px", margin: "0 auto" }}>
-      {/* 1. Marketing Navigation Bar */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "16px 0",
-          borderBottom: "1px solid var(--line)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div
-            style={{
-              width: "38px",
-              height: "38px",
-              borderRadius: "8px",
-              background: "var(--lime)",
-              color: "#091219",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 900,
-              fontSize: "20px",
-            }}
-          >
-            P
-          </div>
-          <span style={{ fontFamily: "var(--font-inter), 'Inter', 'Inter Fallback', sans-serif", fontSize: "20px", fontWeight: 900, color: "var(--text)" }}>
-            PLAIONN <span style={{ color: "var(--lime)", fontSize: "14px" }}>SPORTS</span>
-          </span>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          <Link href="/admin" className="button button-sm button-outline">
-            Super Admin Console ↗
-          </Link>
-          <Link href="/login" className="button button-sm primary">
-            Admin Login
-          </Link>
-        </div>
-      </div>
-
-      {/* 2. Platform Hero Section (like TeamLinkt) */}
+    <div style={{ display: "flex", flexDirection: "column", gap: "48px", maxWidth: "1280px", margin: "0 auto", padding: "10px 0 40px" }}>
+      {/* 1. Platform Hero Section */}
       <section
         style={{
           textAlign: "center",
-          padding: "60px 20px 40px",
+          padding: "40px 20px 20px",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -174,12 +132,9 @@ export default function PlaionnPlatformPage() {
           Power your hockey league with branded public portals (like WAHL &amp; BHL), real-time rink scorekeeping, automated scheduling, and seamless digital player registrations.
         </p>
 
-        <div style={{ display: "flex", gap: "14px", marginTop: "10px", flexWrap: "wrap", justifyContent: "center" }}>
-          <Link href="/" className="button primary" style={{ padding: "14px 32px", fontSize: "15px", fontWeight: 800 }}>
-            Explore Live League Portal →
-          </Link>
-          <Link href="/admin" className="button button-outline" style={{ padding: "14px 32px", fontSize: "15px" }}>
-            Super Admin Backend
+        <div style={{ display: "flex", gap: "14px", marginTop: "8px", flexWrap: "wrap", justifyContent: "center" }}>
+          <Link href="/login" className="button primary" style={{ padding: "14px 40px", fontSize: "16px", fontWeight: 800 }}>
+            Login to Admin Console →
           </Link>
         </div>
       </section>

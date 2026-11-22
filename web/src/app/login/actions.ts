@@ -79,7 +79,7 @@ export async function authenticate(_state:AuthState,form:FormData):Promise<AuthS
    signedIn=!!result.data.session;
   }
  } catch { return {error:true,message:"The sign-in service is unavailable. Please try again later."}; }
- if(signedIn) { revalidatePath("/","layout"); redirect("/account"); }
+ if(signedIn) { revalidatePath("/","layout"); redirect("/admin"); }
  return {error:true,message:"Could not establish a session."};
 }
 export async function signOut():Promise<void> {

@@ -52,6 +52,59 @@ export function PublicHeaderClient({
     { href: "/registration", label: "REGISTRATION" },
   ];
 
+  if (pathname === "/plaionn" || leagueName === "PLAIONN Sports Platform") {
+    return (
+      <header className="plaionn-header-wrap" style={{ borderBottom: "1px solid var(--line)" }}>
+        <div className="plaionn-header-top" style={{ padding: "16px 0", background: "#081017" }}>
+          <div
+            className="plaionn-header-top-inner"
+            style={{
+              maxWidth: "1260px",
+              margin: "0 auto",
+              padding: "0 24px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Link href="/" className="plaionn-brand-wedge" title="PLAIONN Sports Platform">
+              <div
+                className="plaionn-brand-logo"
+                aria-hidden="true"
+                style={{ background: "var(--lime)", color: "#000", fontWeight: 900 }}
+              >
+                P
+              </div>
+              <div className="plaionn-brand-text">
+                <span className="plaionn-brand-name" style={{ color: "var(--text)", letterSpacing: "0.5px" }}>
+                  PLAIONN <span style={{ color: "var(--lime)" }}>SPORTS</span>
+                </span>
+                <span className="plaionn-brand-sub" style={{ color: "var(--muted)" }}>
+                  Multi-Tenant Sports League Management
+                </span>
+              </div>
+            </Link>
+
+            <div>
+              <Link
+                href="/login"
+                className="button primary"
+                style={{
+                  fontWeight: 800,
+                  fontSize: "14px",
+                  padding: "8px 24px",
+                  borderRadius: "8px",
+                }}
+              >
+                Login
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   if (pathname?.startsWith("/admin")) {
     return (
       <header className="plaionn-header-wrap" style={{ borderBottom: "1px solid var(--line)" }}>
@@ -237,59 +290,31 @@ export function PublicHeaderClient({
             })}
           </ul>
 
-          {/* Right side actions */}
+          {/* Right side actions - Clean display-only for public visitors */}
           <div className="plaionn-nav-right">
             {user ? (
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                {canManage && (
-                  <Link
-                    href="/league"
-                    className="button button-sm"
-                    style={{
-                      background: "#183325",
-                      color: "var(--lime)",
-                      border: "1px solid rgba(199,244,80,0.3)",
-                      fontWeight: 700,
-                      fontSize: "12px",
-                      padding: "6px 12px",
-                    }}
-                    title="Commissioner League HQ"
-                  >
-                    League HQ ⚙️
-                  </Link>
-                )}
-                <Link
-                  href="/admin"
-                  className="button button-sm"
-                  style={{
-                    background: "#152430",
-                    color: "var(--text)",
-                    border: "1px solid var(--line)",
-                    fontWeight: 700,
-                    fontSize: "12px",
-                    padding: "6px 12px",
-                  }}
-                  title="Admin Platform"
-                >
-                  Admin
-                </Link>
                 <Link
                   href="/account"
-                  className="button button-sm"
+                  className="button button-sm button-outline"
                   style={{
-                    background: "#101e28",
-                    color: "var(--text)",
-                    border: "1px solid var(--line)",
                     fontSize: "12px",
-                    padding: "6px 12px",
+                    padding: "6px 14px",
                   }}
                 >
                   Account
                 </Link>
               </div>
             ) : (
-              <Link href="/login" className="plaionn-admin-login-btn">
-                Admin Login ↗
+              <Link
+                href="/login"
+                className="button button-sm button-outline"
+                style={{
+                  fontSize: "12px",
+                  padding: "6px 14px",
+                }}
+              >
+                Login
               </Link>
             )}
           </div>

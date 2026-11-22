@@ -50,49 +50,6 @@ export default async function AdminManagementPage() {
     },
   ];
 
-  const teamsDirectory = [
-    {
-      name: "Northline HC",
-      division: "Premier",
-      season: "Winter 2026",
-      league: "Bangladesh Hockey League",
-      manager: "Marcus Johansson",
-      rosterCount: 16,
-    },
-    {
-      name: "Harbour Wolves",
-      division: "Premier",
-      season: "Winter 2026",
-      league: "Bangladesh Hockey League",
-      manager: "Alexander Reed",
-      rosterCount: 15,
-    },
-    {
-      name: "Thunder Puck",
-      division: "Division D",
-      season: "Winter 2026",
-      league: "Wave Adult Hockey League",
-      manager: "Craig Watson",
-      rosterCount: 14,
-    },
-    {
-      name: "Big Deals",
-      division: "Division D",
-      season: "Winter 2026",
-      league: "Wave Adult Hockey League",
-      manager: "Tom Vance",
-      rosterCount: 17,
-    },
-    {
-      name: "Black Bull Mud Dawgs",
-      division: "Division D",
-      season: "Winter 2026",
-      league: "Wave Adult Hockey League",
-      manager: "Eric Larson",
-      rosterCount: 15,
-    },
-  ];
-
   const roleDefinitions = [
     {
       role: "Super Admin",
@@ -180,7 +137,7 @@ export default async function AdminManagementPage() {
             }}
           >
             <span>🏆</span>
-            <span>Leagues &amp; Domains</span>
+            <span>Leagues</span>
           </a>
 
           <a
@@ -198,43 +155,7 @@ export default async function AdminManagementPage() {
             }}
           >
             <span>👥</span>
-            <span>Users &amp; Permissions</span>
-          </a>
-
-          <a
-            href="#teams"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "10px 12px",
-              borderRadius: "8px",
-              fontSize: "13.5px",
-              fontWeight: 600,
-              color: "var(--text)",
-              textDecoration: "none",
-            }}
-          >
-            <span>🏒</span>
-            <span>Teams &amp; Roster</span>
-          </a>
-
-          <a
-            href="#matrix"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "10px 12px",
-              borderRadius: "8px",
-              fontSize: "13.5px",
-              fontWeight: 600,
-              color: "var(--text)",
-              textDecoration: "none",
-            }}
-          >
-            <span>🛡️</span>
-            <span>Roles Matrix</span>
+            <span>Users</span>
           </a>
 
           <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -422,7 +343,19 @@ export default async function AdminManagementPage() {
                 <tbody>
                   {leaguesList.map((lg) => (
                     <tr key={lg.id}>
-                      <td style={{ fontWeight: 800, color: "var(--text)" }}>{lg.name}</td>
+                      <td style={{ fontWeight: 800 }}>
+                        <Link
+                          href={`/admin/league/${lg.id}`}
+                          style={{
+                            color: "var(--lime)",
+                            textDecoration: "underline",
+                            textUnderlineOffset: "4px",
+                          }}
+                          title={`Manage ${lg.name} Backend`}
+                        >
+                          {lg.name}
+                        </Link>
+                      </td>
                       <td>
                         <code style={{ background: "#172b38", padding: "2px 8px", borderRadius: "4px", color: "#67e8f9", fontSize: "12px" }}>
                           {lg.domain}
@@ -459,97 +392,53 @@ export default async function AdminManagementPage() {
           </section>
 
           {/* 2. Platform Users & User Types (Interactive Management for Super User Shadhin) */}
-          <AdminUsersManager />
+          <section id="users" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <AdminUsersManager />
 
-          {/* 3. Teams Directory */}
-          <section id="teams" className="panel" style={{ padding: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: "18px" }}>Teams &amp; Division Alignments</h2>
+            {/* Embedded Roles & Permissions Matrix inside Users Page */}
+            <div className="panel" style={{ padding: "24px", marginBottom: 0 }}>
+              <div style={{ marginBottom: "18px" }}>
+                <h2 style={{ margin: 0, fontSize: "18px" }}>Platform Access Control &amp; Roles Matrix</h2>
                 <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
-                  Member clubs registered across active leagues and divisions.
+                  Central administration enforces strict role separation across the entire ecosystem.
                 </p>
               </div>
-              <Link href="/teams" className="button button-sm button-outline">
-                All Team Pages →
-              </Link>
-            </div>
 
-            <div style={{ overflowX: "auto" }}>
-              <table className="table" style={{ width: "100%", margin: 0 }}>
-                <thead>
-                  <tr>
-                    <th>Team Name</th>
-                    <th>Division</th>
-                    <th>Season</th>
-                    <th>League</th>
-                    <th>Team Manager</th>
-                    <th style={{ textAlign: "right" }}>Active Roster</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {teamsDirectory.map((t) => (
-                    <tr key={t.name}>
-                      <td style={{ fontWeight: 800, color: "var(--text)" }}>{t.name}</td>
-                      <td>
-                        <span className="badge" style={{ fontSize: "10.5px" }}>{t.division}</span>
-                      </td>
-                      <td>{t.season}</td>
-                      <td style={{ fontSize: "12.5px", color: "var(--muted)" }}>{t.league}</td>
-                      <td>{t.manager}</td>
-                      <td style={{ textAlign: "right", fontWeight: 700, color: "var(--lime)" }}>
-                        {t.rosterCount} players
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* 4. Roles Matrix */}
-          <section id="matrix" className="panel" style={{ padding: "24px" }}>
-            <div style={{ marginBottom: "18px" }}>
-              <h2 style={{ margin: 0, fontSize: "18px" }}>Platform Access Control &amp; Roles Matrix</h2>
-              <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
-                Central administration enforces strict role separation across the entire ecosystem.
-              </p>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "14px" }}>
-              {roleDefinitions.map((item) => (
-                <div
-                  key={item.role}
-                  style={{
-                    background: "#0c1822",
-                    border: "1px solid var(--line)",
-                    borderRadius: "10px",
-                    padding: "16px 18px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <strong style={{ fontSize: "14.5px", color: item.color }}>{item.role}</strong>
-                    <span
-                      style={{
-                        fontSize: "10px",
-                        fontWeight: 700,
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                        background: "rgba(255,255,255,0.08)",
-                        color: "var(--muted)",
-                      }}
-                    >
-                      {item.scope}
-                    </span>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "14px" }}>
+                {roleDefinitions.map((item) => (
+                  <div
+                    key={item.role}
+                    style={{
+                      background: "#0c1822",
+                      border: "1px solid var(--line)",
+                      borderRadius: "10px",
+                      padding: "16px 18px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <strong style={{ fontSize: "14.5px", color: item.color }}>{item.role}</strong>
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          background: "rgba(255,255,255,0.08)",
+                          color: "var(--muted)",
+                        }}
+                      >
+                        {item.scope}
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: "12.5px", color: "var(--muted)", lineHeight: 1.4 }}>
+                      {item.permissions}
+                    </p>
                   </div>
-                  <p style={{ margin: 0, fontSize: "12.5px", color: "var(--muted)", lineHeight: 1.4 }}>
-                    {item.permissions}
-                  </p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
 
