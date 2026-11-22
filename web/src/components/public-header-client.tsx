@@ -86,18 +86,37 @@ export function PublicHeaderClient({
             </Link>
 
             <div>
-              <Link
-                href="/login"
-                className="button primary"
-                style={{
-                  fontWeight: 800,
-                  fontSize: "14px",
-                  padding: "8px 24px",
-                  borderRadius: "8px",
-                }}
-              >
-                Login
-              </Link>
+              {user ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Link
+                    href="/admin"
+                    className="button primary"
+                    style={{ fontWeight: 800, fontSize: "13.5px", padding: "7px 18px", borderRadius: "8px" }}
+                  >
+                    Admin Console
+                  </Link>
+                  <Link
+                    href="/account"
+                    className="button button-outline"
+                    style={{ fontWeight: 700, fontSize: "13px", padding: "7px 14px", borderRadius: "8px" }}
+                  >
+                    Account
+                  </Link>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="button primary"
+                  style={{
+                    fontWeight: 800,
+                    fontSize: "14px",
+                    padding: "8px 24px",
+                    borderRadius: "8px",
+                  }}
+                >
+                  Login
+                </Link>
+              )}
             </div>
           </div>
         </div>
