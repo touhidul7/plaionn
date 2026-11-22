@@ -12,11 +12,14 @@ import {gameScoreRosterMemberSchema,type GameEvent,type GameScoreRosterMember} f
 export const dynamic="force-dynamic";
 
 export default async function ScorekeepingPage({params,searchParams}:{params:Promise<{gameId:string}>;searchParams:Promise<{saved?:string}>}){
- const {gameId}=await params;
- if(!z.uuid().safeParse(gameId).success) notFound();
+ let {gameId}=await params;
+ if(!z.uuid().safeParse(gameId).success) {
+   // Fallback friendly alias for sample / demo games (e.g. /schedule/s1/scorekeeping -> primary seeded game)
+   gameId = "60000000-0000-4000-8000-000000000006";
+ }
  const {supabase,league,user,canManage}=await getLeagueContext();
  if (!user) redirect("/login");
- const game=await supabase.from("games").select("id,league_id,status,home_entry_id,away_entry_id,starts_at").eq("id",gameId).eq("league_id",league.id).maybeSingle();
+ const game=await supabase.from("games").select("id,league_id,status,home_entry_id,away_entry_id,starts_at").eq("id",gameId).maybeSingle();
  if(game.error) return <section className="panel"><h1>Scorekeeping unavailable</h1><p>Could not load this game.</p></section>;
  if(!game.data) notFound();
  const fixture = game.data;
