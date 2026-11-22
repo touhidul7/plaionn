@@ -11,8 +11,7 @@ export default async function AdminManagementPage() {
     {
       id: "60000000-0000-4000-8000-000000000001",
       name: "Bangladesh Hockey League (BHL)",
-      domain: "bhl.com",
-      subdomain: "league1.plaionn.brittosoft.online",
+      domain: "league1.plaionn.brittosoft.online",
       status: "Active",
       season: "Winter 2026",
       teams: 8,
@@ -21,8 +20,7 @@ export default async function AdminManagementPage() {
     {
       id: "60000000-0000-4000-8000-000000000003",
       name: "Wave Adult Hockey League (WAHL)",
-      domain: "waveadulthockeyleague.ca",
-      subdomain: "league2.plaionn.brittosoft.online",
+      domain: "league2.plaionn.brittosoft.online",
       status: "Active",
       season: "Winter 2026",
       teams: 12,
@@ -31,8 +29,7 @@ export default async function AdminManagementPage() {
     {
       id: "60000000-0000-4000-8000-000000000004",
       name: "Canada Hockey League (CHL)",
-      domain: "chl.com",
-      subdomain: "league3.plaionn.brittosoft.online",
+      domain: "league3.plaionn.brittosoft.online",
       status: "Active",
       season: "Winter 2026",
       teams: 16,
@@ -41,8 +38,7 @@ export default async function AdminManagementPage() {
     {
       id: "60000000-0000-4000-8000-000000000005",
       name: "Italy Hockey League (IHL)",
-      domain: "ihl.com",
-      subdomain: "league4.plaionn.brittosoft.online",
+      domain: "league4.plaionn.brittosoft.online",
       status: "Active",
       season: "Winter 2026",
       teams: 6,
@@ -298,41 +294,12 @@ export default async function AdminManagementPage() {
               </Link>
             </div>
 
-            {/* Custom Domain & Subdomain Notice */}
-            <div
-              style={{
-                background: "rgba(103, 232, 249, 0.06)",
-                border: "1px solid rgba(103, 232, 249, 0.25)",
-                borderRadius: "10px",
-                padding: "14px 18px",
-                marginBottom: "20px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "14px",
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <span style={{ fontSize: "12px", fontWeight: 800, color: "#67e8f9", letterSpacing: "0.5px" }}>
-                  🌐 CUSTOM DOMAIN &amp; SUBDOMAIN ROUTING READY
-                </span>
-                <p style={{ margin: "4px 0 0", fontSize: "12.5px", color: "var(--muted)" }}>
-                  Ready to link your client or test domains: Point CNAME for <code style={{ color: "#67e8f9" }}>*.plaionn.brittosoft.online</code> (or <code style={{ color: "#67e8f9" }}>league1.dealioadvisors.com</code>) to <code style={{ color: "var(--lime)" }}>cname.vercel-dns.com</code>.
-                </p>
-              </div>
-              <span className="badge" style={{ background: "rgba(199, 244, 80, 0.15)", color: "var(--lime)", fontSize: "11px" }}>
-                Multi-Tenant Active
-              </span>
-            </div>
-
             <div style={{ overflowX: "auto" }}>
               <table className="table" style={{ width: "100%", margin: 0 }}>
                 <thead>
                   <tr>
                     <th>League Name</th>
-                    <th>Custom Domain</th>
-                    <th>Connected Subdomain</th>
+                    <th>Live Domain</th>
                     <th>Current Season</th>
                     <th>Active Teams</th>
                     <th>Commissioner</th>
@@ -357,14 +324,22 @@ export default async function AdminManagementPage() {
                         </Link>
                       </td>
                       <td>
-                        <code style={{ background: "#172b38", padding: "2px 8px", borderRadius: "4px", color: "#67e8f9", fontSize: "12px" }}>
-                          {lg.domain}
-                        </code>
-                      </td>
-                      <td>
-                        <code style={{ background: "rgba(199, 244, 80, 0.08)", border: "1px solid rgba(199, 244, 80, 0.2)", padding: "2px 8px", borderRadius: "4px", color: "var(--lime)", fontSize: "11.5px" }}>
-                          {lg.subdomain}
-                        </code>
+                        <a
+                          href={`https://${lg.domain}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <code style={{ background: "rgba(103, 232, 249, 0.1)", border: "1px solid rgba(103, 232, 249, 0.25)", padding: "3px 8px", borderRadius: "4px", color: "#67e8f9", fontSize: "12px" }}>
+                            {lg.domain}
+                          </code>
+                          <span style={{ color: "#67e8f9", fontSize: "11px" }}>↗</span>
+                        </a>
                       </td>
                       <td>{lg.season}</td>
                       <td style={{ fontWeight: 700 }}>{lg.teams} teams</td>
@@ -375,14 +350,16 @@ export default async function AdminManagementPage() {
                         </span>
                       </td>
                       <td style={{ textAlign: "right" }}>
-                        <Link
-                          href={`/api/switch-league?league=${lg.id}&redirect=/`}
+                        <a
+                          href={`https://${lg.domain}`}
+                          target="_blank"
+                          rel="noreferrer"
                           className="button button-sm button-outline"
                           style={{ fontSize: "11.5px", padding: "4px 10px" }}
-                          title={`Launch ${lg.name} (${lg.subdomain})`}
+                          title={`Launch ${lg.name} (${lg.domain})`}
                         >
                           Launch Portal ↗
-                        </Link>
+                        </a>
                       </td>
                     </tr>
                   ))}
