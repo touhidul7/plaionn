@@ -3,19 +3,10 @@ import Link from "next/link";
 export default function PlaionnPlatformPage() {
   const showcaseLeagues = [
     {
-      name: "PLAIONN Premier League",
-      acronym: "PLAIONN",
-      domain: "plaionn.com",
-      description: "Flagship hockey league featuring real-time scoreboard, automated schedules, and verified player statistics.",
-      teams: 12,
-      seasons: "Winter 2026, Summer 2025",
-      featured: true,
-      color: "var(--lime)",
-    },
-    {
       name: "Bangladesh Hockey League (BHL)",
       acronym: "BHL",
-      domain: "bhl.com",
+      domain: "league1.plaionn.brittosoft.online",
+      url: "https://league1.plaionn.brittosoft.online",
       description: "Official National Hockey Championship network with player registration and digital liability waivers.",
       teams: 8,
       seasons: "Winter 2026, Summer 2025",
@@ -23,9 +14,21 @@ export default function PlaionnPlatformPage() {
       color: "#10b981",
     },
     {
+      name: "Wave Adult Hockey League (WAHL)",
+      acronym: "WAHL",
+      domain: "league2.plaionn.brittosoft.online",
+      url: "https://league2.plaionn.brittosoft.online",
+      description: "Adult recreational circuit with custom top scores ticker and horizontal navigation.",
+      teams: 10,
+      seasons: "Winter 2026",
+      featured: true,
+      color: "#60a5fa",
+    },
+    {
       name: "Canada Hockey League (CHL)",
       acronym: "CHL",
-      domain: "chl.com",
+      domain: "league3.plaionn.brittosoft.online",
+      url: "https://league3.plaionn.brittosoft.online",
       description: "Elite developmental hockey circuit with verified player career logs and scoring leaders.",
       teams: 16,
       seasons: "Winter 2026, Fall 2025",
@@ -33,14 +36,15 @@ export default function PlaionnPlatformPage() {
       color: "#f59e0b",
     },
     {
-      name: "Wave Adult Hockey League (WAHL)",
-      acronym: "WAHL",
-      domain: "waveadulthockeyleague.ca",
-      description: "Adult recreational circuit with custom top scores ticker and horizontal navigation.",
-      teams: 10,
-      seasons: "Winter 2026",
+      name: "Italy Hockey League (IHL)",
+      acronym: "IHL",
+      domain: "league4.plaionn.brittosoft.online",
+      url: "https://league4.plaionn.brittosoft.online",
+      description: "Flagship European circuit featuring real-time scoreboard, automated schedules, and verified statistics.",
+      teams: 6,
+      seasons: "Winter 2026, Spring 2026",
       featured: false,
-      color: "#60a5fa",
+      color: "#ec4899",
     },
   ];
 
@@ -252,9 +256,9 @@ export default function PlaionnPlatformPage() {
               </div>
 
               <div style={{ marginTop: "auto", paddingTop: "12px", borderTop: "1px solid var(--line)" }}>
-                <Link href="/" className="button button-sm primary" style={{ width: "100%", justifyContent: "center" }}>
-                  Visit Branded League Website ↗
-                </Link>
+                <a href={lg.url} className="button button-sm primary" style={{ width: "100%", justifyContent: "center" }}>
+                  Visit {lg.acronym} League Portal ↗
+                </a>
               </div>
             </div>
           ))}

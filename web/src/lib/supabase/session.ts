@@ -6,8 +6,13 @@ import { createSupabaseServerClient } from "./server";
 import { sanitizeLeagueName, sanitizeSeasonName } from "@/lib/sanitize";
 
 export const DOMAIN_LEAGUE_MAP: Record<string, string> = {
+  // Main Platform Root Domains
+  "plaionn.brittosoft.online": "platform",
+  "plaionn.vercel.app": "platform",
+  "plaionn.com": "platform",
+  "www.plaionn.com": "platform",
+
   // Test & Client domains: *.plaionn.brittosoft.online
-  "plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000001",
   "league1.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000001",
   "bhl.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000001",
   "league2.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000003",
@@ -42,6 +47,74 @@ export interface PublicLeagueOverview {
     season_name: string;
   }[];
 }
+
+export const DEFAULT_LEAGUES_DATA: Record<string, PublicLeagueOverview> = {
+  "60000000-0000-4000-8000-000000000001": {
+    league_id: "60000000-0000-4000-8000-000000000001",
+    league_name: "Bangladesh Hockey League (BHL)",
+    seasons: [
+      { id: "60000000-0000-4000-8000-000000000002", name: "Winter 2026" },
+      { id: "60000000-0000-4000-8000-000000000012", name: "Summer 2025" },
+    ],
+    divisions: [
+      { id: "60000000-0000-4000-8000-000000000003", name: "Premier Division", season_id: "60000000-0000-4000-8000-000000000002" },
+    ],
+    teams: [
+      { id: "60000000-0000-4000-8000-000000000011", name: "Dhaka Gladiators", entry_id: "60000000-0000-4000-8000-000000000021", division_id: "60000000-0000-4000-8000-000000000003", division_name: "Premier Division", season_name: "Winter 2026" },
+      { id: "60000000-0000-4000-8000-000000000012", name: "Chittagong Warriors", entry_id: "60000000-0000-4000-8000-000000000022", division_id: "60000000-0000-4000-8000-000000000003", division_name: "Premier Division", season_name: "Winter 2026" },
+      { id: "60000000-0000-4000-8000-000000000013", name: "Sylhet Strikers", entry_id: "60000000-0000-4000-8000-000000000023", division_id: "60000000-0000-4000-8000-000000000003", division_name: "Premier Division", season_name: "Winter 2026" },
+      { id: "60000000-0000-4000-8000-000000000014", name: "Rajshahi Rangers", entry_id: "60000000-0000-4000-8000-000000000024", division_id: "60000000-0000-4000-8000-000000000003", division_name: "Premier Division", season_name: "Winter 2026" },
+    ],
+  },
+  "60000000-0000-4000-8000-000000000003": {
+    league_id: "60000000-0000-4000-8000-000000000003",
+    league_name: "Wave Adult Hockey League (WAHL)",
+    seasons: [
+      { id: "60000000-0000-4000-8000-000000000032", name: "Winter 2026" },
+    ],
+    divisions: [
+      { id: "60000000-0000-4000-8000-000000000033", name: "Adult Rec Division A", season_id: "60000000-0000-4000-8000-000000000032" },
+    ],
+    teams: [
+      { id: "60000000-0000-4000-8000-000000000034", name: "Harbour Wolves", entry_id: "60000000-0000-4000-8000-000000000035", division_id: "60000000-0000-4000-8000-000000000033", division_name: "Adult Rec Division A", season_name: "Winter 2026" },
+      { id: "60000000-0000-4000-8000-000000000036", name: "Wave Breakers", entry_id: "60000000-0000-4000-8000-000000000037", division_id: "60000000-0000-4000-8000-000000000033", division_name: "Adult Rec Division A", season_name: "Winter 2026" },
+      { id: "60000000-0000-4000-8000-000000000038", name: "Coastal Frost", entry_id: "60000000-0000-4000-8000-000000000039", division_id: "60000000-0000-4000-8000-000000000033", division_name: "Adult Rec Division A", season_name: "Winter 2026" },
+      { id: "60000000-0000-4000-8000-000000000040", name: "Metro Blades", entry_id: "60000000-0000-4000-8000-000000000041", division_id: "60000000-0000-4000-8000-000000000033", division_name: "Adult Rec Division A", season_name: "Winter 2026" },
+    ],
+  },
+  "60000000-0000-4000-8000-000000000004": {
+    league_id: "60000000-0000-4000-8000-000000000004",
+    league_name: "Canada Hockey League (CHL)",
+    seasons: [
+      { id: "60000000-0000-4000-8000-000000000042", name: "Winter 2026" },
+    ],
+    divisions: [
+      { id: "60000000-0000-4000-8000-000000000043", name: "Eastern Conference", season_id: "60000000-0000-4000-8000-000000000042" },
+    ],
+    teams: [
+      { id: "60000000-0000-4000-8000-000000000044", name: "Ottawa Titans", entry_id: "60000000-0000-4000-8000-000000000045", division_id: "60000000-0000-4000-8000-000000000043", division_name: "Eastern Conference", season_name: "Winter 2026" },
+      { id: "60000000-0000-4000-8000-000000000046", name: "Montreal Royals", entry_id: "60000000-0000-4000-8000-000000000047", division_id: "60000000-0000-4000-8000-000000000043", division_name: "Eastern Conference", season_name: "Winter 2026" },
+      { id: "60000000-0000-4000-8000-000000000048", name: "Toronto Maple Hawks", entry_id: "60000000-0000-4000-8000-000000000049", division_id: "60000000-0000-4000-8000-000000000043", division_name: "Eastern Conference", season_name: "Winter 2026" },
+      { id: "60000000-0000-4000-8000-000000000050", name: "Vancouver Grizzlies", entry_id: "60000000-0000-4000-8000-000000000051", division_id: "60000000-0000-4000-8000-000000000043", division_name: "Eastern Conference", season_name: "Winter 2026" },
+    ],
+  },
+  "60000000-0000-4000-8000-000000000005": {
+    league_id: "60000000-0000-4000-8000-000000000005",
+    league_name: "Italy Hockey League (IHL)",
+    seasons: [
+      { id: "60000000-0000-4000-8000-000000000052", name: "Winter 2026" },
+    ],
+    divisions: [
+      { id: "60000000-0000-4000-8000-000000000053", name: "Serie A1", season_id: "60000000-0000-4000-8000-000000000052" },
+    ],
+    teams: [
+      { id: "60000000-0000-4000-8000-000000000054", name: "Milano Vipers", entry_id: "60000000-0000-4000-8000-000000000055", division_id: "60000000-0000-4000-8000-000000000053", division_name: "Serie A1", season_name: "Winter 2026" },
+      { id: "60000000-0000-4000-8000-000000000056", name: "Roma Gladiators", entry_id: "60000000-0000-4000-8000-000000000057", division_id: "60000000-0000-4000-8000-000000000053", division_name: "Serie A1", season_name: "Winter 2026" },
+      { id: "60000000-0000-4000-8000-000000000058", name: "Torino Ice", entry_id: "60000000-0000-4000-8000-000000000059", division_id: "60000000-0000-4000-8000-000000000053", division_name: "Serie A1", season_name: "Winter 2026" },
+      { id: "60000000-0000-4000-8000-000000000060", name: "Bolzano Foxes", entry_id: "60000000-0000-4000-8000-000000000061", division_id: "60000000-0000-4000-8000-000000000053", division_name: "Serie A1", season_name: "Winter 2026" },
+    ],
+  },
+};
 
 export const getVerifiedSession = cache(async () => {
   const supabase = await createSupabaseServerClient(false);
@@ -79,6 +152,21 @@ export const getLeagueContext = cache(async () => {
     }
   } catch {
     // Graceful fallback
+  }
+
+  if (domainLeagueId === "platform") {
+    return {
+      supabase,
+      user,
+      league: {
+        id: "platform",
+        name: "PLAIONN Sports Platform",
+      },
+      leagueId: "platform",
+      canManage: false,
+      isGuest: true,
+      publicData: null,
+    };
   }
 
   if (user) {
@@ -150,17 +238,21 @@ export const getLeagueContext = cache(async () => {
     };
   }
 
-  // Clean fallback
+  // Clean fallback for known league IDs or default
+  const fallback =
+    (selected && DEFAULT_LEAGUES_DATA[selected]) ||
+    DEFAULT_LEAGUES_DATA["60000000-0000-4000-8000-000000000001"];
+
   return {
     supabase,
     user,
     league: {
-      id: "60000000-0000-4000-8000-000000000001",
-      name: "PLAIONN Hockey League",
+      id: fallback.league_id,
+      name: fallback.league_name,
     },
-    leagueId: "60000000-0000-4000-8000-000000000001",
+    leagueId: fallback.league_id,
     canManage: false,
     isGuest: true,
-    publicData: null as PublicLeagueOverview | null,
+    publicData: fallback,
   };
 });
