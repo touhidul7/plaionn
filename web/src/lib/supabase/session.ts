@@ -214,9 +214,12 @@ export const getLeagueContext = cache(async () => {
 
   const overview = overviewRows?.[0] as PublicLeagueOverview | undefined;
   if (overview) {
+    const isBhl = domainLeagueId === "60000000-0000-4000-8000-000000000001";
+    const leagueDisplayName = isBhl ? "Bangladesh Hockey League (BHL)" : sanitizeLeagueName(overview.league_name);
+
     const sanitizedOverview: PublicLeagueOverview = {
       ...overview,
-      league_name: sanitizeLeagueName(overview.league_name),
+      league_name: leagueDisplayName,
       seasons: (overview.seasons || []).map((s) => ({
         ...s,
         name: sanitizeSeasonName(s.name),
@@ -230,7 +233,7 @@ export const getLeagueContext = cache(async () => {
     return {
       supabase,
       user,
-      league: { id: overview.league_id, name: sanitizedOverview.league_name },
+      league: { id: overview.league_id, name: leagueDisplayName },
       leagueId: overview.league_id,
       canManage: false,
       isGuest: true,
