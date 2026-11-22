@@ -159,7 +159,7 @@ export const getLeagueContext = cache(async () => {
       supabase,
       user,
       league: {
-        id: "platform",
+        id: "60000000-0000-4000-8000-000000000001",
         name: "PLAIONN Sports Platform",
       },
       leagueId: "platform",
