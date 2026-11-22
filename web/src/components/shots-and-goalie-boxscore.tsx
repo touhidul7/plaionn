@@ -120,8 +120,8 @@ export function ShotsAndGoalieBoxscore({
 
       {/* Interactive Period Shot Entry (For Officials & Commissioners) */}
       {canScore && (
-        <div className="p-4 rounded-xl bg-zinc-950/60 border border-white/10 space-y-3">
-          <p className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">
+        <div style={{ padding: "16px 20px", borderRadius: "12px", background: "rgba(10, 20, 28, 0.7)", border: "1px solid var(--line)" }}>
+          <p style={{ margin: "0 0 10px", fontSize: "11px", fontWeight: 800, color: "#67e8f9", letterSpacing: "1px", textTransform: "uppercase" }}>
             Quick Shot Update
           </p>
           <form
@@ -133,29 +133,59 @@ export function ShotsAndGoalieBoxscore({
                 setFeedback(res);
               });
             }}
-            className="flex flex-wrap items-center gap-3 text-xs"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              flexWrap: "wrap",
+            }}
           >
             <input type="hidden" name="gameId" value={summary.game_id} />
-            <select
-              name="teamEntryId"
-              className="px-3 py-1.5 rounded-lg bg-zinc-800 border border-white/10 text-white"
-            >
-              <option value={summary.home_entry_id}>{summary.home_name}</option>
-              <option value={summary.away_entry_id}>{summary.away_name}</option>
-            </select>
+            
+            <div style={{ minWidth: "170px", flex: "1 1 200px", maxWidth: "260px" }}>
+              <select
+                name="teamEntryId"
+                style={{
+                  width: "100%",
+                  height: "38px",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  background: "#12222e",
+                  border: "1px solid var(--line)",
+                  color: "#fff",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                }}
+              >
+                <option value={summary.home_entry_id}>{summary.home_name}</option>
+                <option value={summary.away_entry_id}>{summary.away_name}</option>
+              </select>
+            </div>
 
-            <select
-              name="period"
-              className="px-3 py-1.5 rounded-lg bg-zinc-800 border border-white/10 text-white"
-            >
-              <option value="1">1st Period</option>
-              <option value="2">2nd Period</option>
-              <option value="3">3rd Period</option>
-              <option value="4">Overtime</option>
-            </select>
+            <div style={{ minWidth: "130px", flex: "1 1 140px", maxWidth: "180px" }}>
+              <select
+                name="period"
+                style={{
+                  width: "100%",
+                  height: "38px",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  background: "#12222e",
+                  border: "1px solid var(--line)",
+                  color: "#fff",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                }}
+              >
+                <option value="1">1st Period</option>
+                <option value="2">2nd Period</option>
+                <option value="3">3rd Period</option>
+                <option value="4">Overtime</option>
+              </select>
+            </div>
 
-            <div className="flex items-center gap-1.5">
-              <label htmlFor="shotInput" className="text-zinc-400">
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <label htmlFor="shotInput" style={{ color: "var(--muted)", fontSize: "12.5px", fontWeight: 700 }}>
                 SOG:
               </label>
               <input
@@ -166,7 +196,18 @@ export function ShotsAndGoalieBoxscore({
                 max="150"
                 defaultValue="10"
                 required
-                className="w-16 px-2.5 py-1.5 rounded-lg bg-zinc-800 border border-white/10 text-white font-mono text-center"
+                style={{
+                  width: "68px",
+                  height: "38px",
+                  padding: "6px 8px",
+                  borderRadius: "8px",
+                  background: "#12222e",
+                  border: "1px solid var(--line)",
+                  color: "#fff",
+                  textAlign: "center",
+                  fontWeight: 800,
+                  fontSize: "14px",
+                }}
               />
             </div>
 
@@ -174,6 +215,12 @@ export function ShotsAndGoalieBoxscore({
               type="submit"
               disabled={isPending}
               className="button button-sm primary"
+              style={{
+                height: "38px",
+                padding: "0 18px",
+                fontWeight: 800,
+                fontSize: "13px",
+              }}
             >
               {isPending ? "Updating..." : "Update Shots"}
             </button>
