@@ -179,10 +179,12 @@ export default function PlaionnPlatformPage() {
                     alignItems: "center",
                     justifyContent: "center",
                     fontWeight: 900,
-                    fontSize: "16px",
+                    fontSize: "22px",
+                    lineHeight: 1,
+                    textTransform: "uppercase",
                   }}
                 >
-                  {lg.acronym}
+                  {lg.acronym.charAt(0)}
                 </span>
                 <code
                   style={{
