@@ -1,8 +1,8 @@
 export function sanitizeLeagueName(name?: string | null): string {
   if (!name || /client demo/i.test(name) || /demo league/i.test(name)) {
-    return "PLAIONN Hockey League";
+    return "Bangladesh Hockey League (BHL)";
   }
-  return name.replace(/\bclient demo\b/gi, "Hockey League").replace(/\bdemo\b/gi, "").trim() || "PLAIONN Hockey League";
+  return name.replace(/\bclient demo\b/gi, "Hockey League").replace(/\bdemo\b/gi, "").trim() || "Bangladesh Hockey League (BHL)";
 }
 
 export function sanitizeSeasonName(name?: string | null): string {
