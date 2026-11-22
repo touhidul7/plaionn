@@ -8,6 +8,7 @@ export async function PublicHeader() {
   let games: TickerGameItem[] = [];
 
   try {
+    if (league.id === "platform") throw new Error("skip");
     const { data: publicGamesData } = await supabase.rpc("get_public_schedule", {
       target_league: league.id,
     });

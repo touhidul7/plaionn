@@ -10,6 +10,19 @@ export async function getLeagueData() {
   const context = await getLeagueContext();
   const { supabase, league, canManage, user, isGuest } = context;
 
+  // Platform root has no league-specific data
+  if (league.id === "platform") {
+    return {
+      seasons: [] as NamedRecord[],
+      divisions: [] as Division[],
+      teams: [] as TeamEntry[],
+      league,
+      canManage,
+      isGuest: true,
+      user,
+    };
+  }
+
   if (isGuest && context.publicData) {
     const { seasons, divisions, teams } = context.publicData;
     const seasonMap = new Map((seasons || []).map((s) => [s.id, s]));

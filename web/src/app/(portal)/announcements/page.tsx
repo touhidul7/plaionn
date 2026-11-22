@@ -10,12 +10,13 @@ export default async function AnnouncementsPage() {
   const [data, context] = await Promise.all([getLeagueData(), getLeagueContext()]);
   const { supabase, leagueId, canManage } = context;
 
-  const { data: rows, error } = await supabase.rpc("list_active_announcements", {
-    target_league: leagueId,
-  });
-
-  const announcements: AnnouncementItem[] =
-    !error && Array.isArray(rows) ? (rows as AnnouncementItem[]) : [];
+  let announcements: AnnouncementItem[] = [];
+  if (leagueId !== "platform") {
+    const { data: rows, error } = await supabase.rpc("list_active_announcements", {
+      target_league: leagueId,
+    });
+    announcements = !error && Array.isArray(rows) ? (rows as AnnouncementItem[]) : [];
+  }
 
   const teamsList = (data.teams || []).map((t) => ({
     entryId: t.entry_id,

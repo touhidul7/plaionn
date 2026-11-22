@@ -51,16 +51,20 @@ export default async function SchedulePage({
 }) {
   const { edit } = await searchParams;
   const { supabase, league, user, canManage } = await getLeagueContext();
+  const isPlatform = league.id === "platform";
   const base = await getLeagueData();
 
   // Fetch public schedule which includes scores
-  const { data: publicGamesData } = await supabase.rpc("get_public_schedule", {
-    target_league: league.id,
-  });
-  let publicGames = (publicGamesData || []) as PublicGame[];
+  let publicGames: PublicGame[] = [];
+  if (!isPlatform) {
+    const { data: publicGamesData } = await supabase.rpc("get_public_schedule", {
+      target_league: league.id,
+    });
+    publicGames = (publicGamesData || []) as PublicGame[];
+  }
 
   if (publicGames.length === 0) {
-    if (league.id === "60000000-0000-4000-8000-000000000001" || league.name.includes("Bangladesh") || league.name.includes("Platform")) {
+    if (league.id === "60000000-0000-4000-8000-000000000001" || league.name.includes("Bangladesh")) {
       publicGames = [
         {
           game_id: "g-bhl-1",
@@ -193,7 +197,7 @@ export default async function SchedulePage({
     (g) => g.home_score !== null && g.away_score !== null
   );
 
-  if (!user || !canManage) {
+  if (!user || !canManage || isPlatform) {
     return (
       <main id="main" className="public-portal-container">
         <div className="page-heading">

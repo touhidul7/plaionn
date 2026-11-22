@@ -78,7 +78,7 @@ export default async function ScorekeepingPage({params,searchParams}:{params:Pro
   goalies: [],
  };
 
- if(game.data.status!=="scheduled") return <section className="panel"><h1>Game is not open for scoring</h1><p>Only scheduled games accept scorekeeping events.</p><Link href="/schedule" className="button">Back to schedule</Link></section>;
+ if(game.data.status!=="scheduled"&&game.data.status!=="in_progress") return <section className="panel"><h1>Game is not open for scoring</h1><p>Only scheduled or in-progress games accept scorekeeping events.</p><Link href="/schedule" className="button">Back to schedule</Link></section>;
  return (
   <main id="main" className="public-portal-container" style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px 16px" }}>
     <div className="page-heading">

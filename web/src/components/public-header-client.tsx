@@ -52,7 +52,7 @@ export function PublicHeaderClient({
     { href: "/registration", label: "REGISTRATION" },
   ];
 
-  if (pathname === "/plaionn" || leagueName === "PLAIONN Sports Platform") {
+  if (leagueName === "PLAIONN Sports Platform") {
     return (
       <header className="plaionn-header-wrap" style={{ borderBottom: "1px solid var(--line)" }}>
         <div className="plaionn-header-top" style={{ padding: "16px 0", background: "#081017" }}>

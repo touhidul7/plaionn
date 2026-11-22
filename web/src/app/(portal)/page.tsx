@@ -33,15 +33,17 @@ export default async function Home({
 
   // Fetch games for this season using public schedule RPC (security definer)
   let games: any[] = [];
-  try {
-    const { data: publicSchedule } = await supabase.rpc("get_public_schedule", {
-      target_league: data.league.id,
-    });
-    if (publicSchedule && Array.isArray(publicSchedule) && publicSchedule.length > 0) {
-      games = publicSchedule.slice(0, 6);
+  if (data.league.id !== "platform") {
+    try {
+      const { data: publicSchedule } = await supabase.rpc("get_public_schedule", {
+        target_league: data.league.id,
+      });
+      if (publicSchedule && Array.isArray(publicSchedule) && publicSchedule.length > 0) {
+        games = publicSchedule.slice(0, 6);
+      }
+    } catch {
+      // Fallback
     }
-  } catch {
-    // Fallback
   }
 
   if (games.length === 0 && data.teams.length >= 2) {
