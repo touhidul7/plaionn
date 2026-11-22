@@ -163,8 +163,8 @@ export const getLeagueContext = cache(async () => {
         name: "PLAIONN Sports Platform",
       },
       leagueId: "platform",
-      canManage: false,
-      isGuest: true,
+      canManage: Boolean(user),
+      isGuest: !user,
       publicData: null,
     };
   }
