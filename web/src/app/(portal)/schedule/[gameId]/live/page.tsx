@@ -23,7 +23,7 @@ export default async function LiveGamePage({
   if (!z.uuid().safeParse(gameId).success) {
     gameId = "60000000-0000-4000-8000-000000000006";
   }
-  const { supabase, league } = await getLeagueContext();
+  const { supabase, league, user, canManage } = await getLeagueContext();
 
   // Load the game record (authenticated or public security-definer fallback)
   let fixture: any = null;
@@ -170,7 +170,12 @@ export default async function LiveGamePage({
           <h1>Game Details &amp; Boxscore</h1>
           <p>{arenaLocation} · {new Date(fixture.starts_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</p>
         </div>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          {Boolean(user) && (
+            <Link className="button primary" href={`/schedule/${gameId}/scorekeeping`} style={{ fontWeight: 800 }}>
+              ⏱ Score Game
+            </Link>
+          )}
           <Link className="button" href={`/schedule/${gameId}/lineup`}>
             Lineups
           </Link>

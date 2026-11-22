@@ -331,8 +331,17 @@ export default async function SchedulePage({
                               </Link>
                             </div>
                           ) : (
-                            <div style={{ display: "flex", gap: "0.25rem" }}>
-                              <Link className="button button-sm" href={"/schedule/" + game.game_id + "/live"}>
+                            <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                              {(canManage || Boolean(user)) && (
+                                <Link
+                                  className="button button-sm primary"
+                                  href={"/schedule/" + game.game_id + "/scorekeeping"}
+                                  style={{ fontWeight: 800, fontSize: "11px", padding: "4px 10px" }}
+                                >
+                                  ⏱ Score Game
+                                </Link>
+                              )}
+                              <Link className="button button-sm button-outline" href={"/schedule/" + game.game_id + "/live"}>
                                 Game Center
                               </Link>
                             </div>

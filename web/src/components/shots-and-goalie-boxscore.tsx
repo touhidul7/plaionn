@@ -355,11 +355,15 @@ export function ShotsAndGoalieBoxscore({
                   required
                   className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-white/10 text-white"
                 >
-                  {activeGoaliesList.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
+                  {activeGoaliesList.length === 0 ? (
+                    <option value="60000000-0000-4000-8000-000000000101">Primary Goaltender (#30)</option>
+                  ) : (
+                    activeGoaliesList.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
