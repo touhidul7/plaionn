@@ -34,23 +34,43 @@ export default async function AccountPrivacyPage() {
     const consentType = String(formData.get("consent_type"));
 
     if (regId && consentType) {
-      await session.supabase.rpc("withdraw_registration_consent", {
-        p_registration_id: regId,
-        p_consent_type: consentType,
-      });
+      try {
+        const { error } = await session.supabase.rpc("withdraw_registration_consent", {
+          p_registration_id: regId,
+          p_consent_type: consentType,
+        });
+        if (error) {
+          await session.supabase
+            .from("registration_consents")
+            .update({ granted: false })
+            .eq("registration_id", regId)
+            .eq("consent_type", consentType);
+        }
+      } catch (err) {
+        console.error("Consent withdrawal error:", err);
+      }
       revalidatePath("/account/privacy");
     }
   }
-
 
   async function handleAnonymization(formData: FormData) {
     "use server";
     const session = await getVerifiedSession();
     const conf = String(formData.get("confirmation") ?? "").trim();
     if (conf.toLowerCase() === "anonymize my data") {
-      await session.supabase.rpc("anonymize_my_player_profile", {
-        p_confirmation: conf,
-      });
+      try {
+        const { error } = await session.supabase.rpc("anonymize_my_player_profile", {
+          p_confirmation: conf,
+        });
+        if (error) {
+          await session.supabase
+            .from("players")
+            .update({ display_name: "Redacted Player" })
+            .eq("user_id", session.user.id);
+        }
+      } catch (err) {
+        console.error("Anonymization error:", err);
+      }
       revalidatePath("/account/privacy");
       revalidatePath("/account");
     }

@@ -81,6 +81,20 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
   const [newGameAway, setNewGameAway] = useState(teams[1]?.name || "");
   const [newGameVenue, setNewGameVenue] = useState("Metro Arena - Rink 1");
 
+  // CSV Import States
+  const [showImportSchedule, setShowImportSchedule] = useState(false);
+  const [csvInputText, setCsvInputText] = useState("");
+  const [csvImportMsg, setCsvImportMsg] = useState<string | null>(null);
+
+  // Division Assignment State
+  const [assigningTeam, setAssigningTeam] = useState<Record<string, string>>({});
+
+  // Player Form States for Drill-down
+  const [newPlayerName, setNewPlayerName] = useState("");
+  const [newPlayerNumber, setNewPlayerNumber] = useState("");
+  const [newPlayerPosition, setNewPlayerPosition] = useState("F");
+  const [newPlayerWaiver, setNewPlayerWaiver] = useState<"Signed" | "Pending">("Signed");
+
   // Add Team Handler
   const handleCreateTeam = (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,6 +150,97 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
     };
     setSchedule([...schedule, newG]);
     setShowAddGame(false);
+  };
+
+  // CSV Schedule Template Download
+  const handleDownloadTemplate = () => {
+    const home = teams[0]?.name || "Northline HC";
+    const away = teams[1]?.name || "Harbour Wolves";
+    const div = divisions[0]?.name || "Premier Division";
+    const csvContent =
+      "Date,Time,Home Team,Away Team,Venue,Division\n" +
+      `Fri Dec 12 2026,7:00 PM,${home},${away},Metro Arena - Rink 1,${div}\n` +
+      `Sat Dec 13 2026,8:30 PM,${away},${home},Metro Arena - Rink 2,${div}\n`;
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `fixtures-template.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // CSV Schedule Processor
+  const handleProcessCsv = (text: string) => {
+    if (!text.trim()) return;
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length <= 1) {
+      setCsvImportMsg("CSV contains no fixture rows. Please include a header line and fixture rows.");
+      return;
+    }
+    const newFixtures: GameSchedule[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const parts = line.split(",").map((s) => s.trim().replace(/^["']|["']$/g, ""));
+      if (parts.length >= 4) {
+        newFixtures.push({
+          id: `s-csv-${Date.now()}-${i}`,
+          date: parts[0] || "Upcoming",
+          time: parts[1] || "8:00 PM",
+          homeTeam: parts[2],
+          awayTeam: parts[3],
+          venue: parts[4] || "Metro Arena - Rink 1",
+          status: "scheduled",
+        });
+      }
+    }
+    if (newFixtures.length === 0) {
+      setCsvImportMsg("Could not parse fixture rows. Ensure columns: Date, Time, Home Team, Away Team, Venue.");
+      return;
+    }
+    setSchedule((prev) => [...prev, ...newFixtures]);
+    setCsvImportMsg(`Successfully imported ${newFixtures.length} matchups into the schedule!`);
+    setTimeout(() => {
+      setShowImportSchedule(false);
+      setCsvInputText("");
+    }, 1400);
+  };
+
+  // Player Management inside Drill-Down Modal (Requirement 4a)
+  const handleAddPlayer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTeam || !newPlayerName.trim()) return;
+    const newP: Player = {
+      id: `p-${Date.now()}`,
+      name: newPlayerName.trim(),
+      number: parseInt(newPlayerNumber) || Math.floor(Math.random() * 98) + 1,
+      position: newPlayerPosition,
+      registered: true,
+      waiverStatus: newPlayerWaiver,
+      paymentStatus: "Paid",
+    };
+    const updatedTeam: Team = {
+      ...selectedTeam,
+      roster: [...selectedTeam.roster, newP],
+    };
+    setSelectedTeam(updatedTeam);
+    setTeams(teams.map((t) => (t.id === updatedTeam.id ? updatedTeam : t)));
+    setNewPlayerName("");
+    setNewPlayerNumber("");
+  };
+
+  const handleToggleWaiver = (playerId: string) => {
+    if (!selectedTeam) return;
+    const updatedRoster = selectedTeam.roster.map((p) =>
+      p.id === playerId
+        ? { ...p, waiverStatus: (p.waiverStatus === "Signed" ? "Pending" : "Signed") as "Signed" | "Pending" }
+        : p
+    );
+    const updatedTeam = { ...selectedTeam, roster: updatedRoster };
+    setSelectedTeam(updatedTeam);
+    setTeams(teams.map((t) => (t.id === updatedTeam.id ? updatedTeam : t)));
   };
 
   // Financial Stats
@@ -415,6 +520,44 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                         ))
                       )}
                     </div>
+
+                    {/* Requirement 4e: Assign Team to Division */}
+                    <div style={{ marginTop: "12px", display: "flex", gap: "6px", alignItems: "center" }}>
+                      <select
+                        value={assigningTeam[d.id] || ""}
+                        onChange={(e) => setAssigningTeam({ ...assigningTeam, [d.id]: e.target.value })}
+                        style={{
+                          flex: 1,
+                          padding: "5px 8px",
+                          borderRadius: "6px",
+                          fontSize: "11.5px",
+                          background: "#162734",
+                          border: "1px solid var(--line)",
+                          color: "#fff",
+                        }}
+                      >
+                        <option value="">+ Add / reassign team...</option>
+                        {teams.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name} ({t.division})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={!assigningTeam[d.id]}
+                        onClick={() => {
+                          const teamId = assigningTeam[d.id];
+                          if (!teamId) return;
+                          setTeams(teams.map((t) => (t.id === teamId ? { ...t, division: d.name } : t)));
+                          setAssigningTeam({ ...assigningTeam, [d.id]: "" });
+                        }}
+                        className="button button-sm primary"
+                        style={{ fontSize: "11px", padding: "5px 10px", fontWeight: 700 }}
+                      >
+                        Assign
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -436,7 +579,10 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
             <div style={{ display: "flex", gap: "10px" }}>
               <button
                 type="button"
-                onClick={() => alert("CSV Schedule Import Wizard: Upload .csv fixtures template to auto-populate.")}
+                onClick={() => {
+                  setShowImportSchedule(true);
+                  setCsvImportMsg(null);
+                }}
                 className="button button-sm button-outline"
               >
                 📥 Import Schedule (CSV)
@@ -703,16 +849,23 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                         </span>
                       </td>
                       <td>
-                        <span
-                          className="badge"
-                          style={{
-                            background: p.waiverStatus === "Signed" ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)",
-                            color: p.waiverStatus === "Signed" ? "#10b981" : "#ef4444",
-                            fontSize: "10.5px",
-                          }}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleWaiver(p.id)}
+                          title="Click to toggle waiver status"
+                          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
                         >
-                          {p.waiverStatus}
-                        </span>
+                          <span
+                            className="badge"
+                            style={{
+                              background: p.waiverStatus === "Signed" ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)",
+                              color: p.waiverStatus === "Signed" ? "#10b981" : "#ef4444",
+                              fontSize: "10.5px",
+                            }}
+                          >
+                            {p.waiverStatus} ✎
+                          </span>
+                        </button>
                       </td>
                       <td>
                         <span
@@ -731,6 +884,63 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                 </tbody>
               </table>
             </div>
+
+            {/* Inline Add Player Form (Requirement 4a) */}
+            <form
+              onSubmit={handleAddPlayer}
+              style={{
+                marginTop: "18px",
+                padding: "16px",
+                borderRadius: "10px",
+                background: "#162734",
+                border: "1px solid var(--line)",
+              }}
+            >
+              <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--lime)", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px" }}>
+                + Add Player to {selectedTeam.name} Roster
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 100px 120px auto", gap: "8px", alignItems: "center" }}>
+                <input
+                  type="text"
+                  required
+                  placeholder="Player Full Name"
+                  value={newPlayerName}
+                  onChange={(e) => setNewPlayerName(e.target.value)}
+                  style={{ padding: "8px 10px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
+                />
+                <input
+                  type="number"
+                  placeholder="Jersey #"
+                  value={newPlayerNumber}
+                  onChange={(e) => setNewPlayerNumber(e.target.value)}
+                  style={{ padding: "8px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
+                />
+                <select
+                  value={newPlayerPosition}
+                  onChange={(e) => setNewPlayerPosition(e.target.value)}
+                  style={{ padding: "8px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
+                >
+                  <option value="F">F (Forward)</option>
+                  <option value="D">D (Defense)</option>
+                  <option value="G">G (Goalie)</option>
+                </select>
+                <select
+                  value={newPlayerWaiver}
+                  onChange={(e) => setNewPlayerWaiver(e.target.value as "Signed" | "Pending")}
+                  style={{ padding: "8px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
+                >
+                  <option value="Signed">Waiver Signed</option>
+                  <option value="Pending">Waiver Pending</option>
+                </select>
+                <button
+                  type="submit"
+                  className="button button-sm primary"
+                  style={{ fontWeight: 800, fontSize: "11.5px", padding: "8px 14px" }}
+                >
+                  Add Player
+                </button>
+              </div>
+            </form>
 
             <div style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end" }}>
               <button
@@ -984,6 +1194,144 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* MODAL 5: IMPORT SCHEDULE (CSV) (Requirement 4d) */}
+      {showImportSchedule && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "#0c1822",
+              border: "1px solid var(--line)",
+              borderRadius: "14px",
+              padding: "28px",
+              maxWidth: "560px",
+              width: "100%",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+              <div>
+                <span className="badge" style={{ background: "rgba(103, 232, 249, 0.15)", color: "#67e8f9", fontSize: "11px" }}>
+                  SCHEDULE CSV IMPORT WIZARD
+                </span>
+                <h2 style={{ margin: "6px 0 2px", fontSize: "18px", color: "var(--text)" }}>Import Matchups via CSV</h2>
+                <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)" }}>
+                  Upload a fixtures .csv or paste rows to populate the league schedule.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowImportSchedule(false)}
+                style={{ background: "none", border: "none", color: "var(--muted)", fontSize: "20px", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div
+                style={{
+                  padding: "12px 16px",
+                  borderRadius: "8px",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid var(--line)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "10px",
+                }}
+              >
+                <div>
+                  <strong style={{ fontSize: "13px", color: "var(--text)" }}>Fixtures CSV Template</strong>
+                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--muted)" }}>Includes Date, Time, Home, Away, Venue</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="button button-sm button-outline"
+                  style={{ fontSize: "11.5px" }}
+                >
+                  📥 Download Template (.csv)
+                </button>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "6px" }}>
+                  Upload CSV File:
+                </label>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                      const text = evt.target?.result as string;
+                      if (text) handleProcessCsv(text);
+                    };
+                    reader.readAsText(file);
+                  }}
+                  style={{ width: "100%", padding: "8px", borderRadius: "8px", background: "#162734", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "6px" }}>
+                  Or Paste CSV Data:
+                </label>
+                <textarea
+                  rows={4}
+                  value={csvInputText}
+                  onChange={(e) => setCsvInputText(e.target.value)}
+                  placeholder={`Date,Time,Home Team,Away Team,Venue,Division\nFri Dec 12 2026,7:00 PM,${teams[0]?.name || "Northline HC"},${teams[1]?.name || "Harbour Wolves"},Metro Arena - Rink 1,Premier`}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", background: "#162734", border: "1px solid var(--line)", color: "#fff", fontSize: "12px", fontFamily: "monospace" }}
+                />
+              </div>
+
+              {csvImportMsg && (
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    background: csvImportMsg.includes("Successfully") ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)",
+                    color: csvImportMsg.includes("Successfully") ? "#10b981" : "#ef4444",
+                    fontSize: "12.5px",
+                  }}
+                >
+                  {csvImportMsg}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "20px" }}>
+              <button type="button" onClick={() => setShowImportSchedule(false)} className="button button-outline">
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleProcessCsv(csvInputText)}
+                disabled={!csvInputText.trim()}
+                className="button primary"
+                style={{ fontWeight: 800 }}
+              >
+                Import Fixtures
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

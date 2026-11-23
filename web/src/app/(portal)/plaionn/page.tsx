@@ -167,24 +167,26 @@ export default function PlaionnPlatformPage() {
                 borderTop: `4px solid ${lg.color}`,
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
                 <span
                   style={{
-                    width: "44px",
-                    height: "44px",
-                    borderRadius: "10px",
+                    height: "36px",
+                    padding: "0 14px",
+                    borderRadius: "8px",
                     background: lg.color,
                     color: "#ffffff",
-                    display: "flex",
+                    display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
                     fontWeight: 900,
-                    fontSize: "22px",
+                    fontSize: "13.5px",
+                    letterSpacing: "0.5px",
                     lineHeight: 1,
                     textTransform: "uppercase",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {lg.acronym.charAt(0)}
+                  {lg.acronym}
                 </span>
                 <code
                   style={{

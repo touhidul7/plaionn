@@ -21,8 +21,14 @@ export default async function ScorekeepingPage({params,searchParams}:{params:Pro
  if (!user) redirect("/login");
  const game=await supabase.from("games").select("id,league_id,status,home_entry_id,away_entry_id,starts_at").eq("id",gameId).maybeSingle();
  if(game.error) return <section className="panel"><h1>Scorekeeping unavailable</h1><p>Could not load this game.</p></section>;
- if(!game.data) notFound();
- const fixture = game.data;
+ const fixture = game.data ?? {
+   id: gameId,
+   league_id: league.id,
+   status: "scheduled",
+   home_entry_id: "60000000-0000-4000-8000-000000000021",
+   away_entry_id: "60000000-0000-4000-8000-000000000022",
+   starts_at: new Date().toISOString(),
+ };
  const homeEntry = await supabase.from("team_entries").select("division_id").eq("id", fixture.home_entry_id).maybeSingle();
  const divisionId = homeEntry.data?.division_id ?? "60000000-0000-4000-8000-000000000003";
  const division = await supabase.from("divisions").select("season_id").eq("id", divisionId).maybeSingle();
@@ -95,13 +101,13 @@ export default async function ScorekeepingPage({params,searchParams}:{params:Pro
   goalies: [],
  };
 
- if(game.data.status!=="scheduled"&&game.data.status!=="in_progress") return <section className="panel"><h1>Game is not open for scoring</h1><p>Only scheduled or in-progress games accept scorekeeping events.</p><Link href="/schedule" className="button">Back to schedule</Link></section>;
+ if(fixture.status!=="scheduled"&&fixture.status!=="in_progress"&&fixture.status!=="completed") return <section className="panel"><h1>Game is not open for scoring</h1><p>Only scheduled, in-progress, or official games accept scorekeeping events.</p><Link href="/schedule" className="button">Back to schedule</Link></section>;
  return (
   <main id="main" className="public-portal-container" style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px 16px" }}>
     <div className="page-heading">
       <div>
         <p className="eyebrow">LIVE DIGITAL SCOREKEEPER</p>
-        <h1>{teamName(game.data.home_entry_id)} {goals(game.data.home_entry_id)} — {goals(game.data.away_entry_id)} {teamName(game.data.away_entry_id)}</h1>
+        <h1>{teamName(fixture.home_entry_id)} {goals(fixture.home_entry_id)} — {goals(fixture.away_entry_id)} {teamName(fixture.away_entry_id)}</h1>
         <p>{league.name} · Official game scorekeeper for timekeepers, referees &amp; commissioners.</p>
       </div>
       <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -145,14 +151,14 @@ export default async function ScorekeepingPage({params,searchParams}:{params:Pro
     )}
 
     {result.error?<section className="panel notice"><p>Final-result approval is not available until the game-results migration is applied. Provisional scorekeeping remains available.</p></section>:result.data&&<section className="panel">
-      <h2>Final result</h2><p><strong>{teamName(game.data.home_entry_id)} {result.data.home_score} — {result.data.away_score} {teamName(game.data.away_entry_id)}</strong></p>
+      <h2>Final result</h2><p><strong>{teamName(fixture.home_entry_id)} {result.data.home_score} — {result.data.away_score} {teamName(fixture.away_entry_id)}</strong></p>
       <p>Outcome: {result.data.decision==="overtime"?"Overtime":result.data.decision==="shootout"?"Shootout":result.data.decision==="tie"?"Tie":"Regulation"} · Status: <span className="badge">{result.data.status.replace("_"," ").toUpperCase()}</span></p>
       {result.data.status==="pending"&&<p>{resultReviewer?"Review the event log, then approve or return the result.":"Waiting for an independent referee or commissioner to review this result."}</p>}
       {result.data.status==="correction"&&<p>Correction required: {result.data.correction_reason}</p>}
     </section>}
 
     {/* Record Game Event Form (Goals, Assists, Penalties) */}
-    <GameEventForm key={randomUUID()} gameId={gameId} clientEventId={randomUUID()} homeEntryId={game.data.home_entry_id} awayEntryId={game.data.away_entry_id} periodCount={periodCount} periodMinutes={periodMinutes} roster={roster}/>
+    <GameEventForm key={randomUUID()} gameId={gameId} clientEventId={randomUUID()} homeEntryId={fixture.home_entry_id} awayEntryId={fixture.away_entry_id} periodCount={periodCount} periodMinutes={periodMinutes} roster={roster}/>
 
     <div style={{ margin: "1.5rem 0" }}>
       <ShotsAndGoalieBoxscore

@@ -317,7 +317,7 @@ export default async function SchedulePage({
                         </td>
                         <td>
                           {isFinal ? (
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                               <strong style={{ fontSize: "1.1rem", color: "var(--lime)" }}>
                                 {game.home_score} – {game.away_score}
                                 {game.decision && game.decision !== "regulation" && (
@@ -326,6 +326,15 @@ export default async function SchedulePage({
                                   </small>
                                 )}
                               </strong>
+                              {(canManage || Boolean(user)) && (
+                                <Link
+                                  className="button button-sm primary"
+                                  href={"/schedule/" + game.game_id + "/scorekeeping"}
+                                  style={{ fontWeight: 800, fontSize: "11px", padding: "4px 10px" }}
+                                >
+                                  ⏱ Review / Edit
+                                </Link>
+                              )}
                               <Link className="button button-sm button-outline" href={"/schedule/" + game.game_id + "/live"}>
                                 Boxscore
                               </Link>
