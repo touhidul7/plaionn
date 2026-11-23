@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 interface Player {
@@ -56,9 +56,43 @@ interface LeagueMeta {
 
 export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMeta }) {
   const [activeTab, setActiveTab] = useState<"teams" | "divisions" | "schedule" | "billing">("teams");
+  const [leagueMeta, setLeagueMeta] = useState<LeagueMeta>(initialLeague);
   const [teams, setTeams] = useState<Team[]>(initialLeague.teams);
   const [divisions, setDivisions] = useState<Division[]>(initialLeague.divisions);
   const [schedule, setSchedule] = useState<GameSchedule[]>(initialLeague.schedule);
+
+  // Load persisted custom league state from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`plaionn_league_data_${initialLeague.id}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.name) setLeagueMeta((prev) => ({ ...prev, name: parsed.name }));
+        if (Array.isArray(parsed.teams)) setTeams(parsed.teams);
+        if (Array.isArray(parsed.divisions) && parsed.divisions.length > 0) setDivisions(parsed.divisions);
+        if (Array.isArray(parsed.schedule)) setSchedule(parsed.schedule);
+      }
+    } catch (e) {
+      console.warn("Could not load from localStorage:", e);
+    }
+  }, [initialLeague.id]);
+
+  const saveToStorage = (t: Team[], d: Division[], s: GameSchedule[]) => {
+    try {
+      localStorage.setItem(
+        `plaionn_league_data_${initialLeague.id}`,
+        JSON.stringify({
+          id: initialLeague.id,
+          name: leagueMeta.name,
+          teams: t,
+          divisions: d,
+          schedule: s,
+        })
+      );
+    } catch (e) {
+      console.warn("Could not save to localStorage:", e);
+    }
+  };
 
   // Drill-down states
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
@@ -112,7 +146,9 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
         { id: `p-${Date.now()}-1`, name: newTeamManager.trim() || "Captain", number: 9, position: "F", registered: true, waiverStatus: "Signed", paymentStatus: "Paid" },
       ],
     };
-    setTeams([...teams, newTeam]);
+    const nextTeams = [...teams, newTeam];
+    setTeams(nextTeams);
+    saveToStorage(nextTeams, divisions, schedule);
     setNewTeamName("");
     setNewTeamManager("");
     setNewTeamEmail("");
@@ -129,7 +165,9 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
       description: newDivDesc.trim() || "League Division",
       teamCount: 0,
     };
-    setDivisions([...divisions, newDiv]);
+    const nextDivs = [...divisions, newDiv];
+    setDivisions(nextDivs);
+    saveToStorage(teams, nextDivs, schedule);
     setNewDivName("");
     setNewDivDesc("");
     setShowAddDivision(false);
@@ -148,7 +186,9 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
       venue: newGameVenue,
       status: "scheduled",
     };
-    setSchedule([...schedule, newG]);
+    const nextSched = [...schedule, newG];
+    setSchedule(nextSched);
+    saveToStorage(teams, divisions, nextSched);
     setShowAddGame(false);
   };
 
@@ -225,8 +265,10 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
       ...selectedTeam,
       roster: [...selectedTeam.roster, newP],
     };
+    const nextTeams = teams.map((t) => (t.id === updatedTeam.id ? updatedTeam : t));
     setSelectedTeam(updatedTeam);
-    setTeams(teams.map((t) => (t.id === updatedTeam.id ? updatedTeam : t)));
+    setTeams(nextTeams);
+    saveToStorage(nextTeams, divisions, schedule);
     setNewPlayerName("");
     setNewPlayerNumber("");
   };
@@ -239,8 +281,10 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
         : p
     );
     const updatedTeam = { ...selectedTeam, roster: updatedRoster };
+    const nextTeams = teams.map((t) => (t.id === updatedTeam.id ? updatedTeam : t));
     setSelectedTeam(updatedTeam);
-    setTeams(teams.map((t) => (t.id === updatedTeam.id ? updatedTeam : t)));
+    setTeams(nextTeams);
+    saveToStorage(nextTeams, divisions, schedule);
   };
 
   // Financial Stats
@@ -300,22 +344,22 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                 color: "#67e8f9",
               }}
             >
-              {initialLeague.subdomain}
+              {leagueMeta.subdomain}
             </code>
           </div>
 
           <h1 style={{ margin: 0, fontSize: "24px", color: "var(--text)" }}>
-            {initialLeague.name}
+            {leagueMeta.name}
           </h1>
           <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
-            Season: <strong style={{ color: "var(--text)" }}>{initialLeague.season}</strong> · Commissioner: {initialLeague.commissioner}
+            Season: <strong style={{ color: "var(--text)" }}>{leagueMeta.season}</strong> · Commissioner: {leagueMeta.commissioner}
           </p>
         </div>
 
         {/* Action: Link to the public page with standings, schedule, scores */}
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
           <a
-            href={`https://${initialLeague.subdomain}`}
+            href={`https://${leagueMeta.subdomain}`}
             target="_blank"
             rel="noopener noreferrer"
             className="button primary"

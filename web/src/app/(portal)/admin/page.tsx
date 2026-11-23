@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getLeagueContext } from "@/lib/supabase/session";
 import { AdminUsersManager } from "@/components/admin-users-manager";
+import { AdminLeaguesManager } from "@/components/admin-leagues-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -70,11 +71,37 @@ export default async function AdminManagementPage() {
   const assignedLeagueIds = new Set(userMemberships.map((m) => m.league_id));
   if (commissionerMatch) assignedLeagueIds.add(commissionerMatch.id);
 
+  // Fetch real database-created leagues (e.g. Toronto Metro League, Ontario National legue)
+  let dbLeaguesList: typeof leaguesList = [];
+  try {
+    const { data: dbLeagues } = await supabase.from("leagues").select("id, name");
+    if (dbLeagues && dbLeagues.length > 0) {
+      dbLeaguesList = dbLeagues
+        .filter((dbl) => !leaguesList.some((demo) => demo.id === dbl.id))
+        .map((dbl) => {
+          const slug = dbl.name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10);
+          return {
+            id: dbl.id,
+            name: dbl.name,
+            domain: `${slug}.plaionn.brittosoft.online`,
+            status: "Active",
+            season: "Winter 2026",
+            teams: 0,
+            commissioner: userEmail || "commissioner",
+            isCustom: true,
+          };
+        });
+    }
+  } catch {
+    // Graceful fallback
+  }
+
+  const allLeagues = [...dbLeaguesList, ...leaguesList];
   const isLeagueAdminOnly = !isSuperAdmin && assignedLeagueIds.size > 0;
   const showUserSettings = isSuperAdmin;
   const visibleLeagues = isLeagueAdminOnly
-    ? leaguesList.filter((l) => assignedLeagueIds.has(l.id))
-    : leaguesList;
+    ? allLeagues.filter((l) => assignedLeagueIds.has(l.id))
+    : allLeagues;
 
   const roleDefinitions = [
     {
@@ -317,101 +344,7 @@ export default async function AdminManagementPage() {
           </section>
 
           {/* 1. Leagues & Branded Domains */}
-          <section id="leagues" className="panel" style={{ padding: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: "18px" }}>League Management &amp; Custom Domains</h2>
-                <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>
-                  Each league operates as an independent branded public website with unique domain and subdomain routing.
-                </p>
-              </div>
-              <Link href="/account" className="button button-sm primary">
-                + Create New League
-              </Link>
-            </div>
-
-            <div style={{ overflowX: "auto" }}>
-              <table className="table" style={{ width: "100%", margin: 0 }}>
-                <thead>
-                  <tr>
-                    <th>League Name</th>
-                    <th>Live Domain</th>
-                    <th>Current Season</th>
-                    <th>Active Teams</th>
-                    <th>Commissioner</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: "right" }}>Public Website</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleLeagues.map((lg) => (
-                    <tr key={lg.id}>
-                      <td style={{ fontWeight: 800 }}>
-                        <Link
-                          href={`/admin/league/${lg.id}`}
-                          style={{
-                            color: "var(--lime)",
-                            textDecoration: "underline",
-                            textUnderlineOffset: "4px",
-                          }}
-                          title={`Manage ${lg.name} Backend`}
-                        >
-                          {lg.name}
-                        </Link>
-                      </td>
-                      <td>
-                        <a
-                          href={`https://${lg.domain}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            textDecoration: "none",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "6px",
-                          }}
-                        >
-                          <code style={{ background: "rgba(103, 232, 249, 0.1)", border: "1px solid rgba(103, 232, 249, 0.25)", padding: "3px 8px", borderRadius: "4px", color: "#67e8f9", fontSize: "12px" }}>
-                            {lg.domain}
-                          </code>
-                          <span style={{ color: "#67e8f9", fontSize: "11px" }}>↗</span>
-                        </a>
-                      </td>
-                      <td>{lg.season}</td>
-                      <td style={{ fontWeight: 700 }}>{lg.teams} teams</td>
-                      <td style={{ fontSize: "12.5px", color: "var(--muted)" }}>{lg.commissioner}</td>
-                      <td>
-                        <span className="badge" style={{ background: "rgba(16, 185, 129, 0.2)", color: "#10b981", fontSize: "10px" }}>
-                          {lg.status}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
-                          <Link
-                            href={`/admin/league/${lg.id}`}
-                            className="button button-sm primary"
-                            style={{ fontSize: "11px", padding: "4px 10px", fontWeight: 800 }}
-                          >
-                            Backend Hub →
-                          </Link>
-                          <a
-                            href={`https://${lg.domain}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="button button-sm button-outline"
-                            style={{ fontSize: "11px", padding: "4px 8px" }}
-                            title={`Launch ${lg.name} (${lg.domain})`}
-                          >
-                            Public ↗
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <AdminLeaguesManager initialLeagues={visibleLeagues} isLeagueAdminOnly={isLeagueAdminOnly} />
 
           {/* 2. Platform Users & User Types (Only visible to Super Admin - Requirement 3) */}
           {showUserSettings && (

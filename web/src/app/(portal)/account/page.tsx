@@ -73,18 +73,29 @@ export default async function AccountPage() {
           </div>
         ) : (
           result.data?.map((league) => (
-            <form action={selectLeague} className="list-row" key={league.id}>
+            <form action={selectLeague} className="list-row" key={league.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
               <input type="hidden" name="leagueId" value={league.id} />
-              <h2>{sanitizeLeagueName(league.name)}</h2>
-              <p>
-                {memberships
-                  ?.filter((m) => m.league_id === league.id)
-                  .map((m) => m.role)
-                  .join(" · ")}
-              </p>
-              <button className="primary" type="submit">
-                Open league →
-              </button>
+              <div>
+                <h2 style={{ margin: "0 0 4px 0" }}>{sanitizeLeagueName(league.name)}</h2>
+                <p style={{ margin: 0, fontSize: "12.5px", color: "var(--muted)" }}>
+                  Role: {memberships
+                    ?.filter((m) => m.league_id === league.id)
+                    .map((m) => m.role)
+                    .join(" · ")}
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <Link
+                  href={`/admin/league/${league.id}`}
+                  className="button primary"
+                  style={{ textDecoration: "none", fontWeight: 800, padding: "8px 16px", fontSize: "13px" }}
+                >
+                  Manage League Backend →
+                </Link>
+                <button className="button" type="submit" style={{ padding: "8px 14px", fontSize: "13px" }}>
+                  Set Active
+                </button>
+              </div>
             </form>
           ))
         )}

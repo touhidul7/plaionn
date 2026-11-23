@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LeagueBackendClient } from "./league-backend-client";
+import { getLeagueContext } from "@/lib/supabase/session";
+import { sanitizeLeagueName } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -295,10 +297,47 @@ export default async function LeagueBackendPage({
   params: Promise<{ leagueId: string }>;
 }) {
   const { leagueId } = await params;
-  const league = LEAGUES_DATA[leagueId] || LEAGUES_DATA["60000000-0000-4000-8000-000000000001"];
+  let league = LEAGUES_DATA[leagueId];
 
   if (!league) {
-    notFound();
+    try {
+      const { supabase } = await getLeagueContext();
+      const { data: dbLeague } = await supabase
+        .from("leagues")
+        .select("id, name")
+        .eq("id", leagueId)
+        .maybeSingle();
+
+      const leagueName = dbLeague?.name ? sanitizeLeagueName(dbLeague.name) : "Custom League";
+      const slug = leagueName.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10);
+      league = {
+        id: leagueId,
+        name: leagueName,
+        domain: `${slug}.plaionn.brittosoft.online`,
+        subdomain: `${slug}.plaionn.brittosoft.online`,
+        season: "Winter 2026",
+        commissioner: "commissioner@plaionn.com",
+        divisions: [
+          { id: "d1", name: "Premier Division", description: "Main division", teamCount: 0 },
+        ],
+        teams: [],
+        schedule: [],
+      };
+    } catch {
+      league = {
+        id: leagueId,
+        name: "Custom League",
+        domain: "custom.plaionn.brittosoft.online",
+        subdomain: "custom.plaionn.brittosoft.online",
+        season: "Winter 2026",
+        commissioner: "commissioner@plaionn.com",
+        divisions: [
+          { id: "d1", name: "Premier Division", description: "Main division", teamCount: 0 },
+        ],
+        teams: [],
+        schedule: [],
+      };
+    }
   }
 
   return (

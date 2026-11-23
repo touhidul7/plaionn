@@ -97,6 +97,6 @@ export async function selectLeague(form:FormData):Promise<void> {
  if(error||!data?.length) redirect("/account?state=membership");
  (await cookies()).set("plaionn-league",id.data,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:60*60*24*30});
  revalidatePath("/","layout");
- redirect("/");
+ redirect(`/admin/league/${id.data}`);
 }
 
