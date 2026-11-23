@@ -143,6 +143,36 @@ const ROLE_COLORS: Record<PlatformUser["userType"], string> = {
   Player: "#8b5cf6",
 };
 
+export const AVAILABLE_LEAGUES = [
+  "Wave Adult Hockey League (WAHL)",
+  "Bangladesh Hockey League (BHL)",
+  "Canada Hockey League (CHL)",
+  "Italy Hockey League (IHL)",
+];
+
+export const AVAILABLE_TEAMS = [
+  "Harbour Wolves",
+  "Wave Breakers",
+  "Coastal Frost",
+  "Metro Blades",
+  "Northline HC",
+  "Dhaka Gladiators",
+  "Chittagong Warriors",
+  "Sylhet Strikers",
+  "Rajshahi Rangers",
+  "Ottawa Titans",
+  "Montreal Royals",
+  "Milano Vipers",
+  "Roma Gladiators",
+];
+
+export const AVAILABLE_RINKS = [
+  "Metro Arena · Rink 1",
+  "Metro Arena · Rink 2",
+  "Wave Twin Rinks · Rink A",
+  "National Hockey Stadium",
+];
+
 function cleanWaiverStatus(status?: string): string {
   if (!status) return "Cleared & Signed";
   return status
@@ -235,11 +265,26 @@ export function AdminUsersManager() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  const handleRoleChange = (newRole: PlatformUser["userType"]) => {
+    setFormRole(newRole);
+    if (newRole === "Super Admin" || newRole === "Regular Admin") {
+      setFormScope("Global Platform");
+    } else if (newRole === "League Admin") {
+      setFormScope(AVAILABLE_LEAGUES[0]);
+    } else if (newRole === "Team Admin / Manager" || newRole === "Player") {
+      setFormScope(AVAILABLE_TEAMS[0]);
+    } else if (newRole === "Timekeeper") {
+      setFormScope(AVAILABLE_RINKS[0]);
+    } else if (newRole === "Referee") {
+      setFormScope("Assigned Games");
+    }
+  };
+
   const openAddModal = () => {
     setFormName("");
     setFormEmail("");
     setFormRole("Player");
-    setFormScope("Northline HC");
+    setFormScope(AVAILABLE_TEAMS[0]);
     setFormWaiver("Cleared & Signed");
     setFormStatus("Active");
     setIsAddOpen(true);
@@ -710,7 +755,7 @@ export function AdminUsersManager() {
                   </label>
                   <select
                     value={formRole}
-                    onChange={(e) => setFormRole(e.target.value as any)}
+                    onChange={(e) => handleRoleChange(e.target.value as any)}
                     style={{
                       width: "100%",
                       background: "#13232e",
@@ -733,23 +778,101 @@ export function AdminUsersManager() {
 
                 <div>
                   <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "6px" }}>
-                    Assigned Scope
+                    Assigned Scope {formRole === "League Admin" ? "(Select League)" : formRole === "Team Admin / Manager" || formRole === "Player" ? "(Select Team)" : ""}
                   </label>
-                  <input
-                    type="text"
-                    value={formScope}
-                    onChange={(e) => setFormScope(e.target.value)}
-                    placeholder="e.g. Northline HC or Global"
-                    style={{
-                      width: "100%",
-                      background: "#13232e",
-                      border: "1px solid var(--line)",
-                      borderRadius: "6px",
-                      padding: "8px 12px",
-                      color: "var(--text)",
-                      fontSize: "13px",
-                    }}
-                  />
+                  {formRole === "Super Admin" || formRole === "Regular Admin" ? (
+                    <input
+                      type="text"
+                      value="Global Platform (All Leagues)"
+                      disabled
+                      style={{
+                        width: "100%",
+                        background: "#0d1a24",
+                        border: "1px solid var(--line)",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        color: "var(--muted)",
+                        fontSize: "13px",
+                        cursor: "not-allowed",
+                      }}
+                    />
+                  ) : formRole === "League Admin" ? (
+                    <select
+                      value={formScope}
+                      onChange={(e) => setFormScope(e.target.value)}
+                      style={{
+                        width: "100%",
+                        background: "#13232e",
+                        border: "1px solid var(--line)",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        color: "var(--text)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      {AVAILABLE_LEAGUES.map((lg) => (
+                        <option key={lg} value={lg}>
+                          {lg}
+                        </option>
+                      ))}
+                    </select>
+                  ) : formRole === "Team Admin / Manager" || formRole === "Player" ? (
+                    <select
+                      value={AVAILABLE_TEAMS.includes(formScope) ? formScope : AVAILABLE_TEAMS[0]}
+                      onChange={(e) => setFormScope(e.target.value)}
+                      style={{
+                        width: "100%",
+                        background: "#13232e",
+                        border: "1px solid var(--line)",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        color: "var(--text)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      {AVAILABLE_TEAMS.map((tm) => (
+                        <option key={tm} value={tm}>
+                          {tm}
+                        </option>
+                      ))}
+                    </select>
+                  ) : formRole === "Timekeeper" ? (
+                    <select
+                      value={AVAILABLE_RINKS.includes(formScope) ? formScope : AVAILABLE_RINKS[0]}
+                      onChange={(e) => setFormScope(e.target.value)}
+                      style={{
+                        width: "100%",
+                        background: "#13232e",
+                        border: "1px solid var(--line)",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        color: "var(--text)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      {AVAILABLE_RINKS.map((rk) => (
+                        <option key={rk} value={rk}>
+                          {rk}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formScope}
+                      onChange={(e) => setFormScope(e.target.value)}
+                      placeholder="e.g. Assigned Games or Global"
+                      style={{
+                        width: "100%",
+                        background: "#13232e",
+                        border: "1px solid var(--line)",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        color: "var(--text)",
+                        fontSize: "13px",
+                      }}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -909,7 +1032,7 @@ export function AdminUsersManager() {
                   </label>
                   <select
                     value={formRole}
-                    onChange={(e) => setFormRole(e.target.value as any)}
+                    onChange={(e) => handleRoleChange(e.target.value as any)}
                     style={{
                       width: "100%",
                       background: "#13232e",
@@ -932,22 +1055,101 @@ export function AdminUsersManager() {
 
                 <div>
                   <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "6px" }}>
-                    Assigned Scope
+                    Assigned Scope {formRole === "League Admin" ? "(Select League)" : formRole === "Team Admin / Manager" || formRole === "Player" ? "(Select Team)" : ""}
                   </label>
-                  <input
-                    type="text"
-                    value={formScope}
-                    onChange={(e) => setFormScope(e.target.value)}
-                    style={{
-                      width: "100%",
-                      background: "#13232e",
-                      border: "1px solid var(--line)",
-                      borderRadius: "6px",
-                      padding: "8px 12px",
-                      color: "var(--text)",
-                      fontSize: "13px",
-                    }}
-                  />
+                  {formRole === "Super Admin" || formRole === "Regular Admin" ? (
+                    <input
+                      type="text"
+                      value="Global Platform (All Leagues)"
+                      disabled
+                      style={{
+                        width: "100%",
+                        background: "#0d1a24",
+                        border: "1px solid var(--line)",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        color: "var(--muted)",
+                        fontSize: "13px",
+                        cursor: "not-allowed",
+                      }}
+                    />
+                  ) : formRole === "League Admin" ? (
+                    <select
+                      value={formScope}
+                      onChange={(e) => setFormScope(e.target.value)}
+                      style={{
+                        width: "100%",
+                        background: "#13232e",
+                        border: "1px solid var(--line)",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        color: "var(--text)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      {AVAILABLE_LEAGUES.map((lg) => (
+                        <option key={lg} value={lg}>
+                          {lg}
+                        </option>
+                      ))}
+                    </select>
+                  ) : formRole === "Team Admin / Manager" || formRole === "Player" ? (
+                    <select
+                      value={AVAILABLE_TEAMS.includes(formScope) ? formScope : AVAILABLE_TEAMS[0]}
+                      onChange={(e) => setFormScope(e.target.value)}
+                      style={{
+                        width: "100%",
+                        background: "#13232e",
+                        border: "1px solid var(--line)",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        color: "var(--text)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      {AVAILABLE_TEAMS.map((tm) => (
+                        <option key={tm} value={tm}>
+                          {tm}
+                        </option>
+                      ))}
+                    </select>
+                  ) : formRole === "Timekeeper" ? (
+                    <select
+                      value={AVAILABLE_RINKS.includes(formScope) ? formScope : AVAILABLE_RINKS[0]}
+                      onChange={(e) => setFormScope(e.target.value)}
+                      style={{
+                        width: "100%",
+                        background: "#13232e",
+                        border: "1px solid var(--line)",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        color: "var(--text)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      {AVAILABLE_RINKS.map((rk) => (
+                        <option key={rk} value={rk}>
+                          {rk}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formScope}
+                      onChange={(e) => setFormScope(e.target.value)}
+                      placeholder="e.g. Assigned Games or Global"
+                      style={{
+                        width: "100%",
+                        background: "#13232e",
+                        border: "1px solid var(--line)",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        color: "var(--text)",
+                        fontSize: "13px",
+                      }}
+                    />
+                  )}
                 </div>
               </div>
 
