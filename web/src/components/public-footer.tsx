@@ -33,8 +33,26 @@ export function PublicFooter({ leagueName }: { leagueName: string }) {
             </span>
           </div>
 
-          <div style={{ fontSize: "12px", color: "var(--muted)" }}>
-            &copy; {new Date().getFullYear()} {leagueName}. All rights reserved.
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+            <Link
+              href="/login"
+              style={{
+                fontSize: "12px",
+                color: "var(--muted)",
+                textDecoration: "none",
+                background: "rgba(255,255,255,0.06)",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                border: "1px solid var(--line)",
+                transition: "all 0.2s ease",
+              }}
+              title="League Commissioner, Referee & Scorekeeper Login"
+            >
+              🔒 Admin Login
+            </Link>
+            <div style={{ fontSize: "12px", color: "var(--muted)" }}>
+              &copy; {new Date().getFullYear()} {leagueName}. All rights reserved.
+            </div>
           </div>
         </div>
       </div>

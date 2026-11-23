@@ -2,6 +2,7 @@ import Link from "next/link";
 import { z } from "zod";
 import { getLeagueData } from "@/lib/league";
 import { getLeagueContext } from "@/lib/supabase/session";
+import { getUnifiedLeagueStandings } from "@/lib/league-standings";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,10 @@ export default async function StandingsPage({
   });
 
   const parsedRows = z.array(standingsRowSchema).safeParse(standingsRes.data);
-  const rows = parsedRows.success ? parsedRows.data : null;
+  const rows =
+    parsedRows.success && parsedRows.data.length > 0
+      ? parsedRows.data
+      : getUnifiedLeagueStandings(data.league.id, data.league.name, data.teams);
 
   return (
     <main id="main" className="public-portal-container">

@@ -378,7 +378,185 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
       </div>
 
       {/* TAB 1: TEAMS & ROSTERS */}
-      {activeTab === "teams" && (
+      {activeTab === "teams" && selectedTeam && (
+        <section className="panel" style={{ padding: "24px" }}>
+          {/* Top Bar with Back Button (Dedicated Team Page - No Popup) */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "12px", borderBottom: "1px solid var(--line)", paddingBottom: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <button
+                type="button"
+                onClick={() => setSelectedTeam(null)}
+                className="button button-sm button-outline"
+                style={{ fontSize: "12px", fontWeight: 700 }}
+              >
+                ← Back to Teams List
+              </button>
+              <span className="badge" style={{ background: "rgba(199, 244, 80, 0.15)", color: "var(--lime)", fontSize: "11px" }}>
+                TEAM PROFILE
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <Link
+                href={`/teams/${selectedTeam.id}`}
+                target="_blank"
+                className="button button-sm button-outline"
+                style={{ fontSize: "11.5px" }}
+              >
+                Public Fan Page ↗
+              </Link>
+            </div>
+          </div>
+
+          {/* Team Summary Cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px", marginBottom: "24px" }}>
+            <div style={{ background: "#0c1822", border: "1px solid var(--line)", borderRadius: "10px", padding: "16px" }}>
+              <span style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", fontWeight: 700 }}>Team Name</span>
+              <h2 style={{ margin: "4px 0 0", fontSize: "20px", color: "var(--text)" }}>{selectedTeam.name}</h2>
+              <span style={{ fontSize: "12px", color: "var(--lime)" }}>Division: {selectedTeam.division}</span>
+            </div>
+            <div style={{ background: "#0c1822", border: "1px solid var(--line)", borderRadius: "10px", padding: "16px" }}>
+              <span style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", fontWeight: 700 }}>Team Manager</span>
+              <div style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>{selectedTeam.manager}</div>
+              <span style={{ fontSize: "12px", color: "var(--muted)" }}>{selectedTeam.managerEmail}</span>
+            </div>
+            <div style={{ background: "#0c1822", border: "1px solid var(--line)", borderRadius: "10px", padding: "16px" }}>
+              <span style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", fontWeight: 700 }}>Roster Strength</span>
+              <div style={{ margin: "4px 0 0", fontSize: "20px", fontWeight: 900, color: "var(--lime)" }}>{selectedTeam.roster.length} Players</div>
+              <span style={{ fontSize: "12px", color: "var(--muted)" }}>All registered</span>
+            </div>
+            <div style={{ background: "#0c1822", border: "1px solid var(--line)", borderRadius: "10px", padding: "16px" }}>
+              <span style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", fontWeight: 700 }}>Season Fee</span>
+              <div style={{ margin: "4px 0 0", fontSize: "20px", fontWeight: 900, color: selectedTeam.paidStatus === "Paid" ? "#10b981" : "#f59e0b" }}>
+                ${selectedTeam.amountPaid} / ${selectedTeam.amountDue}
+              </div>
+              <span className="badge" style={{ fontSize: "10px", marginTop: "2px" }}>{selectedTeam.paidStatus}</span>
+            </div>
+          </div>
+
+          {/* Roster Table */}
+          <div style={{ marginBottom: "20px" }}>
+            <h3 style={{ margin: "0 0 12px", fontSize: "16px" }}>Active Team Roster &amp; Waivers</h3>
+            <div style={{ overflowX: "auto" }}>
+              <table className="table" style={{ width: "100%", margin: 0 }}>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Player Name</th>
+                    <th>Pos</th>
+                    <th>Registration</th>
+                    <th>Waiver Status</th>
+                    <th>Fee Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedTeam.roster.map((p) => (
+                    <tr key={p.id}>
+                      <td style={{ fontWeight: 800, color: "var(--lime)" }}>#{p.number}</td>
+                      <td style={{ fontWeight: 700, color: "var(--text)" }}>{p.name}</td>
+                      <td><span className="badge" style={{ fontSize: "10px" }}>{p.position}</span></td>
+                      <td>
+                        <span className="badge" style={{ background: "rgba(16, 185, 129, 0.2)", color: "#10b981", fontSize: "10.5px" }}>
+                          ✓ Registered
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleWaiver(p.id)}
+                          title="Click to toggle waiver status"
+                          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                        >
+                          <span
+                            className="badge"
+                            style={{
+                              background: p.waiverStatus === "Signed" ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)",
+                              color: p.waiverStatus === "Signed" ? "#10b981" : "#ef4444",
+                              fontSize: "10.5px",
+                            }}
+                          >
+                            {p.waiverStatus} ✎
+                          </span>
+                        </button>
+                      </td>
+                      <td>
+                        <span
+                          className="badge"
+                          style={{
+                            background: p.paymentStatus === "Paid" ? "rgba(16, 185, 129, 0.2)" : "rgba(245, 158, 11, 0.2)",
+                            color: p.paymentStatus === "Paid" ? "#10b981" : "#f59e0b",
+                            fontSize: "10.5px",
+                          }}
+                        >
+                          {p.paymentStatus}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Add Player Form */}
+          <form
+            onSubmit={handleAddPlayer}
+            style={{
+              padding: "16px",
+              borderRadius: "10px",
+              background: "#162734",
+              border: "1px solid var(--line)",
+            }}
+          >
+            <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--lime)", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px" }}>
+              + Add Player to {selectedTeam.name} Roster
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 100px 120px auto", gap: "8px", alignItems: "center" }}>
+              <input
+                type="text"
+                required
+                placeholder="Player Full Name"
+                value={newPlayerName}
+                onChange={(e) => setNewPlayerName(e.target.value)}
+                style={{ padding: "8px 10px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
+              />
+              <input
+                type="number"
+                placeholder="Jersey #"
+                value={newPlayerNumber}
+                onChange={(e) => setNewPlayerNumber(e.target.value)}
+                style={{ padding: "8px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
+              />
+              <select
+                value={newPlayerPosition}
+                onChange={(e) => setNewPlayerPosition(e.target.value)}
+                style={{ padding: "8px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
+              >
+                <option value="F">F (Forward)</option>
+                <option value="D">D (Defense)</option>
+                <option value="G">G (Goalie)</option>
+              </select>
+              <select
+                value={newPlayerWaiver}
+                onChange={(e) => setNewPlayerWaiver(e.target.value as "Signed" | "Pending")}
+                style={{ padding: "8px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
+              >
+                <option value="Signed">Waiver Signed</option>
+                <option value="Pending">Waiver Pending</option>
+              </select>
+              <button
+                type="submit"
+                className="button button-sm primary"
+                style={{ fontWeight: 800, fontSize: "11.5px", padding: "8px 14px" }}
+              >
+                Add Player
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+
+      {/* TAB 1: ALL TEAMS LIST */}
+      {activeTab === "teams" && !selectedTeam && (
         <section className="panel" style={{ padding: "24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
             <div>
@@ -623,33 +801,23 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                       <span className="badge" style={{ fontSize: "10.5px" }}>{g.status.toUpperCase()}</span>
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", alignItems: "center" }}>
-                        <Link
-                          href={`/schedule/${g.id}/scorekeeping`}
-                          className="button button-sm primary"
-                          style={{
-                            fontSize: "11.5px",
-                            padding: "6px 14px",
-                            fontWeight: 800,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "5px",
-                            background: "var(--lime)",
-                            color: "#000",
-                          }}
-                          title="Open live scorekeeper to record goals, assists, penalties & shots"
-                        >
-                          ⏱ Score Game
-                        </Link>
-                        <Link
-                          href={`/schedule/${g.id}/live`}
-                          className="button button-sm button-outline"
-                          style={{ fontSize: "11px", padding: "6px 10px" }}
-                          title="View public live game center"
-                        >
-                          Game Center ↗
-                        </Link>
-                      </div>
+                      <Link
+                        href={`/schedule/${g.id}/scorekeeping`}
+                        className="button button-sm primary"
+                        style={{
+                          fontSize: "12px",
+                          padding: "6px 14px",
+                          fontWeight: 800,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          background: "var(--lime)",
+                          color: "#000",
+                        }}
+                        title="Open live game center & scorekeeper to record goals, assists, penalties & shots"
+                      >
+                        ⏱ Game Center &amp; Scorekeeper →
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -774,186 +942,6 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
             </div>
           </div>
         </section>
-      )}
-
-      {/* MODAL 1: DRILL DOWN TEAM ROSTER */}
-      {selectedTeam && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.8)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            padding: "20px",
-          }}
-        >
-          <div
-            style={{
-              background: "#0c1822",
-              border: "1px solid var(--line)",
-              borderRadius: "14px",
-              padding: "28px",
-              maxWidth: "700px",
-              width: "100%",
-              maxHeight: "85vh",
-              overflowY: "auto",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-              <div>
-                <span className="badge" style={{ background: "rgba(199, 244, 80, 0.15)", color: "var(--lime)", fontSize: "11px" }}>
-                  TEAM ROSTER DRILL-DOWN
-                </span>
-                <h2 style={{ margin: "6px 0 2px", fontSize: "20px", color: "var(--text)" }}>
-                  {selectedTeam.name}
-                </h2>
-                <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)" }}>
-                  Division: {selectedTeam.division} · Manager: {selectedTeam.manager} ({selectedTeam.managerEmail})
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedTeam(null)}
-                style={{ background: "none", border: "none", color: "var(--muted)", fontSize: "20px", cursor: "pointer" }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ overflowX: "auto" }}>
-              <table className="table" style={{ width: "100%", margin: 0 }}>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Player Name</th>
-                    <th>Pos</th>
-                    <th>Registration</th>
-                    <th>Waiver</th>
-                    <th>Payment</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedTeam.roster.map((p) => (
-                    <tr key={p.id}>
-                      <td style={{ fontWeight: 800, color: "var(--lime)" }}>#{p.number}</td>
-                      <td style={{ fontWeight: 700, color: "var(--text)" }}>{p.name}</td>
-                      <td>
-                        <span className="badge" style={{ fontSize: "10px" }}>{p.position}</span>
-                      </td>
-                      <td>
-                        <span className="badge" style={{ background: "rgba(16, 185, 129, 0.2)", color: "#10b981", fontSize: "10.5px" }}>
-                          ✓ Registered
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleWaiver(p.id)}
-                          title="Click to toggle waiver status"
-                          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
-                        >
-                          <span
-                            className="badge"
-                            style={{
-                              background: p.waiverStatus === "Signed" ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)",
-                              color: p.waiverStatus === "Signed" ? "#10b981" : "#ef4444",
-                              fontSize: "10.5px",
-                            }}
-                          >
-                            {p.waiverStatus} ✎
-                          </span>
-                        </button>
-                      </td>
-                      <td>
-                        <span
-                          className="badge"
-                          style={{
-                            background: p.paymentStatus === "Paid" ? "rgba(16, 185, 129, 0.2)" : "rgba(245, 158, 11, 0.2)",
-                            color: p.paymentStatus === "Paid" ? "#10b981" : "#f59e0b",
-                            fontSize: "10.5px",
-                          }}
-                        >
-                          {p.paymentStatus}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Inline Add Player Form (Requirement 4a) */}
-            <form
-              onSubmit={handleAddPlayer}
-              style={{
-                marginTop: "18px",
-                padding: "16px",
-                borderRadius: "10px",
-                background: "#162734",
-                border: "1px solid var(--line)",
-              }}
-            >
-              <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--lime)", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px" }}>
-                + Add Player to {selectedTeam.name} Roster
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 100px 120px auto", gap: "8px", alignItems: "center" }}>
-                <input
-                  type="text"
-                  required
-                  placeholder="Player Full Name"
-                  value={newPlayerName}
-                  onChange={(e) => setNewPlayerName(e.target.value)}
-                  style={{ padding: "8px 10px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
-                />
-                <input
-                  type="number"
-                  placeholder="Jersey #"
-                  value={newPlayerNumber}
-                  onChange={(e) => setNewPlayerNumber(e.target.value)}
-                  style={{ padding: "8px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
-                />
-                <select
-                  value={newPlayerPosition}
-                  onChange={(e) => setNewPlayerPosition(e.target.value)}
-                  style={{ padding: "8px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
-                >
-                  <option value="F">F (Forward)</option>
-                  <option value="D">D (Defense)</option>
-                  <option value="G">G (Goalie)</option>
-                </select>
-                <select
-                  value={newPlayerWaiver}
-                  onChange={(e) => setNewPlayerWaiver(e.target.value as "Signed" | "Pending")}
-                  style={{ padding: "8px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
-                >
-                  <option value="Signed">Waiver Signed</option>
-                  <option value="Pending">Waiver Pending</option>
-                </select>
-                <button
-                  type="submit"
-                  className="button button-sm primary"
-                  style={{ fontWeight: 800, fontSize: "11.5px", padding: "8px 14px" }}
-                >
-                  Add Player
-                </button>
-              </div>
-            </form>
-
-            <div style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end" }}>
-              <button
-                type="button"
-                onClick={() => setSelectedTeam(null)}
-                className="button button-outline"
-                style={{ padding: "8px 20px" }}
-              >
-                Close Roster
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* MODAL 2: ADD TEAM */}

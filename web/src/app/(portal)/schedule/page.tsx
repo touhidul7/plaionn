@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { getLeagueData } from "@/lib/league";
 import { getLeagueContext } from "@/lib/supabase/session";
 import { sanitizeVenueName } from "@/lib/sanitize";
+import { getUnifiedLeagueGames } from "@/lib/league-standings";
 import {
   BlackoutForm,
   BlackoutRemoveForm,
@@ -64,133 +65,8 @@ export default async function SchedulePage({
   }
 
   if (publicGames.length === 0) {
-    if (league.id === "60000000-0000-4000-8000-000000000001" || league.name.includes("Bangladesh")) {
-      publicGames = [
-        {
-          game_id: "g-bhl-1",
-          season_id: "60000000-0000-4000-8000-000000000002",
-          season_name: "Winter 2026",
-          division_id: "60000000-0000-4000-8000-000000000021",
-          division_name: "Premier Division",
-          home_entry_id: "e1",
-          home_team_name: "Dhaka Gladiators",
-          away_entry_id: "e2",
-          away_team_name: "Chittagong Warriors",
-          venue_name: "National Arena",
-          rink_name: "Rink 1",
-          time_zone: "America/Toronto",
-          starts_at: new Date(Date.now() - 86400000).toISOString(),
-          ends_at: new Date(Date.now() - 82800000).toISOString(),
-          status: "completed",
-          home_score: 4,
-          away_score: 2,
-          decision: "regulation",
-        },
-        {
-          game_id: "g-bhl-2",
-          season_id: "60000000-0000-4000-8000-000000000002",
-          season_name: "Winter 2026",
-          division_id: "60000000-0000-4000-8000-000000000021",
-          division_name: "Premier Division",
-          home_entry_id: "e3",
-          home_team_name: "Sylhet Strikers",
-          away_entry_id: "e4",
-          away_team_name: "Rajshahi Rangers",
-          venue_name: "National Arena",
-          rink_name: "Rink 2",
-          time_zone: "America/Toronto",
-          starts_at: new Date(Date.now() - 43200000).toISOString(),
-          ends_at: new Date(Date.now() - 39600000).toISOString(),
-          status: "completed",
-          home_score: 3,
-          away_score: 1,
-          decision: "regulation",
-        },
-        {
-          game_id: "g-bhl-3",
-          season_id: "60000000-0000-4000-8000-000000000002",
-          season_name: "Winter 2026",
-          division_id: "60000000-0000-4000-8000-000000000021",
-          division_name: "Premier Division",
-          home_entry_id: "e1",
-          home_team_name: "Dhaka Gladiators",
-          away_entry_id: "e3",
-          away_team_name: "Sylhet Strikers",
-          venue_name: "National Arena",
-          rink_name: "Rink 1",
-          time_zone: "America/Toronto",
-          starts_at: new Date(Date.now() + 86400000).toISOString(),
-          ends_at: new Date(Date.now() + 90000000).toISOString(),
-          status: "scheduled",
-          home_score: null,
-          away_score: null,
-          decision: null,
-        },
-        {
-          game_id: "g-bhl-4",
-          season_id: "60000000-0000-4000-8000-000000000002",
-          season_name: "Winter 2026",
-          division_id: "60000000-0000-4000-8000-000000000021",
-          division_name: "Premier Division",
-          home_entry_id: "e2",
-          home_team_name: "Chittagong Warriors",
-          away_entry_id: "e4",
-          away_team_name: "Rajshahi Rangers",
-          venue_name: "National Arena",
-          rink_name: "Rink 2",
-          time_zone: "America/Toronto",
-          starts_at: new Date(Date.now() + 172800000).toISOString(),
-          ends_at: new Date(Date.now() + 176400000).toISOString(),
-          status: "scheduled",
-          home_score: null,
-          away_score: null,
-          decision: null,
-        },
-      ];
-    } else if (league.id === "60000000-0000-4000-8000-000000000003" || league.name.includes("Wave")) {
-      publicGames = [
-        {
-          game_id: "g-wahl-1",
-          season_id: "60000000-0000-4000-8000-000000000032",
-          season_name: "Winter 2026",
-          division_id: "60000000-0000-4000-8000-000000000033",
-          division_name: "Division D",
-          home_entry_id: "e31",
-          home_team_name: "Harbour Wolves",
-          away_entry_id: "e32",
-          away_team_name: "Wave Breakers",
-          venue_name: "Metro Rink",
-          rink_name: "Rink 1",
-          time_zone: "America/Toronto",
-          starts_at: new Date(Date.now() - 86400000).toISOString(),
-          ends_at: new Date(Date.now() - 82800000).toISOString(),
-          status: "completed",
-          home_score: 5,
-          away_score: 3,
-          decision: "regulation",
-        },
-        {
-          game_id: "g-wahl-2",
-          season_id: "60000000-0000-4000-8000-000000000032",
-          season_name: "Winter 2026",
-          division_id: "60000000-0000-4000-8000-000000000033",
-          division_name: "Division D",
-          home_entry_id: "e33",
-          home_team_name: "Coastal Frost",
-          away_entry_id: "e34",
-          away_team_name: "Metro Blades",
-          venue_name: "Metro Rink",
-          rink_name: "Rink 2",
-          time_zone: "America/Toronto",
-          starts_at: new Date(Date.now() + 86400000).toISOString(),
-          ends_at: new Date(Date.now() + 90000000).toISOString(),
-          status: "scheduled",
-          home_score: null,
-          away_score: null,
-          decision: null,
-        },
-      ];
-    }
+    const unified = getUnifiedLeagueGames(league.id, league.name);
+    publicGames = unified as PublicGame[];
   }
 
   const completedGames = publicGames.filter(

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getVerifiedSession } from "@/lib/supabase/session";
 import { revalidatePath } from "next/cache";
+import { DownloadExportButton } from "./download-button";
 
 export const dynamic = "force-dynamic";
 
@@ -103,22 +104,19 @@ export default async function AccountPrivacyPage() {
         </p>
 
         <div style={{ marginTop: "1rem" }}>
-          <a
-            href="/api/account/export"
-            download="plaionn-personal-data.json"
-            className="button primary"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "11px 24px",
-              fontSize: "13.5px",
-              fontWeight: 800,
-              textDecoration: "none",
+          <DownloadExportButton
+            userEmail={user.email || ""}
+            userId={user.id}
+            fallbackData={{
+              account: {
+                user_id: user.id,
+                email: user.email,
+                exported_at: new Date().toISOString(),
+              },
+              consents: consents,
+              privacy_policy: "PLAIONN Sports Platform - GDPR/CCPA Right to Data Portability",
             }}
-          >
-            Download Personal Data Archive (JSON) →
-          </a>
+          />
         </div>
       </section>
 

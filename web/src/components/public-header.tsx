@@ -1,6 +1,7 @@
 import { getLeagueContext } from "@/lib/supabase/session";
 import { PublicHeaderClient, type TickerGameItem } from "./public-header-client";
 import { sanitizeVenueName } from "@/lib/sanitize";
+import { getUnifiedLeagueGames } from "@/lib/league-standings";
 
 export async function PublicHeader() {
   const { supabase, league, user, canManage } = await getLeagueContext();
@@ -81,28 +82,28 @@ export async function PublicHeader() {
     // Graceful fallback
   }
 
-  if (games.length === 0) {
-    if (league.id === "60000000-0000-4000-8000-000000000001") {
-      games = [
-        { id: "g1", startsAt: "Fri, Dec 5 @ 7:00 PM", status: "scheduled", homeTeam: "Dhaka Gladiators", awayTeam: "Chittagong Warriors", arena: "National Arena - Rink 1" },
-        { id: "g2", startsAt: "Sat, Dec 6 @ 8:30 PM", status: "scheduled", homeTeam: "Sylhet Strikers", awayTeam: "Rajshahi Rangers", arena: "National Arena - Rink 2" },
-      ];
-    } else if (league.id === "60000000-0000-4000-8000-000000000003") {
-      games = [
-        { id: "g3", startsAt: "Fri, Dec 5 @ 8:00 PM", status: "scheduled", homeTeam: "Harbour Wolves", awayTeam: "Wave Breakers", arena: "Metro Rink - Rink 1" },
-        { id: "g4", startsAt: "Sat, Dec 6 @ 9:00 PM", status: "scheduled", homeTeam: "Coastal Frost", awayTeam: "Metro Blades", arena: "Metro Rink - Rink 2" },
-      ];
-    } else if (league.id === "60000000-0000-4000-8000-000000000004") {
-      games = [
-        { id: "g5", startsAt: "Fri, Dec 5 @ 7:30 PM", status: "scheduled", homeTeam: "Ottawa Titans", awayTeam: "Montreal Royals", arena: "Capital Arena - Rink A" },
-        { id: "g6", startsAt: "Sat, Dec 6 @ 8:00 PM", status: "scheduled", homeTeam: "Toronto Maple Hawks", awayTeam: "Vancouver Grizzlies", arena: "Capital Arena - Rink B" },
-      ];
-    } else if (league.id === "60000000-0000-4000-8000-000000000005") {
-      games = [
-        { id: "g7", startsAt: "Fri, Dec 5 @ 8:00 PM", status: "scheduled", homeTeam: "Milano Vipers", awayTeam: "Roma Gladiators", arena: "PalaOlimpico - Rink 1" },
-        { id: "g8", startsAt: "Sat, Dec 6 @ 9:30 PM", status: "scheduled", homeTeam: "Torino Ice", awayTeam: "Bolzano Foxes", arena: "PalaOlimpico - Rink 2" },
-      ];
-    }
+  if (games.length === 0 && league.id !== "platform") {
+    const unified = getUnifiedLeagueGames(league.id, league.name);
+    games = unified.map((g) => ({
+      id: g.game_id,
+      startsAt:
+        new Date(g.starts_at).toLocaleDateString(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        }) +
+        " · " +
+        new Date(g.starts_at).toLocaleTimeString(undefined, {
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+      status: g.status,
+      homeTeam: g.home_team_name,
+      awayTeam: g.away_team_name,
+      homeScore: g.home_score,
+      awayScore: g.away_score,
+      arena: `${sanitizeVenueName(g.venue_name)} - ${g.rink_name}`,
+    }));
   }
 
   return (

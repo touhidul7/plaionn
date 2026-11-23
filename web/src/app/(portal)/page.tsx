@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { getLeagueData } from "@/lib/league";
 import { getLeagueContext } from "@/lib/supabase/session";
 import { sanitizeVenueName } from "@/lib/sanitize";
+import { getUnifiedLeagueGames, getUnifiedLeagueStandings } from "@/lib/league-standings";
 import PlaionnPlatformPage from "./plaionn/page";
 
 export const dynamic = "force-dynamic";
@@ -46,35 +47,20 @@ export default async function Home({
     }
   }
 
-  if (games.length === 0 && data.teams.length >= 2) {
-    games = [
-      {
-        id: "preview-1",
-        starts_at: new Date(Date.now() + 86400000).toISOString(),
-        status: "scheduled",
-        home_team_name: data.teams[0].name,
-        away_team_name: data.teams[1].name,
-        home_score: 0,
-        away_score: 0,
-        venue_name: "Metro Arena",
-        rink_name: "Rink 1",
-      },
-      ...(data.teams.length >= 4
-        ? [
-            {
-              id: "preview-2",
-              starts_at: new Date(Date.now() + 172800000).toISOString(),
-              status: "scheduled",
-              home_team_name: data.teams[2].name,
-              away_team_name: data.teams[3].name,
-              home_score: 0,
-              away_score: 0,
-              venue_name: "Metro Arena",
-              rink_name: "Rink 2",
-            },
-          ]
-        : []),
-    ];
+  if (games.length === 0) {
+    const unified = getUnifiedLeagueGames(data.league.id, data.league.name);
+    games = unified.map((g) => ({
+      id: g.game_id,
+      starts_at: g.starts_at,
+      status: g.status,
+      home_team_name: g.home_team_name,
+      away_team_name: g.away_team_name,
+      home_score: g.home_score,
+      away_score: g.away_score,
+      venue_name: g.venue_name,
+      rink_name: g.rink_name,
+      division_name: g.division_name,
+    }));
   }
 
   // Fetch standings for selected season
@@ -92,18 +78,8 @@ export default async function Home({
     }
   }
 
-  if (standingsRows.length === 0 && data.teams.length > 0) {
-    standingsRows = data.teams.map((t, idx) => ({
-      team_name: t.name,
-      games_played: 12 - idx,
-      wins: Math.max(1, 10 - idx * 2),
-      losses: 2 + idx,
-      ties: 0,
-      overtime_losses: 0,
-      points: Math.max(2, (10 - idx * 2) * 2),
-      goals_for: 42 - idx * 5,
-      goals_against: 20 + idx * 4,
-    }));
+  if (standingsRows.length === 0) {
+    standingsRows = getUnifiedLeagueStandings(data.league.id, data.league.name, data.teams);
   }
 
   // Fetch published announcements

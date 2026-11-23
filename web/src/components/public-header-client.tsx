@@ -54,7 +54,7 @@ export function PublicHeaderClient({
     { href: "/registration", label: "REGISTRATION" },
   ];
 
-  if (leagueName === "PLAIONN Sports Platform") {
+  if (leagueName === "PLAIONN Sports Platform" || pathname === "/plaionn" || leagueId === "platform") {
     return (
       <header className="plaionn-header-wrap" style={{ borderBottom: "1px solid var(--line)" }}>
         <div className="plaionn-header-top" style={{ padding: "16px 0", background: "#081017" }}>
@@ -311,48 +311,24 @@ export function PublicHeaderClient({
             })}
           </ul>
 
-          {/* Right side actions - Admin, League HQ & Account links for management */}
+          {/* Right side actions - Public View Only (Admin login moved to bottom of page per client requirements) */}
           <div className="plaionn-nav-right">
             {user ? (
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Link
-                  href={leagueId && leagueId !== "platform" ? `/admin/league/${leagueId}` : "/admin"}
-                  className="button button-sm primary"
-                  style={{
-                    fontSize: "12px",
-                    padding: "6px 14px",
-                    fontWeight: 800,
-                  }}
-                  title="Open dedicated League Backend (Teams, Divisions, Schedule & Invoices)"
-                >
-                  League HQ
-                </Link>
-                <Link
-                  href="/admin"
-                  className="button button-sm button-outline"
-                  style={{
-                    fontSize: "12px",
-                    padding: "6px 12px",
-                    fontWeight: 700,
-                  }}
-                  title="Central Platform Admin"
-                >
-                  Admin
-                </Link>
                 <Link
                   href="/account"
                   className="button button-sm button-outline"
                   style={{
                     fontSize: "12px",
-                    padding: "6px 12px",
+                    padding: "6px 14px",
                   }}
                 >
-                  Account
+                  My Account
                 </Link>
               </div>
             ) : (
               <Link
-                href="/login"
+                href="/registration"
                 className="button button-sm primary"
                 style={{
                   fontSize: "12px",
@@ -360,7 +336,7 @@ export function PublicHeaderClient({
                   fontWeight: 800,
                 }}
               >
-                Admin Login
+                Join League
               </Link>
             )}
           </div>
