@@ -42,12 +42,6 @@ export default async function AccountPrivacyPage() {
     }
   }
 
-  async function handleExportData() {
-    "use server";
-    const session = await getVerifiedSession();
-    const { data } = await session.supabase.rpc("export_my_player_data");
-    return data;
-  }
 
   async function handleAnonymization(formData: FormData) {
     "use server";
@@ -88,15 +82,24 @@ export default async function AccountPrivacyPage() {
           match attendance entries, and communication preferences.
         </p>
 
-        <form action={handleExportData}>
-          <button
-            type="submit"
+        <div style={{ marginTop: "1rem" }}>
+          <a
+            href="/api/account/export"
+            download="plaionn-personal-data.json"
             className="button primary"
-            style={{ padding: "10px 22px" }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "11px 24px",
+              fontSize: "13.5px",
+              fontWeight: 800,
+              textDecoration: "none",
+            }}
           >
             Download Personal Data Archive (JSON) →
-          </button>
-        </form>
+          </a>
+        </div>
       </section>
 
       {/* 2. Optional Permissions & Consent Revocation */}
