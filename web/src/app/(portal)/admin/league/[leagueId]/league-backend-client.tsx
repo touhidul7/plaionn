@@ -130,25 +130,49 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
   const [newPlayerWaiver, setNewPlayerWaiver] = useState<"Signed" | "Pending">("Signed");
 
   // Add Team Handler
-  const handleCreateTeam = (e: React.FormEvent) => {
+  const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTeamName.trim()) return;
+    const teamMgrEmail = newTeamEmail.trim().toLowerCase();
+    const teamMgrName = newTeamManager.trim() || "Team Captain";
+    const teamTitle = newTeamName.trim();
+
     const newTeam: Team = {
       id: `t-${Date.now()}`,
-      name: newTeamName.trim(),
+      name: teamTitle,
       division: newTeamDivision,
-      manager: newTeamManager.trim() || "Team Captain",
-      managerEmail: newTeamEmail.trim() || "captain@team.com",
+      manager: teamMgrName,
+      managerEmail: teamMgrEmail || "captain@team.com",
       paidStatus: "Pending",
       amountDue: 1500,
       amountPaid: 0,
       roster: [
-        { id: `p-${Date.now()}-1`, name: newTeamManager.trim() || "Captain", number: 9, position: "F", registered: true, waiverStatus: "Signed", paymentStatus: "Paid" },
+        { id: `p-${Date.now()}-1`, name: teamMgrName, number: 9, position: "F", registered: true, waiverStatus: "Signed", paymentStatus: "Paid" },
       ],
     };
     const nextTeams = [...teams, newTeam];
     setTeams(nextTeams);
     saveToStorage(nextTeams, divisions, schedule);
+
+    // Send invitation email to Team Manager via Supabase SMTP
+    if (teamMgrEmail && teamMgrEmail.includes("@")) {
+      try {
+        await fetch("/api/admin/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: teamMgrName,
+            email: teamMgrEmail,
+            userType: "Team Admin / Manager",
+            scope: `${teamTitle} (${newTeamDivision})`,
+            waiverStatus: "Cleared & Signed",
+          }),
+        });
+      } catch (err) {
+        console.warn("Could not dispatch manager invite:", err);
+      }
+    }
+
     setNewTeamName("");
     setNewTeamManager("");
     setNewTeamEmail("");
@@ -1059,6 +1083,20 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                   placeholder="manager@example.com"
                   style={{ width: "100%", padding: "10px", borderRadius: "8px", background: "#162734", border: "1px solid var(--line)", color: "#fff" }}
                 />
+              </div>
+
+              <div
+                style={{
+                  background: "rgba(103, 232, 249, 0.08)",
+                  border: "1px solid rgba(103, 232, 249, 0.25)",
+                  borderRadius: "8px",
+                  padding: "10px 12px",
+                  fontSize: "12px",
+                  color: "var(--text)",
+                  lineHeight: "1.4",
+                }}
+              >
+                ✉️ <strong style={{ color: "var(--accent)" }}>Supabase Invite:</strong> Saving this team will send an official invitation email to this manager so they can set their password and manage this team's roster.
               </div>
             </div>
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "24px" }}>
