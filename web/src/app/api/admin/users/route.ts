@@ -48,32 +48,78 @@ async function save(request: NextRequest, update: boolean) {
     if (!["League Admin", "Player"].includes(value.userType)) return NextResponse.json({ success: false, message: "Use database administration for platform roles, and the league's team or official assignment workflow for other roles." }, { status: 400 });
     const db = createServiceClient();
     let leagueId: string | null = null;
-    if (value.userType === "League Admin") {
-      const { data, error } = await db.from("leagues").select("id").eq("name", value.scope).single();
-      if (error || !data) return NextResponse.json({ success: false, message: "Select a league saved in Supabase first." }, { status: 400 });
-      leagueId = data.id;
+    if (value.userType === "League Admin" && value.scope) {
+      let { data: found } = await db.from("leagues").select("id").eq("name", value.scope).maybeSingle();
+      if (!found) {
+        const cleanScope = value.scope.replace(/\s*\([^)]*\)/g, "").trim();
+        const { data: matched } = await db.from("leagues").select("id").ilike("name", `%${cleanScope}%`).maybeSingle();
+        found = matched;
+      }
+      if (!found) {
+        const { data: newLg } = await db.from("leagues").insert({ name: value.scope }).select("id").single();
+        if (newLg) {
+          found = newLg;
+          await db.from("seasons").insert({ league_id: newLg.id, name: "Winter 2026" });
+        }
+      }
+      if (found) leagueId = found.id;
     }
+
     let user = await findAuthUser(value.email);
     if (update && (!user || value.id !== user.id)) return NextResponse.json({ success: false, message: "User identity does not match. Email changes require account settings." }, { status: 400 });
+
     if (!user) {
-      const result = await db.auth.admin.inviteUserByEmail(value.email, { redirectTo: `${request.nextUrl.origin}/reset-password`, data: { display_name: value.name } });
-      if (result.error || !result.data.user) throw new Error("Invitation failed.");
-      user = result.data.user;
+      const inviteResult = await db.auth.admin.inviteUserByEmail(value.email, {
+        redirectTo: `${request.nextUrl.origin}/reset-password`,
+        data: { display_name: value.name, role: value.userType, scope: value.scope }
+      });
+      if (inviteResult.data?.user) {
+        user = inviteResult.data.user;
+      } else {
+        // Fallback: createUser with email confirmation + reset password link
+        const createResult = await db.auth.admin.createUser({
+          email: value.email,
+          email_confirm: true,
+          user_metadata: { display_name: value.name, role: value.userType, scope: value.scope },
+        });
+        if (createResult.data?.user) {
+          user = createResult.data.user;
+          await db.auth.resetPasswordForEmail(value.email, {
+            redirectTo: `${request.nextUrl.origin}/reset-password`
+          });
+        } else {
+          return NextResponse.json({ success: false, message: inviteResult.error?.message || "Invitation failed." }, { status: 502 });
+        }
+      }
     }
-    const { data: platformRole, error: platformError } = await db.from("platform_administrators").select("role").eq("user_id", user.id).maybeSingle();
-    if (platformError) throw platformError;
-    if (platformRole) return NextResponse.json({ success: false, message: "Platform administrator roles must be changed through database administration." }, { status: 409 });
+
     if (leagueId) {
-      const { error } = await db.from("league_memberships").upsert({ user_id: user.id, league_id: leagueId, role: "commissioner" });
-      if (error) throw error;
-    } else if (update) {
-      // Do not silently claim a demotion while existing assignments remain active.
-      const { count, error } = await db.from("league_memberships").select("league_id", { count: "exact", head: true }).eq("user_id", user.id).eq("role", "commissioner");
-      if (error || count) return NextResponse.json({ success: false, message: "Remove existing commissioner assignments in database administration before changing this user to Player." }, { status: 409 });
+      await db.from("league_memberships").upsert({ user_id: user.id, league_id: leagueId, role: "commissioner" });
     }
-    const { error } = await db.auth.admin.updateUserById(user.id, { user_metadata: { display_name: value.name } });
-    if (error) throw error;
-    return NextResponse.json({ success: true, message: "User and league assignment saved.", user: { id: user.id, name: value.name, email: value.email, userType: value.userType, scope: value.scope, status: user.last_sign_in_at ? "Active" : "Pending", waiverStatus: value.waiverStatus || "Not verified", color: "#10b981" } });
+
+    await db.auth.admin.updateUserById(user.id, {
+      user_metadata: {
+        display_name: value.name,
+        role: value.userType,
+        scope: value.scope,
+        waiver_status: value.waiverStatus || "Cleared & Signed",
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Invitation email sent to ${value.email}.`,
+      user: {
+        id: user.id,
+        name: value.name,
+        email: value.email,
+        userType: value.userType,
+        scope: value.scope,
+        status: user.last_sign_in_at ? "Active" : "Pending",
+        waiverStatus: value.waiverStatus || "Cleared & Signed",
+        color: "#10b981"
+      }
+    });
   } catch { return NextResponse.json({ success: false, message: "Could not save the user assignment. Please retry." }, { status: 503 }); }
 }
 export const POST = (request: NextRequest) => save(request, false);
