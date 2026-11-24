@@ -13,6 +13,10 @@ export const DOMAIN_LEAGUE_MAP: Record<string, string> = {
   "www.plaionn.com": "platform",
 
   // Test & Client domains: *.plaionn.brittosoft.online
+  "ontariocen.plaionn.brittosoft.online": "71a624e7-3152-49ac-9f3c-397c95c466d3",
+  "ontariocentral.plaionn.brittosoft.online": "71a624e7-3152-49ac-9f3c-397c95c466d3",
+  "ontarionat.plaionn.brittosoft.online": "8768117b-482b-457c-96e4-3171209af6c0",
+  "torontomet.plaionn.brittosoft.online": "3fccda71-0263-479d-be59-27ab40fe51fd",
   "league1.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000001",
   "bhl.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000001",
   "league2.plaionn.brittosoft.online": "60000000-0000-4000-8000-000000000003",
