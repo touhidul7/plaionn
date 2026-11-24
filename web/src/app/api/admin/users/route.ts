@@ -172,9 +172,35 @@ async function save(request: NextRequest, update: boolean) {
 }
 export const POST = (request: NextRequest) => save(request, false);
 export const PUT = (request: NextRequest) => save(request, true);
-export async function DELETE() {
+
+export async function DELETE(request: NextRequest) {
   try {
-    const denied = await authorize(); if (denied) return denied;
-    return NextResponse.json({ success: false, message: "Account deletion requires database administration to review existing league records." }, { status: 409 });
-  } catch { return NextResponse.json({ success: false }, { status: 503 }); }
+    const denied = await authorize();
+    if (denied) return denied;
+
+    const id = request.nextUrl.searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ success: false, message: "User ID is required." }, { status: 400 });
+    }
+
+    const db = createServiceClient();
+
+    // 1. Delete user league memberships and assignments
+    try {
+      await db.from("league_memberships").delete().eq("user_id", id);
+      await db.from("official_assignments").delete().eq("user_id", id);
+    } catch {
+      // Ignored if table or record does not exist
+    }
+
+    // 2. Delete user from Supabase Auth
+    const { error } = await db.auth.admin.deleteUser(id);
+    if (error) {
+      return NextResponse.json({ success: false, message: error.message || "Could not delete user." }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: "User deleted successfully." });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, message: err instanceof Error ? err.message : "Failed to delete user." }, { status: 500 });
+  }
 }

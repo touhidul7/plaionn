@@ -85,3 +85,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, message: "League administration is unavailable. Check the server configuration and database migrations." }, { status: 503 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const access = await getAdminAccess();
+    if (!access.isPlatformAdmin) {
+      return NextResponse.json({ success: false, message: "Platform administrator access required." }, { status: access.user ? 403 : 401 });
+    }
+
+    const leagueId = request.nextUrl.searchParams.get("id");
+    if (!leagueId) {
+      return NextResponse.json({ success: false, message: "League ID is required." }, { status: 400 });
+    }
+
+    const db = createServiceClient();
+
+    // Cascading delete of all dependent records for this league
+    await Promise.all([
+      db.from("game_events").delete().eq("league_id", leagueId),
+      db.from("games").delete().eq("league_id", leagueId),
+      db.from("team_entries").delete().eq("league_id", leagueId),
+      db.from("teams").delete().eq("league_id", leagueId),
+      db.from("divisions").delete().eq("league_id", leagueId),
+      db.from("seasons").delete().eq("league_id", leagueId),
+      db.from("league_memberships").delete().eq("league_id", leagueId),
+    ]);
+
+    const { error } = await db.from("leagues").delete().eq("id", leagueId);
+    if (error) {
+      return NextResponse.json({ success: false, message: error.message || "Could not delete league." }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: "League deleted successfully." });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, message: err instanceof Error ? err.message : "Failed to delete league." }, { status: 500 });
+  }
+}

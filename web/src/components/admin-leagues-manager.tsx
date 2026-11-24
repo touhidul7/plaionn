@@ -116,8 +116,23 @@ export function AdminLeaguesManager({
     finally { setSaving(false); }
   };
 
-  const handleDeleteCustomLeague = () => {
-    showToast("League deletion requires a database administrator to review dependent records.");
+  const handleDeleteLeague = async (lg: LeagueItem) => {
+    if (confirm(`Are you sure you want to permanently delete league "${lg.name}"? This will delete all its teams, seasons, and games.`)) {
+      try {
+        const res = await fetch(`/api/admin/leagues?id=${encodeURIComponent(lg.id)}`, {
+          method: "DELETE",
+        });
+        const result = await res.json();
+        if (!res.ok || !result.success) {
+          showToast(result.message || "Could not delete league.");
+          return;
+        }
+        setLeagues(current => current.filter(l => l.id !== lg.id));
+        showToast(`League "${lg.name}" deleted successfully.`);
+      } catch {
+        showToast("Could not delete league. Please retry.");
+      }
+    }
   };
 
   return (
@@ -256,10 +271,10 @@ export function AdminLeaguesManager({
                     >
                       Public ↗
                     </a>
-                    {lg.isCustom && (
+                    {!isLeagueAdminOnly && (
                       <button
                         type="button"
-                        onClick={() => handleDeleteCustomLeague()}
+                        onClick={() => handleDeleteLeague(lg)}
                         className="button button-sm"
                         style={{
                           fontSize: "11px",
@@ -269,9 +284,9 @@ export function AdminLeaguesManager({
                           border: "1px solid rgba(239, 68, 68, 0.3)",
                           cursor: "pointer",
                         }}
-                        title="Delete custom league"
+                        title={`Delete ${lg.name}`}
                       >
-                        🗑
+                        Delete
                       </button>
                     )}
                   </div>

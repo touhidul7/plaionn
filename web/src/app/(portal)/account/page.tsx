@@ -13,70 +13,61 @@ export default async function AccountPage() {
   if (!user) {
     return <AccountAuthClientRedirect />;
   }
-  let memberships = null;
-  let ids: string[] = [];
+  let memberships: Array<{ league_id: string; role: string }> = [];
+  let leaguesList: Array<{ id: string; name: string }> = [];
+
   try {
-    const { data } = await supabase
+    const { createServiceClient } = await import("@/lib/supabase/admin");
+    const serviceDb = createServiceClient();
+    const { data } = await serviceDb
       .from("league_memberships")
       .select("league_id,role")
       .eq("user_id", user.id);
     if (data && data.length > 0) memberships = data;
-  } catch {
-    // Graceful fallback
-  }
 
-  // Fallback to service client if RLS blocked or empty
-  if (!memberships || memberships.length === 0) {
-    try {
-      const { createServiceClient } = await import("@/lib/supabase/admin");
-      const serviceDb = createServiceClient();
-      const { data } = await serviceDb
-        .from("league_memberships")
-        .select("league_id,role")
-        .eq("user_id", user.id);
-      if (data && data.length > 0) memberships = data;
-
-      // Also check user metadata scope if still empty
-      if (!memberships || memberships.length === 0) {
-        const scope = (user.user_metadata?.scope || "").trim();
-        if (scope && scope !== "Global Platform" && scope !== "Unassigned") {
-          const { data: matchedLeague } = await serviceDb
-            .from("leagues")
-            .select("id, name")
-            .ilike("name", `%${scope}%`)
-            .limit(1);
-          if (matchedLeague && matchedLeague[0]) {
+    // Check user metadata scope for any assigned leagues
+    const scope = (user.user_metadata?.scope || "").trim();
+    if (scope && scope !== "Global Platform" && scope !== "Unassigned") {
+      const scopes = scope.split(",").map((s: string) => s.trim()).filter(Boolean);
+      for (const s of scopes) {
+        const { data: matchedLeague } = await serviceDb
+          .from("leagues")
+          .select("id, name")
+          .ilike("name", `%${s}%`)
+          .limit(1);
+        if (matchedLeague && matchedLeague[0]) {
+          const lId = matchedLeague[0].id;
+          if (!memberships.some((m) => m.league_id === lId)) {
             await serviceDb.from("league_memberships").upsert({
-              league_id: matchedLeague[0].id,
+              league_id: lId,
               user_id: user.id,
               role: "commissioner",
             });
-            memberships = [{ league_id: matchedLeague[0].id, role: "commissioner" }];
+            memberships.push({ league_id: lId, role: "commissioner" });
           }
         }
       }
-    } catch {
-      // Graceful fallback
     }
-  }
 
-  ids = [...new Set((memberships ?? []).map((m) => m.league_id))];
-  let leaguesList: Array<{ id: string; name: string }> = [];
-  if (ids.length > 0) {
-    const { data } = await supabase.from("leagues").select("id,name").in("id", ids);
-    if (data && data.length > 0) {
-      leaguesList = data;
-    } else {
-      // Fallback query via service client if public RLS hides newly created league
-      try {
-        const { createServiceClient } = await import("@/lib/supabase/admin");
-        const serviceDb = createServiceClient();
-        const { data: sData } = await serviceDb.from("leagues").select("id,name").in("id", ids);
-        if (sData) leaguesList = sData;
-      } catch {
-        // Fallback
-      }
+    const ids = [...new Set(memberships.map((m) => m.league_id))];
+    if (ids.length > 0) {
+      const { data: lData } = await serviceDb.from("leagues").select("id,name").in("id", ids);
+      if (lData && lData.length > 0) leaguesList = lData;
     }
+  } catch {
+    // Fallback if service client unavailable
+    try {
+      const { data } = await supabase
+        .from("league_memberships")
+        .select("league_id,role")
+        .eq("user_id", user.id);
+      if (data && data.length > 0) {
+        memberships = data;
+        const ids = [...new Set(data.map((m) => m.league_id))];
+        const { data: lData } = await supabase.from("leagues").select("id,name").in("id", ids);
+        if (lData) leaguesList = lData;
+      }
+    } catch {}
   }
 
   const hasLeagues = Boolean(leaguesList.length);
