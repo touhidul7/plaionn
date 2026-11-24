@@ -342,8 +342,8 @@ export default async function LiveGamePage({
       <section className="panel" style={{ marginBottom: "24px", padding: "28px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid var(--line)", paddingBottom: "12px" }}>
           <div>
-            <span className="badge" style={{ background: fixture.status === "completed" ? "#1a382b" : isLive ? "#dc2626" : "#1e3a8a", color: fixture.status === "completed" ? "var(--lime)" : isLive ? "#ffffff" : "#93c5fd", fontWeight: 700, textTransform: "uppercase" }}>
-              {fixture.status === "completed" ? "FINAL" : isLive ? "LIVE" : "SCHEDULED"}
+            <span className="badge" style={{ background: isCompleted ? "#1a382b" : isLive ? "#dc2626" : "#1e3a8a", color: isCompleted ? "var(--lime)" : isLive ? "#ffffff" : "#93c5fd", fontWeight: 700, textTransform: "uppercase" }}>
+              {isCompleted ? "FINAL" : isLive ? "LIVE" : "SCHEDULED"}
             </span>
             <span style={{ marginLeft: "10px", fontSize: "13px", color: "var(--muted)" }}>
               {arenaLocation}
@@ -437,14 +437,7 @@ export default async function LiveGamePage({
       {/* 4. Official Three Stars of the Game Banner */}
       <GameStarsBanner gameId={gameId} />
 
-      {/* 5. Live Scoreboard Polling & Event Feed Component */}
-      <LiveScoreboard
-        initial={boardData}
-        homeName={homeName}
-        awayName={awayName}
-      />
-
-      {/* 6. Scoring Summary with Goals & Assists */}
+      {/* 5. Scoring Summary with Goals & Assists */}
       <section className="panel" style={{ marginBottom: "24px" }}>
         <div className="section-heading" style={{ margin: "0 0 16px" }}>
           <h2 style={{ margin: 0 }}>Scoring Summary</h2>

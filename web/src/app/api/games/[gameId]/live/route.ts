@@ -49,18 +49,16 @@ export async function GET(
   // This guarantees live updates work 100% even if the RPC was not applied in cloud Supabase!
   const { data: rawEvents } = await supabase
     .from("game_events")
-    .select("id, period, clock_seconds, event_type, team_entry_id, penalty_minutes, created_at")
+    .select("id, period, clock_seconds_remaining, event_kind, team_entry_id, penalty_minutes, recorded_at")
     .eq("game_id", gameId)
-    .eq("voided", false)
-    .order("period", { ascending: true })
-    .order("clock_seconds", { ascending: false });
+    .order("recorded_at", { ascending: true });
 
   const events = rawEvents || [];
   const homeGoals = events.filter(
-    (e) => e.event_type === "goal" && e.team_entry_id === fixture.home_entry_id
+    (e) => e.event_kind === "goal" && e.team_entry_id === fixture.home_entry_id
   ).length;
   const awayGoals = events.filter(
-    (e) => e.event_type === "goal" && e.team_entry_id === fixture.away_entry_id
+    (e) => e.event_kind === "goal" && e.team_entry_id === fixture.away_entry_id
   ).length;
 
   const fallbackData: LiveScoreboardData = {
@@ -71,12 +69,12 @@ export async function GET(
     away_score: awayGoals,
     events: events.map((e) => ({
       id: e.id,
-      event_kind: e.event_type as "goal" | "penalty",
+      event_kind: e.event_kind as "goal" | "penalty",
       team_entry_id: e.team_entry_id,
       period: e.period,
-      clock_seconds_remaining: e.clock_seconds,
+      clock_seconds_remaining: e.clock_seconds_remaining,
       penalty_minutes: e.penalty_minutes,
-      recorded_at: e.created_at,
+      recorded_at: e.recorded_at,
     })),
     snapshot_at: new Date().toISOString(),
   };
