@@ -86,53 +86,71 @@ export default async function LiveGamePage({
     ? `${sanitizeVenueName(rinkData.venues?.name)} · ${rinkData.name ?? "Rink 1"}`
     : "Metro Arena Rink";
 
-  // Load raw game events for linescore, scoring summary, and penalties
-  const { data: rawEvents } = await supabase
-    .from("game_events")
-    .select("id, period, clock_seconds, event_type, team_entry_id, player_id, assist1_player_id, assist2_player_id, penalty_minutes, voided, created_at")
-    .eq("game_id", gameId)
-    .eq("voided", false)
-    .order("period", { ascending: true })
-    .order("clock_seconds", { ascending: false });
+  // Load raw game events, voids, game results, and rosters from database
+  const [eventsRes, voidsRes, gameResultRes, homeRosterRes, awayRosterRes] = await Promise.all([
+    supabase
+      .from("game_events")
+      .select("id, period, clock_seconds_remaining, event_kind, team_entry_id, player_id, assist_one_id, assist_two_id, penalty_minutes, recorded_at")
+      .eq("game_id", gameId)
+      .order("recorded_at", { ascending: true }),
+    supabase
+      .from("game_event_voids")
+      .select("event_id")
+      .eq("game_id", gameId),
+    supabase
+      .from("game_results")
+      .select("home_score, away_score, status, decision")
+      .eq("game_id", gameId)
+      .maybeSingle(),
+    supabase
+      .from("team_roster_members")
+      .select("jersey_number, player_position, players(id, display_name)")
+      .eq("team_entry_id", fixture.home_entry_id),
+    supabase
+      .from("team_roster_members")
+      .select("jersey_number, player_position, players(id, display_name)")
+      .eq("team_entry_id", fixture.away_entry_id),
+  ]);
 
-  const events = rawEvents || [];
+  const voidIds = new Set(((voidsRes?.data as any[]) || []).map((v) => v.event_id));
+  const events = ((eventsRes?.data as any[]) || []).filter((e) => !voidIds.has(e.id));
 
-  // Match with unified league schedule if available for mathematically consistent score
-  const unifiedGames = getUnifiedLeagueGames(league.id);
-  const matchedUnified = unifiedGames.find((g) => g.game_id === gameId);
-  const effectiveStatus = matchedUnified ? matchedUnified.status : fixture.status;
-  const isCompleted = effectiveStatus === "completed";
+  const isCompleted = fixture.status === "completed" || gameResultRes.data?.status === "approved";
+  const isLive = fixture.status === "in_progress" || fixture.status === "live" || (events.length > 0 && !isCompleted);
+
+  // Filter real goals and penalties
+  const realGoals = events.filter((e) => e.event_kind === "goal");
+  const realPenalties = events.filter((e) => e.event_kind === "penalty");
+
+  const homeGoals = realGoals.filter((e) => e.team_entry_id === fixture.home_entry_id);
+  const awayGoals = realGoals.filter((e) => e.team_entry_id === fixture.away_entry_id);
 
   // Period-by-period goal counts
-  const periods = [1, 2, 3];
-  const homeP1 = events.filter((e) => e.event_type === "goal" && e.team_entry_id === fixture.home_entry_id && e.period === 1).length;
-  const homeP2 = events.filter((e) => e.event_type === "goal" && e.team_entry_id === fixture.home_entry_id && e.period === 2).length;
-  const homeP3 = events.filter((e) => e.event_type === "goal" && e.team_entry_id === fixture.home_entry_id && e.period === 3).length;
-  const homeOT = events.filter((e) => e.event_type === "goal" && e.team_entry_id === fixture.home_entry_id && e.period > 3).length;
+  const homeP1 = homeGoals.filter((e) => e.period === 1).length;
+  const homeP2 = homeGoals.filter((e) => e.period === 2).length;
+  const homeP3 = homeGoals.filter((e) => e.period === 3).length;
+  const homeOT = homeGoals.filter((e) => e.period > 3).length;
   const homeTotal = homeP1 + homeP2 + homeP3 + homeOT;
 
-  const awayP1 = events.filter((e) => e.event_type === "goal" && e.team_entry_id === fixture.away_entry_id && e.period === 1).length;
-  const awayP2 = events.filter((e) => e.event_type === "goal" && e.team_entry_id === fixture.away_entry_id && e.period === 2).length;
-  const awayP3 = events.filter((e) => e.event_type === "goal" && e.team_entry_id === fixture.away_entry_id && e.period === 3).length;
-  const awayOT = events.filter((e) => e.event_type === "goal" && e.team_entry_id === fixture.away_entry_id && e.period > 3).length;
+  const awayP1 = awayGoals.filter((e) => e.period === 1).length;
+  const awayP2 = awayGoals.filter((e) => e.period === 2).length;
+  const awayP3 = awayGoals.filter((e) => e.period === 3).length;
+  const awayOT = awayGoals.filter((e) => e.period > 3).length;
   const awayTotal = awayP1 + awayP2 + awayP3 + awayOT;
 
-  const hasEvents = events.length > 0;
-  const defaultHomeScore: number = matchedUnified?.home_score != null ? matchedUnified.home_score : 4;
-  const defaultAwayScore: number = matchedUnified?.away_score != null ? matchedUnified.away_score : 2;
+  // Real scores — 0 if unplayed or no goals
+  const displayHomeTotal: number = gameResultRes.data?.home_score ?? homeTotal;
+  const displayAwayTotal: number = gameResultRes.data?.away_score ?? awayTotal;
 
-  const displayHomeTotal: number = hasEvents ? homeTotal : defaultHomeScore;
-  const displayAwayTotal: number = hasEvents ? awayTotal : defaultAwayScore;
+  const displayAwayP1 = awayP1;
+  const displayAwayP2 = awayP2;
+  const displayAwayP3 = awayP3;
+  const displayAwayOT = awayOT;
 
-  const displayAwayP1 = hasEvents ? awayP1 : Math.min(1, displayAwayTotal);
-  const displayAwayP2 = hasEvents ? awayP2 : Math.max(0, Math.floor((displayAwayTotal - displayAwayP1) / 2));
-  const displayAwayP3 = hasEvents ? awayP3 : Math.max(0, displayAwayTotal - displayAwayP1 - displayAwayP2);
-  const displayAwayOT = hasEvents ? awayOT : 0;
-
-  const displayHomeP1 = hasEvents ? homeP1 : Math.min(2, Math.floor(displayHomeTotal / 2));
-  const displayHomeP2 = hasEvents ? homeP2 : Math.min(2, Math.floor((displayHomeTotal - displayHomeP1) / 2));
-  const displayHomeP3 = hasEvents ? homeP3 : Math.max(0, displayHomeTotal - displayHomeP1 - displayHomeP2);
-  const displayHomeOT = hasEvents ? homeOT : 0;
+  const displayHomeP1 = homeP1;
+  const displayHomeP2 = homeP2;
+  const displayHomeP3 = homeP3;
+  const displayHomeOT = homeOT;
 
   const hasOT = displayHomeOT > 0 || displayAwayOT > 0;
 
@@ -149,16 +167,16 @@ export default async function LiveGamePage({
     game_id: gameId,
     home_entry_id: fixture.home_entry_id,
     away_entry_id: fixture.away_entry_id,
-    home_score: homeTotal,
-    away_score: awayTotal,
+    home_score: displayHomeTotal,
+    away_score: displayAwayTotal,
     events: events.map((e) => ({
       id: e.id,
-      event_kind: e.event_type as "goal" | "penalty",
+      event_kind: e.event_kind as "goal" | "penalty",
       team_entry_id: e.team_entry_id,
       period: e.period,
-      clock_seconds_remaining: e.clock_seconds,
+      clock_seconds_remaining: e.clock_seconds_remaining,
       penalty_minutes: e.penalty_minutes,
-      recorded_at: e.created_at,
+      recorded_at: e.recorded_at,
     })),
     snapshot_at: new Date().toISOString(),
   };
@@ -182,10 +200,6 @@ export default async function LiveGamePage({
         goalies: [],
       };
 
-  const realGoals = events.filter((e) => e.event_type === "goal");
-  const realPenalties = events.filter((e) => e.event_type === "penalty");
-
-  // Fallback realistic theScore-style goals if unseeded
   interface DisplayGoal {
     id: string;
     period: number;
@@ -201,163 +215,75 @@ export default async function LiveGamePage({
   }
 
   const generatedGoals: DisplayGoal[] = [];
-  if (realGoals.length > 0) {
-    for (const g of realGoals) {
-      const isHome = g.team_entry_id === fixture.home_entry_id;
-      const scorer = allPlayers.find((p) => p.id === g.player_id);
-      const a1 = allPlayers.find((p) => p.id === g.assist1_player_id);
-      const a2 = allPlayers.find((p) => p.id === g.assist2_player_id);
-      const minutes = Math.floor((g.clock_seconds || 0) / 60);
-      const seconds = ((g.clock_seconds || 0) % 60).toString().padStart(2, "0");
-      generatedGoals.push({
-        id: g.id,
-        period: g.period,
-        periodLabel: g.period === 4 ? "OT" : `Period ${g.period}`,
-        time: `${minutes}:${seconds}`,
-        teamName: isHome ? homeName : awayName,
-        teamEntryId: g.team_entry_id,
-        scorerName: scorer?.display_name || "Unassigned Scorer",
-        scorerPlayerId: scorer?.id,
-        assist1Name: a1?.display_name,
-        assist2Name: a2?.display_name,
-        strength: "EV",
-      });
-    }
-  } else {
-    // Generate mathematically consistent theScore goals matching display scores
-    if (displayAwayTotal >= 1) {
-      generatedGoals.push({
-        id: "goal-away-1",
-        period: 1,
-        periodLabel: "1st Period",
-        time: "14:22",
-        teamName: awayName,
-        teamEntryId: fixture.away_entry_id,
-        scorerName: "Marcus Vance",
-        assist1Name: "Nathan Brooks",
-        assist2Name: "David Miller",
-        strength: "EV",
-      });
-    }
-    if (displayHomeTotal >= 1) {
-      generatedGoals.push({
-        id: "goal-home-1",
-        period: 1,
-        periodLabel: "1st Period",
-        time: "08:45",
-        teamName: homeName,
-        teamEntryId: fixture.home_entry_id,
-        scorerName: "Alex Mercer",
-        assist1Name: "Ryan Sterling",
-        assist2Name: "Jordan Reed",
-        strength: "PPG",
-      });
-    }
-    if (displayHomeTotal >= 2) {
-      generatedGoals.push({
-        id: "goal-home-2",
-        period: 2,
-        periodLabel: "2nd Period",
-        time: "12:10",
-        teamName: homeName,
-        teamEntryId: fixture.home_entry_id,
-        scorerName: "Ryan Sterling",
-        assist1Name: "Tyler Chen",
-        strength: "EV",
-      });
-    }
-    if (displayHomeTotal >= 3) {
-      generatedGoals.push({
-        id: "goal-home-3",
-        period: 2,
-        periodLabel: "2nd Period",
-        time: "03:18",
-        teamName: homeName,
-        teamEntryId: fixture.home_entry_id,
-        scorerName: "Tyler Chen",
-        assist1Name: "Alex Mercer",
-        strength: "EV",
-      });
-    }
-    if (displayAwayTotal >= 2) {
-      generatedGoals.push({
-        id: "goal-away-2",
-        period: 3,
-        periodLabel: "3rd Period",
-        time: "10:04",
-        teamName: awayName,
-        teamEntryId: fixture.away_entry_id,
-        scorerName: "Liam O'Connor",
-        assist1Name: "Marcus Vance",
-        strength: "EV",
-      });
-    }
-    if (displayHomeTotal >= 4) {
-      generatedGoals.push({
-        id: "goal-home-4",
-        period: 3,
-        periodLabel: "3rd Period",
-        time: "01:12",
-        teamName: homeName,
-        teamEntryId: fixture.home_entry_id,
-        scorerName: "Alex Mercer",
-        assist1Name: "Jordan Reed",
-        strength: "EN",
-      });
-    }
-    if (displayAwayTotal >= 3) {
-      generatedGoals.push({
-        id: "goal-away-3",
-        period: 3,
-        periodLabel: "3rd Period",
-        time: "00:35",
-        teamName: awayName,
-        teamEntryId: fixture.away_entry_id,
-        scorerName: "David Miller",
-        assist1Name: "Marcus Vance",
-        strength: "EV",
-      });
-    }
+  for (const g of realGoals) {
+    const isHome = g.team_entry_id === fixture.home_entry_id;
+    const scorer = allPlayers.find((p) => p.id === g.player_id);
+    const a1 = allPlayers.find((p) => p.id === g.assist_one_id);
+    const a2 = allPlayers.find((p) => p.id === g.assist_two_id);
+    const remaining = g.clock_seconds_remaining || 0;
+    const minutes = Math.floor(remaining / 60);
+    const seconds = (remaining % 60).toString().padStart(2, "0");
+    generatedGoals.push({
+      id: g.id,
+      period: g.period,
+      periodLabel: g.period === 4 ? "OT" : `Period ${g.period}`,
+      time: `${minutes}:${seconds}`,
+      teamName: isHome ? homeName : awayName,
+      teamEntryId: g.team_entry_id,
+      scorerName: scorer?.display_name || "Unassigned Scorer",
+      scorerPlayerId: scorer?.id,
+      assist1Name: a1?.display_name,
+      assist2Name: a2?.display_name,
+      strength: "EV",
+    });
   }
 
-  // Fallback realistic skaters data
-  const awaySkaters = [
-    { number: 9, name: "Marcus Vance", pos: "C", g: Math.min(1, displayAwayTotal), a: 2, pts: Math.min(1, displayAwayTotal) + 2, pm: 1, sog: 4, pim: 0 },
-    { number: 17, name: "Liam O'Connor", pos: "LW", g: displayAwayTotal >= 2 ? 1 : 0, a: 0, pts: displayAwayTotal >= 2 ? 1 : 0, pm: 0, sog: 3, pim: 2 },
-    { number: 22, name: "David Miller", pos: "RW", g: displayAwayTotal >= 3 ? 1 : 0, a: 1, pts: (displayAwayTotal >= 3 ? 1 : 0) + 1, pm: 1, sog: 2, pim: 0 },
-    { number: 4, name: "Nathan Brooks", pos: "D", g: 0, a: 1, pts: 1, pm: 0, sog: 1, pim: 2 },
-    { number: 7, name: "Eric Lindholm", pos: "D", g: 0, a: 0, pts: 0, pm: -1, sog: 2, pim: 0 },
-    { number: 11, name: "Samir Rahman", pos: "C", g: 0, a: 0, pts: 0, pm: -1, sog: 2, pim: 0 },
-  ];
+  // Real team skater statistics mapped from actual rosters
+  const mapRosterSkaters = (rosterData: any[], teamId: string) => {
+    return (rosterData || []).map((m: any) => {
+      const pId = m.players?.id;
+      const gCount = realGoals.filter((g) => g.team_entry_id === teamId && g.player_id === pId).length;
+      const aCount = realGoals.filter((g) => g.team_entry_id === teamId && (g.assist_one_id === pId || g.assist_two_id === pId)).length;
+      const pimCount = realPenalties.filter((pen) => pen.team_entry_id === teamId && pen.player_id === pId).reduce((acc: number, pen: any) => acc + (pen.penalty_minutes || 2), 0);
+      return {
+        number: m.jersey_number ?? 0,
+        name: sanitizePlayerName(m.players?.display_name || "Player"),
+        pos: m.player_position ?? "F",
+        g: gCount,
+        a: aCount,
+        pts: gCount + aCount,
+        pm: 0,
+        sog: gCount,
+        pim: pimCount,
+      };
+    });
+  };
 
-  const homeSkaters = [
-    { number: 88, name: "Alex Mercer", pos: "C", g: Math.min(2, displayHomeTotal), a: 1, pts: Math.min(2, displayHomeTotal) + 1, pm: 2, sog: 6, pim: 0 },
-    { number: 19, name: "Ryan Sterling", pos: "RW", g: displayHomeTotal >= 2 ? 1 : 0, a: 2, pts: (displayHomeTotal >= 2 ? 1 : 0) + 2, pm: 2, sog: 4, pim: 0 },
-    { number: 14, name: "Tyler Chen", pos: "LW", g: displayHomeTotal >= 3 ? 1 : 0, a: 1, pts: (displayHomeTotal >= 3 ? 1 : 0) + 1, pm: 1, sog: 3, pim: 2 },
-    { number: 5, name: "Jordan Reed", pos: "D", g: 0, a: 2, pts: 2, pm: 2, sog: 2, pim: 0 },
-    { number: 27, name: "Chris Nolan", pos: "D", g: 0, a: 0, pts: 0, pm: 0, sog: 1, pim: 4 },
-    { number: 23, name: "Derek Shaw", pos: "RW", g: 0, a: 0, pts: 0, pm: 0, sog: 2, pim: 0 },
-  ];
+  const awaySkaters = mapRosterSkaters(awayRosterRes.data as any[], fixture.away_entry_id);
+  const homeSkaters = mapRosterSkaters(homeRosterRes.data as any[], fixture.home_entry_id);
 
-  // Goalie Stats
+  // Goalie Stats from roster
+  const awayGoaliePlayer = (awayRosterRes.data as any[])?.find((m) => m.player_position === "G") || (awayRosterRes.data as any[])?.[0];
+  const homeGoaliePlayer = (homeRosterRes.data as any[])?.find((m) => m.player_position === "G") || (homeRosterRes.data as any[])?.[0];
+
   const awayGoalie = {
-    name: "Thomas Becker",
-    number: 30,
-    sa: homeSkaters.reduce((acc, s) => acc + s.sog, 0) + 6,
+    name: sanitizePlayerName(awayGoaliePlayer?.players?.display_name || "Goalie"),
+    number: awayGoaliePlayer?.jersey_number ?? 30,
+    sa: displayHomeTotal,
     ga: displayHomeTotal,
-    sv: (homeSkaters.reduce((acc, s) => acc + s.sog, 0) + 6) - displayHomeTotal,
-    toi: "58:45",
+    sv: 0,
+    toi: isCompleted ? "60:00" : "00:00",
   };
   const homeGoalie = {
-    name: "Connor Hayes",
-    number: 35,
-    sa: awaySkaters.reduce((acc, s) => acc + s.sog, 0) + 5,
+    name: sanitizePlayerName(homeGoaliePlayer?.players?.display_name || "Goalie"),
+    number: homeGoaliePlayer?.jersey_number ?? 35,
+    sa: displayAwayTotal,
     ga: displayAwayTotal,
-    sv: (awaySkaters.reduce((acc, s) => acc + s.sog, 0) + 5) - displayAwayTotal,
-    toi: "60:00",
+    sv: 0,
+    toi: isCompleted ? "60:00" : "00:00",
   };
 
-  // Penalties
+  // Real Penalties
   interface DisplayPenalty {
     id: string;
     period: number;
@@ -368,29 +294,21 @@ export default async function LiveGamePage({
     minutes: number;
   }
   const displayPenalties: DisplayPenalty[] = [];
-  if (realPenalties.length > 0) {
-    for (const pen of realPenalties) {
-      const isHome = pen.team_entry_id === fixture.home_entry_id;
-      const player = allPlayers.find((p) => p.id === pen.player_id);
-      const minutes = Math.floor((pen.clock_seconds || 0) / 60);
-      const seconds = ((pen.clock_seconds || 0) % 60).toString().padStart(2, "0");
-      displayPenalties.push({
-        id: pen.id,
-        period: pen.period,
-        time: `${minutes}:${seconds}`,
-        teamName: isHome ? homeName : awayName,
-        playerName: player?.display_name || "Unassigned Skater",
-        infraction: "Minor Penalty",
-        minutes: pen.penalty_minutes || 2,
-      });
-    }
-  } else {
-    displayPenalties.push(
-      { id: "pen-1", period: 1, time: "10:14", teamName: awayName, playerName: "Nathan Brooks", infraction: "Tripping", minutes: 2 },
-      { id: "pen-2", period: 2, time: "15:30", teamName: homeName, playerName: "Tyler Chen", infraction: "Hooking", minutes: 2 },
-      { id: "pen-3", period: 2, time: "07:18", teamName: homeName, playerName: "Chris Nolan", infraction: "Roughing", minutes: 2 },
-      { id: "pen-4", period: 3, time: "05:42", teamName: awayName, playerName: "Liam O'Connor", infraction: "Slashing", minutes: 2 }
-    );
+  for (const pen of realPenalties) {
+    const isHome = pen.team_entry_id === fixture.home_entry_id;
+    const player = allPlayers.find((p) => p.id === pen.player_id);
+    const remaining = pen.clock_seconds_remaining || 0;
+    const minutes = Math.floor(remaining / 60);
+    const seconds = (remaining % 60).toString().padStart(2, "0");
+    displayPenalties.push({
+      id: pen.id,
+      period: pen.period,
+      time: `${minutes}:${seconds}`,
+      teamName: isHome ? homeName : awayName,
+      playerName: player?.display_name || "Unassigned Skater",
+      infraction: "Minor Penalty",
+      minutes: pen.penalty_minutes || 2,
+    });
   }
 
   return (
@@ -451,7 +369,7 @@ export default async function LiveGamePage({
               {displayAwayTotal} – {displayHomeTotal}
             </div>
             <small style={{ color: "var(--muted)", fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase" }}>
-              {isCompleted ? "Final Score" : "Live Score"}
+              {isCompleted ? "Final Score" : isLive ? "Live Score" : "Upcoming · Scheduled"}
             </small>
           </div>
 
@@ -545,30 +463,38 @@ export default async function LiveGamePage({
               </tr>
             </thead>
             <tbody>
-              {generatedGoals.map((g) => (
-                <tr key={g.id}>
-                  <td><strong>{g.periodLabel}</strong></td>
-                  <td style={{ fontVariantNumeric: "tabular-nums" }}>{g.time}</td>
-                  <td><strong>{g.teamName}</strong></td>
-                  <td>
-                    {g.scorerPlayerId ? (
-                      <Link href={`/players/${g.scorerPlayerId}`} className="text-link" style={{ fontWeight: 700 }}>
-                        {g.scorerName} 🏒
-                      </Link>
-                    ) : (
-                      <strong style={{ color: "var(--lime)" }}>{g.scorerName} 🏒</strong>
-                    )}
-                  </td>
-                  <td style={{ color: "var(--muted)" }}>
-                    {[g.assist1Name, g.assist2Name].filter(Boolean).join(", ") || "Unassisted"}
-                  </td>
-                  <td style={{ textAlign: "center" }}>
-                    <span className="badge" style={{ fontSize: "11px", fontWeight: 700 }}>
-                      {g.strength}
-                    </span>
+              {generatedGoals.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: "center", color: "var(--muted)", padding: "24px" }}>
+                    No goals recorded yet. Match is scheduled or scoreless.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                generatedGoals.map((g) => (
+                  <tr key={g.id}>
+                    <td><strong>{g.periodLabel}</strong></td>
+                    <td style={{ fontVariantNumeric: "tabular-nums" }}>{g.time}</td>
+                    <td><strong>{g.teamName}</strong></td>
+                    <td>
+                      {g.scorerPlayerId ? (
+                        <Link href={`/players/${g.scorerPlayerId}`} className="text-link" style={{ fontWeight: 700 }}>
+                          {g.scorerName} 🏒
+                        </Link>
+                      ) : (
+                        <strong style={{ color: "var(--lime)" }}>{g.scorerName} 🏒</strong>
+                      )}
+                    </td>
+                    <td style={{ color: "var(--muted)" }}>
+                      {[g.assist1Name, g.assist2Name].filter(Boolean).join(", ") || "Unassisted"}
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <span className="badge" style={{ fontSize: "11px", fontWeight: 700 }}>
+                        {g.strength}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -745,20 +671,28 @@ export default async function LiveGamePage({
               </tr>
             </thead>
             <tbody>
-              {displayPenalties.map((pen) => (
-                <tr key={pen.id}>
-                  <td>Period {pen.period}</td>
-                  <td style={{ fontVariantNumeric: "tabular-nums" }}>{pen.time}</td>
-                  <td><strong>{pen.teamName}</strong></td>
-                  <td>{pen.playerName}</td>
-                  <td>{pen.infraction}</td>
-                  <td>
-                    <span className="badge" style={{ background: "rgba(239, 68, 68, 0.2)", color: "#f87171", fontWeight: 700 }}>
-                      {pen.minutes} MIN
-                    </span>
+              {displayPenalties.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: "center", color: "var(--muted)", padding: "24px" }}>
+                    No penalties recorded.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                displayPenalties.map((pen) => (
+                  <tr key={pen.id}>
+                    <td>Period {pen.period}</td>
+                    <td style={{ fontVariantNumeric: "tabular-nums" }}>{pen.time}</td>
+                    <td><strong>{pen.teamName}</strong></td>
+                    <td>{pen.playerName}</td>
+                    <td>{pen.infraction}</td>
+                    <td>
+                      <span className="badge" style={{ background: "rgba(239, 68, 68, 0.2)", color: "#f87171", fontWeight: 700 }}>
+                        {pen.minutes} MIN
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
