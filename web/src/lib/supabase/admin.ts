@@ -5,7 +5,7 @@ import { getSupabaseConfig } from "./config";
 import { resolveAdminPermissions } from "@/lib/admin-permissions";
 
 export function createServiceClient() {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPBASE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ROLE_KEY;
   if (!key) throw new Error("Server administration is not configured.");
   return createClient(getSupabaseConfig().url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
