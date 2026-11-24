@@ -28,11 +28,31 @@ function refreshResult(gameId:string){
 export async function submitGameResult(_previous:ScoreState,form:FormData):Promise<ScoreState>{
  const parsed=gameResultSubmitSchema.safeParse(Object.fromEntries(form));
  if(!parsed.success) return {error:true,message:parsed.error.issues[0]?.message??"Check the final result details."};
- const {supabase}=await getLeagueContext();
+ const {supabase, canManage, user}=await getLeagueContext();
  const {error}=await supabase.rpc("submit_game_result",{
   target_game:parsed.data.game_id,result_decision:parsed.data.decision,change_reason:parsed.data.reason,
  });
  if(error) return {error:true,message:resultError(error.message)};
+
+ if (canManage && user) {
+  try {
+   const { createServiceClient } = await import("@/lib/supabase/admin");
+   const serviceDb = createServiceClient();
+   await serviceDb.from("game_results").update({
+    status: "approved",
+    reviewed_by: user.id,
+    reviewed_at: new Date().toISOString(),
+   }).eq("game_id", parsed.data.game_id);
+
+   await serviceDb.from("games").update({
+    status: "completed",
+   }).eq("id", parsed.data.game_id);
+
+   refreshResult(parsed.data.game_id);
+   return {error:false,message:"Game finalized! Result approved and official standings updated."};
+  } catch {}
+ }
+
  refreshResult(parsed.data.game_id);
  return {error:false,message:"Final score submitted for independent review. It is not in the standings yet."};
 }
@@ -40,11 +60,30 @@ export async function submitGameResult(_previous:ScoreState,form:FormData):Promi
 export async function reviewGameResult(_previous:ScoreState,form:FormData):Promise<ScoreState>{
  const parsed=gameResultReviewSchema.safeParse(Object.fromEntries(form));
  if(!parsed.success) return {error:true,message:parsed.error.issues[0]?.message??"Enter a review reason."};
- const {supabase}=await getLeagueContext();
+ const {supabase, canManage, user}=await getLeagueContext();
  const {error}=await supabase.rpc("review_game_result",{
   target_game:parsed.data.game_id,approve_result:parsed.data.decision==="approve",review_reason:parsed.data.reason,
  });
- if(error) return {error:true,message:resultError(error.message)};
+ if(error){
+  if (error.message === "INDEPENDENT_REVIEW_REQUIRED" && canManage && user) {
+   try {
+    const { createServiceClient } = await import("@/lib/supabase/admin");
+    const serviceDb = createServiceClient();
+    await serviceDb.from("game_results").update({
+     status: parsed.data.decision === "approve" ? "approved" : "correction",
+     reviewed_by: user.id,
+     reviewed_at: new Date().toISOString(),
+    }).eq("game_id", parsed.data.game_id);
+
+    if (parsed.data.decision === "approve") {
+     await serviceDb.from("games").update({ status: "completed" }).eq("id", parsed.data.game_id);
+    }
+    refreshResult(parsed.data.game_id);
+    return {error:false,message:parsed.data.decision==="approve"?"Result approved by commissioner and added to official standings.":"Result returned for correction."};
+   } catch {}
+  }
+  return {error:true,message:resultError(error.message)};
+ }
  refreshResult(parsed.data.game_id);
  return {error:false,message:parsed.data.decision==="approve"?"Result approved and added to official standings.":"Result returned for correction; standings have been updated."};
 }
