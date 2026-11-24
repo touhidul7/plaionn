@@ -103,6 +103,31 @@ export function TheScoreClipsCarousel({
   const [uploadPlayer, setUploadPlayer] = useState("");
   const [uploadVideoUrl, setUploadVideoUrl] = useState("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4");
   const [uploadCaption, setUploadCaption] = useState("");
+  const [uploadingFile, setUploadingFile] = useState(false);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFile(true);
+    try {
+      const data = new FormData();
+      data.append("file", file);
+      const res = await fetch("/api/media/upload", {
+        method: "POST",
+        body: data,
+      });
+      const result = await res.json();
+      if (res.ok && result.success && result.url) {
+        setUploadVideoUrl(result.url);
+      } else {
+        alert(result.message || "Could not upload file to storage.");
+      }
+    } catch {
+      alert("Failed to upload file to storage.");
+    } finally {
+      setUploadingFile(false);
+    }
+  };
 
   const currentReel = activeReelIndex !== null ? clips[activeReelIndex] : null;
 
@@ -640,8 +665,17 @@ export function TheScoreClipsCarousel({
 
               <div>
                 <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "4px" }}>
-                  Video Footage Source (MP4)
+                  Upload Video File or Paste URL
                 </label>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px" }}>
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime"
+                    onChange={handleFileSelect}
+                    style={{ fontSize: "12px", color: "var(--text)" }}
+                  />
+                  {uploadingFile && <span style={{ fontSize: "12px", color: "var(--lime)" }}>Uploading to storage…</span>}
+                </div>
                 <input
                   required
                   type="url"
