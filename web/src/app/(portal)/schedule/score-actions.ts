@@ -29,8 +29,13 @@ export async function addGameEvent(_previous:ScoreState,form:FormData):Promise<S
   };
   return {error:true,message:messages[error.message]??"The event could not be saved. Check the game assignment and retry."};
  }
+ try {
+  await supabase.from("games").update({ status: "in_progress" }).eq("id", value.game_id).eq("status", "scheduled");
+ } catch {}
  const path="/schedule/"+value.game_id+"/scorekeeping";
  revalidatePath(path);
+ revalidatePath("/schedule/"+value.game_id+"/live");
+ revalidatePath("/schedule");
  redirect(path+"?saved=1");
 }
 
