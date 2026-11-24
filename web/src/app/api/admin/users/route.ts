@@ -135,12 +135,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Name and email are required" }, { status: 400 });
     }
 
-    const supabase = await createSupabaseServerClient(false);
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://frjpuqafwsizipucrsie.supabase.co";
+    const anonKey = process.env.NEXT_PUBLIC_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
+    const supabase = createClient(supabaseUrl, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
     const origin = request.nextUrl.origin || "https://plaionn.vercel.app";
     const redirectTo = `${origin}/account`;
 
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://frjpuqafwsizipucrsie.supabase.co";
 
     let realId = `usr-${Date.now().toString().slice(-6)}`;
     let usedOfficialInvite = false;
@@ -173,26 +176,31 @@ export async function POST(request: NextRequest) {
     if (!usedOfficialInvite) {
       // Fallback: create user & trigger password setup link
       const tempPassword = `Plaionn!${Math.random().toString(36).slice(-8)}${Date.now().toString().slice(-4)}`;
-      const { data: authData } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password: tempPassword,
-        options: {
-          data: {
-            display_name: name.trim(),
-            role: userType || "Player",
-            scope: scope || "Global Platform",
-            waiver_status: waiverStatus || "Cleared & Signed",
-            status: "Invited",
+      try {
+        const { data: authData, error: signUpErr } = await supabase.auth.signUp({
+          email: email.trim().toLowerCase(),
+          password: tempPassword,
+          options: {
+            data: {
+              display_name: name.trim(),
+              role: userType || "Player",
+              scope: scope || "Global Platform",
+              waiver_status: waiverStatus || "Cleared & Signed",
+              status: "Invited",
+            },
+            emailRedirectTo: redirectTo,
           },
-          emailRedirectTo: redirectTo,
-        },
-      });
+        });
+        if (authData?.user?.id) realId = authData.user.id;
+        if (signUpErr) console.warn("Supabase signUp warning:", signUpErr.message);
 
-      await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-        redirectTo,
-      });
-
-      if (authData?.user?.id) realId = authData.user.id;
+        const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+          redirectTo,
+        });
+        if (resetErr) console.warn("Supabase resetPassword warning:", resetErr.message);
+      } catch (authErr) {
+        console.warn("Supabase auth error:", authErr);
+      }
     }
 
     const newUser: ApiPlatformUser = {

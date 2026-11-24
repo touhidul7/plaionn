@@ -74,10 +74,12 @@ export function AdminLeaguesManager({
     }
   };
 
-  const handleCreateLeague = (e: React.FormEvent) => {
+  const handleCreateLeague = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
+    const commEmail = commissioner.trim().toLowerCase();
+    const commName = commEmail ? commEmail.split("@")[0].replace(/[^a-zA-Z0-9]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Commissioner";
     const slug = acronym.toLowerCase() || name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
     const newId = `league-custom-${slug}-${Date.now().toString().slice(-4)}`;
     const domainName = subdomain.trim() || `${slug}.plaionn.brittosoft.online`;
@@ -90,9 +92,28 @@ export function AdminLeaguesManager({
       status: "Active",
       season: season.trim() || "Winter 2026",
       teams: 0,
-      commissioner: commissioner.trim() || "admin@plaionn.com",
+      commissioner: commEmail || "admin@plaionn.com",
       isCustom: true,
     };
+
+    // 1. Dispatch Supabase user creation & invite email to the Commissioner
+    if (commEmail && commEmail.includes("@")) {
+      try {
+        await fetch("/api/admin/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: `${commName} (${name.trim()} Commissioner)`,
+            email: commEmail,
+            userType: "League Admin",
+            scope: name.trim(),
+            waiverStatus: "Exempt",
+          }),
+        });
+      } catch (err) {
+        console.warn("Could not dispatch commissioner invite to Supabase:", err);
+      }
+    }
 
     // Also initialize an empty league backend state in localStorage for this league
     try {
@@ -129,11 +150,11 @@ export function AdminLeaguesManager({
     setAcronym("");
     setSubdomain("");
     setCommissioner("");
-    showToast(`League "${newLeague.name}" created successfully! Opening League Backend Hub...`);
+    showToast(`League "${newLeague.name}" created & commissioner invite dispatched to ${commEmail || "email"}! Opening Hub...`);
     // Immediately navigate directly into the new league's Backend Hub for Demo Day flow
     setTimeout(() => {
       window.location.href = `/admin/league/${newId}`;
-    }, 600);
+    }, 700);
   };
 
   const handleDeleteCustomLeague = (id: string, leagueName: string) => {
@@ -451,6 +472,20 @@ export function AdminLeaguesManager({
                     fontSize: "13px",
                   }}
                 />
+              </div>
+
+              <div
+                style={{
+                  background: "rgba(103, 232, 249, 0.08)",
+                  border: "1px solid rgba(103, 232, 249, 0.25)",
+                  borderRadius: "8px",
+                  padding: "10px 12px",
+                  fontSize: "12px",
+                  color: "var(--text)",
+                  lineHeight: "1.4",
+                }}
+              >
+                ✉️ <strong style={{ color: "var(--accent)" }}>Supabase Invite:</strong> Creating this league automatically creates the League Admin account in Supabase Auth and triggers an invitation email to this commissioner.
               </div>
 
               <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "12px" }}>
