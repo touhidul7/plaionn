@@ -384,7 +384,7 @@ export default async function LiveGamePage({
       </section>
 
       {/* 2b. theScore-Style Clips Video Carousel */}
-      <TheScoreClipsCarousel />
+      <TheScoreClipsCarousel gameId={gameId} homeTeam={homeName} awayTeam={awayName} />
 
       {/* 3. Linescore Boxscore Table (theScore style) */}
       <section className="panel" style={{ marginBottom: "24px" }}>

@@ -66,20 +66,31 @@ const DEFAULT_CLIPS: ClipItem[] = [
   },
 ];
 
-export function TheScoreClipsCarousel({ customClips }: { customClips?: ClipItem[] }) {
+export function TheScoreClipsCarousel({
+  gameId,
+  homeTeam = "Home",
+  awayTeam = "Away",
+  customClips,
+}: {
+  gameId?: string;
+  homeTeam?: string;
+  awayTeam?: string;
+  customClips?: ClipItem[];
+}) {
+  const storageKey = gameId ? `plaionn-reels-${gameId}` : "plaionn-reels";
   const [clips, setClips] = useState<ClipItem[]>(() => {
     if (typeof window !== "undefined") {
       try {
-        const saved = localStorage.getItem("plaionn-reels");
+        const saved = localStorage.getItem(storageKey);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed)) return parsed;
         }
       } catch {
         // Fallback
       }
     }
-    return customClips && customClips.length > 0 ? customClips : DEFAULT_CLIPS;
+    return customClips && customClips.length > 0 ? customClips : [];
   });
 
   const [activeReelIndex, setActiveReelIndex] = useState<number | null>(null);
@@ -88,8 +99,8 @@ export function TheScoreClipsCarousel({ customClips }: { customClips?: ClipItem[
 
   // Upload Form states
   const [uploadTitle, setUploadTitle] = useState("");
-  const [uploadTeam, setUploadTeam] = useState("Northline HC");
-  const [uploadPlayer, setUploadPlayer] = useState("Marcus Johansson (#11)");
+  const [uploadTeam, setUploadTeam] = useState(homeTeam);
+  const [uploadPlayer, setUploadPlayer] = useState("");
   const [uploadVideoUrl, setUploadVideoUrl] = useState("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4");
   const [uploadCaption, setUploadCaption] = useState("");
 
@@ -121,7 +132,7 @@ export function TheScoreClipsCarousel({ customClips }: { customClips?: ClipItem[
     const newClip: ClipItem = {
       id: `clip-${Date.now()}`,
       title: uploadTitle.trim(),
-      team: uploadTeam.trim() || "Northline HC",
+      team: uploadTeam.trim() || homeTeam,
       timeAgo: "Just now",
       durationSeconds: 15,
       videoUrl: uploadVideoUrl.trim(),
@@ -134,7 +145,7 @@ export function TheScoreClipsCarousel({ customClips }: { customClips?: ClipItem[
     const updated = [newClip, ...clips];
     setClips(updated);
     try {
-      localStorage.setItem("plaionn-reels", JSON.stringify(updated));
+      localStorage.setItem(storageKey, JSON.stringify(updated));
     } catch {
       // Ignore
     }
@@ -167,17 +178,48 @@ export function TheScoreClipsCarousel({ customClips }: { customClips?: ClipItem[
         </button>
       </div>
 
-      {/* Horizontal Clips Carousel */}
-      <div
-        style={{
-          display: "flex",
-          gap: "14px",
-          overflowX: "auto",
-          paddingBottom: "8px",
-          scrollbarWidth: "thin",
-        }}
-      >
-        {clips.map((clip, index) => (
+      {/* Horizontal Clips Carousel or Clean Empty State */}
+      {clips.length === 0 ? (
+        <div
+          style={{
+            background: "rgba(17, 24, 39, 0.4)",
+            border: "1px dashed var(--line)",
+            borderRadius: "14px",
+            padding: "32px 20px",
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "10px",
+          }}
+        >
+          <div style={{ fontSize: "28px" }}>🎬</div>
+          <strong style={{ fontSize: "14px", color: "var(--text)" }}>
+            No video reels uploaded for this match yet
+          </strong>
+          <p style={{ margin: 0, fontSize: "12.5px", color: "var(--muted)", maxWidth: "420px" }}>
+            Upload raw scene footage or match highlight clips into the reel to showcase player plays to fans and scouts.
+          </p>
+          <button
+            type="button"
+            onClick={() => setIsUploadOpen(true)}
+            className="button button-sm primary"
+            style={{ marginTop: "6px", fontSize: "12px", fontWeight: 700 }}
+          >
+            📹 + Upload Footage into Reel
+          </button>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            gap: "14px",
+            overflowX: "auto",
+            paddingBottom: "8px",
+            scrollbarWidth: "thin",
+          }}
+        >
+          {clips.map((clip, index) => (
           <div
             key={clip.id}
             onClick={() => setActiveReelIndex(index)}
@@ -278,6 +320,7 @@ export function TheScoreClipsCarousel({ customClips }: { customClips?: ClipItem[
           </div>
         ))}
       </div>
+      )}
 
       {/* Full-Screen Vertical Story Reel Modal */}
       {currentReel && (
