@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const origin = request.nextUrl.origin || "https://plaionn.vercel.app";
-    const redirectTo = `${origin}/account`;
+    const redirectTo = `${origin}/reset-password`;
 
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
