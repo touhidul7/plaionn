@@ -5,7 +5,7 @@ import {PGlite} from '@electric-sql/pglite';
 test('demo setup requires a confirmed reviewer, reruns without duplicates, and protects scored matchups',async()=>{
  const db=new PGlite();
  try{
-  await db.exec(`create role anon;create role authenticated;create schema auth;create schema storage;
+  await db.exec(`create role anon;create role service_role bypassrls;create role authenticated;create schema auth;create schema storage;
    create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
    create table storage.buckets(id text primary key,name text not null,public boolean not null,file_size_limit bigint,allowed_mime_types text[]);
    create table storage.objects(bucket_id text not null,name text not null,primary key(bucket_id,name));

@@ -11,7 +11,7 @@ test("Admin Management: Appointing and revoking commissioner and staff members b
   const pg = new PGlite();
 
   await pg.exec(`
-    create role anon;
+    create role anon; create role service_role bypassrls;
     create role authenticated;
     create schema auth;
     create table auth.users (

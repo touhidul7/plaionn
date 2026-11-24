@@ -18,7 +18,7 @@ test('registration is opt-in, owned, private, reviewed and audited without autom
  const db=new PGlite();
  const league=id(1),other=id(2),admin=id(3),applicant=id(4),season=id(5),second=id(6),stranger=id(7),otherAdmin=id(8),closedSeason=id(9);
  try{
-  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);
+  await db.exec(`create role anon;create role service_role bypassrls;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);
    create schema storage;create table storage.buckets(id text primary key,name text not null,public boolean not null,file_size_limit bigint,allowed_mime_types text[]);
    create table storage.objects(bucket_id text not null,name text not null,primary key(bucket_id,name));alter table storage.objects enable row level security;
    create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;

@@ -1,107 +1,17 @@
 import Link from "next/link";
-import { getLeagueContext } from "@/lib/supabase/session";
+import { getAdminAccess, listAdminLeagues } from "@/lib/supabase/admin";
+import { redirect } from "next/navigation";
 import { AdminUsersManager } from "@/components/admin-users-manager";
 import { AdminLeaguesManager } from "@/components/admin-leagues-manager";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminManagementPage() {
-  const { user, canManage, supabase } = await getLeagueContext();
-
-  const leaguesList = [
-    {
-      id: "60000000-0000-4000-8000-000000000001",
-      name: "Bangladesh Hockey League (BHL)",
-      domain: "league1.plaionn.brittosoft.online",
-      status: "Active",
-      season: "Winter 2026",
-      teams: 8,
-      commissioner: "commissioner@bhl.com",
-    },
-    {
-      id: "60000000-0000-4000-8000-000000000003",
-      name: "Wave Adult Hockey League (WAHL)",
-      domain: "league2.plaionn.brittosoft.online",
-      status: "Active",
-      season: "Winter 2026",
-      teams: 12,
-      commissioner: "league@wavehockey.ca",
-    },
-    {
-      id: "60000000-0000-4000-8000-000000000004",
-      name: "Canada Hockey League (CHL)",
-      domain: "league3.plaionn.brittosoft.online",
-      status: "Active",
-      season: "Winter 2026",
-      teams: 16,
-      commissioner: "admin@chl.com",
-    },
-    {
-      id: "60000000-0000-4000-8000-000000000005",
-      name: "Italy Hockey League (IHL)",
-      domain: "league4.plaionn.brittosoft.online",
-      status: "Active",
-      season: "Winter 2026",
-      teams: 6,
-      commissioner: "direttore@ihl.com",
-    },
-  ];
-
-  // RBAC Permission Scope Resolution (Requirement 3)
-  // Super admin sees all leagues and global user management.
-  // League admin / commissioner only sees their assigned league(s) and cannot access user settings.
-  const userEmail = (user?.email || "").toLowerCase();
-  let userMemberships: { league_id: string; role: string }[] = [];
-  if (user) {
-    const { data: mems } = await supabase
-      .from("league_memberships")
-      .select("league_id, role")
-      .eq("user_id", user.id);
-    if (mems) userMemberships = mems;
-  }
-
-  const isSuperAdmin =
-    !user ||
-    userEmail.includes("shadhin") ||
-    userEmail.includes("admin@plaionn") ||
-    userEmail.includes("touhidul") ||
-    userMemberships.some((m) => m.role === "super_admin");
-
-  const commissionerMatch = leaguesList.find((l) => l.commissioner.toLowerCase() === userEmail);
-  const assignedLeagueIds = new Set(userMemberships.map((m) => m.league_id));
-  if (commissionerMatch) assignedLeagueIds.add(commissionerMatch.id);
-
-  // Fetch real database-created leagues (e.g. Toronto Metro League, Ontario National legue)
-  let dbLeaguesList: typeof leaguesList = [];
-  try {
-    const { data: dbLeagues } = await supabase.from("leagues").select("id, name");
-    if (dbLeagues && dbLeagues.length > 0) {
-      dbLeaguesList = dbLeagues
-        .filter((dbl) => !leaguesList.some((demo) => demo.id === dbl.id))
-        .map((dbl) => {
-          const slug = dbl.name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10);
-          return {
-            id: dbl.id,
-            name: dbl.name,
-            domain: `${slug}.plaionn.brittosoft.online`,
-            status: "Active",
-            season: "Winter 2026",
-            teams: 0,
-            commissioner: userEmail || "commissioner",
-            isCustom: true,
-          };
-        });
-    }
-  } catch {
-    // Graceful fallback
-  }
-
-  const allLeagues = [...dbLeaguesList, ...leaguesList];
-  const isLeagueAdminOnly = !isSuperAdmin && assignedLeagueIds.size > 0;
-  const showUserSettings = isSuperAdmin;
-  const visibleLeagues = isLeagueAdminOnly
-    ? allLeagues.filter((l) => assignedLeagueIds.has(l.id))
-    : allLeagues;
+  const access = await getAdminAccess();
+  if (!access.user) redirect("/login");
+  const visibleLeagues = await listAdminLeagues(access);
+  const isLeagueAdminOnly = !access.isPlatformAdmin;
+  const showUserSettings = access.isPlatformAdmin;
 
   const roleDefinitions = [
     {
@@ -307,9 +217,9 @@ export default async function AdminManagementPage() {
                 Active Leagues
               </span>
               <div style={{ fontSize: "30px", fontWeight: 900, color: "var(--lime)", marginTop: "4px" }}>
-                4
+                {visibleLeagues.length}
               </div>
-              <small style={{ color: "var(--muted)" }}>BHL, WAHL, CHL, IHL</small>
+              <small style={{ color: "var(--muted)" }}>{visibleLeagues.map(l => l.name).join(", ") || "No assigned leagues"}</small>
             </div>
 
             <div className="panel" style={{ padding: "18px", marginBottom: 0 }}>
@@ -317,7 +227,7 @@ export default async function AdminManagementPage() {
                 Configured Domains
               </span>
               <div style={{ fontSize: "30px", fontWeight: 900, color: "#60a5fa", marginTop: "4px" }}>
-                4
+                {visibleLeagues.filter(l => l.domain).length}
               </div>
               <small style={{ color: "var(--muted)" }}>Unique branded websites</small>
             </div>
@@ -327,19 +237,19 @@ export default async function AdminManagementPage() {
                 Registered Teams
               </span>
               <div style={{ fontSize: "30px", fontWeight: 900, color: "#f59e0b", marginTop: "4px" }}>
-                42
+                {visibleLeagues.reduce((total, l) => total + l.teams, 0)}
               </div>
               <small style={{ color: "var(--muted)" }}>Across all active divisions</small>
             </div>
 
             <div className="panel" style={{ padding: "18px", marginBottom: 0 }}>
               <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>
-                Platform Users
+                Access Scope
               </span>
               <div style={{ fontSize: "30px", fontWeight: 900, color: "#a855f7", marginTop: "4px" }}>
-                380+
+                {isLeagueAdminOnly ? "Assigned" : "Platform"}
               </div>
-              <small style={{ color: "var(--muted)" }}>Admins, Managers &amp; Players</small>
+              <small style={{ color: "var(--muted)" }}>{isLeagueAdminOnly ? "Your leagues only" : "All leagues"}</small>
             </div>
           </section>
 

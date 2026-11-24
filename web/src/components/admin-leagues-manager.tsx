@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore, useMemo } from "react";
 import Link from "next/link";
 
 export interface LeagueItem {
@@ -13,6 +13,11 @@ export interface LeagueItem {
   teams: number;
   commissioner: string;
   isCustom?: boolean;
+}
+
+function subscribeToLegacyLeagues(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
 }
 
 export function AdminLeaguesManager({
@@ -33,21 +38,43 @@ export function AdminLeaguesManager({
   const [season, setSeason] = useState("Winter 2026");
   const [commissioner, setCommissioner] = useState("");
 
-  useEffect(() => {
+  const [saving, setSaving] = useState(false);
+  const legacySnapshot = useSyncExternalStore(
+    subscribeToLegacyLeagues,
+    () => isLeagueAdminOnly ? "[]" : localStorage.getItem("plaionn_custom_leagues") || "[]",
+    () => "[]",
+  );
+  const legacyLeagues = useMemo<LeagueItem[]>(() => {
+    try { const value = JSON.parse(legacySnapshot); return Array.isArray(value) ? value : []; }
+    catch { return []; }
+  }, [legacySnapshot]);
+
+  const saveLeague = async (value: Pick<LeagueItem, "name" | "domain" | "season" | "commissioner"> & { legacyId?: string }) => {
+    const response = await fetch("/api/admin/leagues", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success || !result.league) throw new Error(result.message || "Could not save league.");
+    return result.league as LeagueItem;
+  };
+
+  const importLegacyLeagues = async () => {
+    if (isLeagueAdminOnly || saving) return;
+    setSaving(true);
     try {
-      const stored = localStorage.getItem("plaionn_custom_leagues");
-      if (stored) {
-        const customLeagues: LeagueItem[] = JSON.parse(stored);
-        if (Array.isArray(customLeagues) && customLeagues.length > 0) {
-          const customIds = new Set(customLeagues.map((l) => l.id));
-          const merged = [...initialLeagues.filter((l) => !customIds.has(l.id)), ...customLeagues];
-          setLeagues(merged);
-        }
+      for (const legacy of legacyLeagues) {
+        const saved = await saveLeague({ ...legacy, legacyId: legacy.id });
+        setLeagues(current => [...current.filter(l => l.id !== saved.id), saved]);
+        // Remove each imported entry only after the server confirms persistence.
+        const remaining = JSON.parse(localStorage.getItem("plaionn_custom_leagues") || "[]") as LeagueItem[];
+        const next = remaining.filter(l => l.id !== legacy.id);
+        localStorage.setItem("plaionn_custom_leagues", JSON.stringify(next));
+        window.dispatchEvent(new Event("storage"));
       }
-    } catch (e) {
-      console.warn("Could not load custom leagues from localStorage:", e);
-    }
-  }, [initialLeagues]);
+      showToast("Existing leagues and commissioner assignments saved to Supabase.");
+    } catch (error) { showToast(error instanceof Error ? error.message : "Import failed. Please retry."); }
+    finally { setSaving(false); }
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -78,103 +105,29 @@ export function AdminLeaguesManager({
     e.preventDefault();
     if (!name.trim()) return;
 
-    const commEmail = commissioner.trim().toLowerCase();
-    const commName = commEmail ? commEmail.split("@")[0].replace(/[^a-zA-Z0-9]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Commissioner";
-    const slug = acronym.toLowerCase() || name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
-    const newId = `league-custom-${slug}-${Date.now().toString().slice(-4)}`;
-    const domainName = subdomain.trim() || `${slug}.plaionn.brittosoft.online`;
-
-    const newLeague: LeagueItem = {
-      id: newId,
-      name: name.trim(),
-      domain: domainName,
-      subdomain: domainName,
-      status: "Active",
-      season: season.trim() || "Winter 2026",
-      teams: 0,
-      commissioner: commEmail || "admin@plaionn.com",
-      isCustom: true,
-    };
-
-    // 1. Dispatch Supabase user creation & invite email to the Commissioner
-    if (commEmail && commEmail.includes("@")) {
-      try {
-        await fetch("/api/admin/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: `${commName} (${name.trim()} Commissioner)`,
-            email: commEmail,
-            userType: "League Admin",
-            scope: name.trim(),
-            waiverStatus: "Exempt",
-          }),
-        });
-      } catch (err) {
-        console.warn("Could not dispatch commissioner invite to Supabase:", err);
-      }
-    }
-
-    // Also initialize an empty league backend state in localStorage for this league
+    if (isLeagueAdminOnly || saving) return;
+    setSaving(true);
     try {
-      const initialBackendData = {
-        id: newId,
-        name: newLeague.name,
-        domain: newLeague.domain,
-        subdomain: newLeague.subdomain,
-        season: newLeague.season,
-        commissioner: newLeague.commissioner,
-        divisions: [
-          { id: "d1", name: "Premier Division", description: "Top-tier division", teamCount: 0 },
-        ],
-        teams: [],
-        schedule: [],
-      };
-      localStorage.setItem(`plaionn_league_data_${newId}`, JSON.stringify(initialBackendData));
-    } catch (e) {
-      console.warn("Failed saving initial custom league backend data", e);
-    }
-
-    const updated = [newLeague, ...leagues];
-    setLeagues(updated);
-
-    try {
-      const existingCustom = JSON.parse(localStorage.getItem("plaionn_custom_leagues") || "[]");
-      localStorage.setItem("plaionn_custom_leagues", JSON.stringify([newLeague, ...existingCustom]));
-    } catch (e) {
-      console.warn("Could not save to localStorage:", e);
-    }
-
-    setShowModal(false);
-    setName("");
-    setAcronym("");
-    setSubdomain("");
-    setCommissioner("");
-    showToast(`League "${newLeague.name}" created & commissioner invite dispatched to ${commEmail || "email"}! Opening Hub...`);
-    // Immediately navigate directly into the new league's Backend Hub for Demo Day flow
-    setTimeout(() => {
-      window.location.href = `/admin/league/${newId}`;
-    }, 700);
+      const saved = await saveLeague({ name: name.trim(), domain: subdomain.trim(), season: season.trim(), commissioner: commissioner.trim().toLowerCase() });
+      setLeagues(current => [saved, ...current.filter(l => l.id !== saved.id)]);
+      setShowModal(false);
+      showToast("League and commissioner assignment saved.");
+    } catch (error) { showToast(error instanceof Error ? error.message : "Could not create league."); }
+    finally { setSaving(false); }
   };
 
-  const handleDeleteCustomLeague = (id: string, leagueName: string) => {
-    if (confirm(`Are you sure you want to delete "${leagueName}"?`)) {
-      const updated = leagues.filter((l) => l.id !== id);
-      setLeagues(updated);
-      try {
-        const stored = JSON.parse(localStorage.getItem("plaionn_custom_leagues") || "[]");
-        const filtered = stored.filter((l: any) => l.id !== id);
-        localStorage.setItem("plaionn_custom_leagues", JSON.stringify(filtered));
-        localStorage.removeItem(`plaionn_league_data_${id}`);
-      } catch (e) {
-        console.warn("Could not delete from localStorage:", e);
-      }
-      showToast(`League "${leagueName}" deleted.`);
-    }
+  const handleDeleteCustomLeague = () => {
+    showToast("League deletion requires a database administrator to review dependent records.");
   };
 
   return (
     <section id="leagues" className="panel" style={{ padding: "24px" }}>
+      {!isLeagueAdminOnly && legacyLeagues.length > 0 && (
+        <div role="status" className="notice">
+          <p>{legacyLeagues.length} previously created league(s) are saved only in this browser. Save them to Supabase so their assigned admins can access them.</p>
+          <button className="button primary" disabled={saving} onClick={importLegacyLeagues}>{saving ? "Saving..." : "Save existing leagues to Supabase"}</button>
+        </div>
+      )}
       {/* Toast Alert */}
       {toast && (
         <div
@@ -260,7 +213,7 @@ export function AdminLeaguesManager({
                 </td>
                 <td>
                   <a
-                    href={`https://${lg.domain}`}
+                    href={lg.domain ? `https://${lg.domain}` : `/api/switch-league?league=${lg.id}`}
                     target="_blank"
                     rel="noreferrer"
                     style={{
@@ -271,7 +224,7 @@ export function AdminLeaguesManager({
                     }}
                   >
                     <code style={{ background: "rgba(103, 232, 249, 0.1)", border: "1px solid rgba(103, 232, 249, 0.25)", padding: "3px 8px", borderRadius: "4px", color: "#67e8f9", fontSize: "12px" }}>
-                      {lg.domain}
+                      {lg.domain || "Not configured"}
                     </code>
                     <span style={{ color: "#67e8f9", fontSize: "11px" }}>↗</span>
                   </a>
@@ -294,7 +247,7 @@ export function AdminLeaguesManager({
                       Backend Hub →
                     </Link>
                     <a
-                      href={`https://${lg.domain}`}
+                      href={lg.domain ? `https://${lg.domain}` : `/api/switch-league?league=${lg.id}`}
                       target="_blank"
                       rel="noreferrer"
                       className="button button-sm button-outline"
@@ -306,7 +259,7 @@ export function AdminLeaguesManager({
                     {lg.isCustom && (
                       <button
                         type="button"
-                        onClick={() => handleDeleteCustomLeague(lg.id, lg.name)}
+                        onClick={() => handleDeleteCustomLeague()}
                         className="button button-sm"
                         style={{
                           fontSize: "11px",
@@ -459,6 +412,7 @@ export function AdminLeaguesManager({
                 </label>
                 <input
                   type="email"
+                  required
                   value={commissioner}
                   onChange={(e) => setCommissioner(e.target.value)}
                   placeholder="e.g. commissioner@tmhl.com"
@@ -485,7 +439,7 @@ export function AdminLeaguesManager({
                   lineHeight: "1.4",
                 }}
               >
-                ✉️ <strong style={{ color: "var(--accent)" }}>Supabase Invite:</strong> Creating this league automatically creates the League Admin account in Supabase Auth and triggers an invitation email to this commissioner.
+                ✉️ <strong style={{ color: "var(--accent)" }}>Supabase Invite:</strong> The commissioner receives access to this league. New users receive an invitation email to set their password.
               </div>
 
               <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "12px" }}>
@@ -498,7 +452,7 @@ export function AdminLeaguesManager({
                   Cancel
                 </button>
                 <button
-                  type="submit"
+                  type="submit" disabled={saving}
                   className="button primary"
                   style={{ fontWeight: 800, cursor: "pointer" }}
                 >

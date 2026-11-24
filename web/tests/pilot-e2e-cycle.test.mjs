@@ -11,7 +11,7 @@ test("Pilot Operating Cycle: End-to-End Season, Billing, Game Sheet, and Standin
   const pg = new PGlite();
 
   await pg.exec(`
-    create role anon;
+    create role anon; create role service_role bypassrls;
     create role authenticated;
     create schema auth;
     create table auth.users (

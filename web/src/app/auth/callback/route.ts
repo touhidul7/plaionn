@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
         if (type === "recovery") {
           return NextResponse.redirect(new URL("/reset-password", request.url));
         }
-        return NextResponse.redirect(new URL(next, request.url));
+        const destination = new URL(next, request.url);
+        return NextResponse.redirect(destination.origin === request.nextUrl.origin ? destination : new URL("/account", request.url));
       }
     } catch {
       /* Show a generic error; never expose tokens or provider details. */

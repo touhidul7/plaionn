@@ -20,119 +20,6 @@ export interface PlatformUser {
   color: string;
 }
 
-const DEFAULT_USERS: PlatformUser[] = [
-  {
-    id: "usr-shadhin",
-    name: "Shadhin (Super User)",
-    email: "shadhin@plaionn.com",
-    userType: "Super Admin",
-    scope: "Global Platform",
-    status: "Active",
-    waiverStatus: "Exempt",
-    color: "#ef4444",
-  },
-  {
-    id: "usr-01",
-    name: "Platform Owner",
-    email: "touhiduliet@gmail.com",
-    userType: "Super Admin",
-    scope: "Global Platform",
-    status: "Active",
-    waiverStatus: "Exempt",
-    color: "#ef4444",
-  },
-  {
-    id: "usr-02",
-    name: "Operations Manager",
-    email: "operations@plaionn.com",
-    userType: "Regular Admin",
-    scope: "Global Platform",
-    status: "Active",
-    waiverStatus: "Exempt",
-    color: "#f59e0b",
-  },
-  {
-    id: "usr-03",
-    name: "BHL Commissioner",
-    email: "commissioner@bhl.com",
-    userType: "League Admin",
-    scope: "Bangladesh Hockey League",
-    status: "Active",
-    waiverStatus: "Exempt",
-    color: "#10b981",
-  },
-  {
-    id: "usr-04",
-    name: "WAHL Director",
-    email: "league@wavehockey.ca",
-    userType: "League Admin",
-    scope: "Wave Adult Hockey League",
-    status: "Active",
-    waiverStatus: "Exempt",
-    color: "#10b981",
-  },
-  {
-    id: "usr-05",
-    name: "Marcus Johansson",
-    email: "captain@northlinehc.com",
-    userType: "Team Admin / Manager",
-    scope: "Northline HC (Premier)",
-    status: "Active",
-    waiverStatus: "Cleared & Signed",
-    color: "#3b82f6",
-  },
-  {
-    id: "usr-06",
-    name: "Alexander Reed",
-    email: "manager@harbourwolves.com",
-    userType: "Team Admin / Manager",
-    scope: "Harbour Wolves (Premier)",
-    status: "Active",
-    waiverStatus: "Cleared & Signed",
-    color: "#3b82f6",
-  },
-  {
-    id: "usr-07",
-    name: "David Miller",
-    email: "ref.miller@ontariohockey.ca",
-    userType: "Referee",
-    scope: "Assigned Games",
-    status: "Active",
-    waiverStatus: "Cleared & Signed",
-    color: "#eab308",
-  },
-  {
-    id: "usr-08",
-    name: "Sarah Chen",
-    email: "timekeeper@metroarena.ca",
-    userType: "Timekeeper",
-    scope: "Metro Arena Rink 1",
-    status: "Active",
-    waiverStatus: "Cleared & Signed",
-    color: "#06b6d4",
-  },
-  {
-    id: "usr-09",
-    name: "Nathan MacKinnon",
-    email: "mackinnon@proplayers.ca",
-    userType: "Player",
-    scope: "Northline HC",
-    status: "Active",
-    waiverStatus: "Cleared & Signed",
-    color: "#8b5cf6",
-  },
-  {
-    id: "usr-10",
-    name: "Cale Makar",
-    email: "makar@proplayers.ca",
-    userType: "Player",
-    scope: "Northline HC",
-    status: "Active",
-    waiverStatus: "Cleared & Signed",
-    color: "#8b5cf6",
-  },
-];
-
 const ROLE_COLORS: Record<PlatformUser["userType"], string> = {
   "Super Admin": "#ef4444",
   "Regular Admin": "#f59e0b",
@@ -183,8 +70,8 @@ function cleanWaiverStatus(status?: string): string {
 }
 
 export function AdminUsersManager() {
-  const [users, setUsers] = useState<PlatformUser[]>(DEFAULT_USERS);
-  const [leaguesList, setLeaguesList] = useState<string[]>(AVAILABLE_LEAGUES);
+  const [users, setUsers] = useState<PlatformUser[]>([]);
+  const [leaguesList, setLeaguesList] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState<string>("All");
   const [toast, setToast] = useState<string | null>(null);
@@ -196,83 +83,21 @@ export function AdminUsersManager() {
   // Form states for Add/Edit
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
-  const [formPassword, setFormPassword] = useState("12345678");
   const [formRole, setFormRole] = useState<PlatformUser["userType"]>("Player");
   const [formScope, setFormScope] = useState("");
   const [formWaiver, setFormWaiver] = useState("Cleared & Signed");
   const [formStatus, setFormStatus] = useState<PlatformUser["status"]>("Active");
 
-  // Load from API + localStorage on client mount
   useEffect(() => {
-    try {
-      const storedLeagues = localStorage.getItem("plaionn_custom_leagues");
-      if (storedLeagues) {
-        const parsedLeagues = JSON.parse(storedLeagues);
-        if (Array.isArray(parsedLeagues)) {
-          const names = parsedLeagues.map((l: any) => l.name).filter(Boolean);
-          if (names.length > 0) {
-            setLeaguesList([...new Set([...names, ...AVAILABLE_LEAGUES])]);
-          }
-        }
-      }
-    } catch {}
-
-    fetch("/api/admin/users")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.users) && data.users.length > 0) {
-          const cleaned = data.users.map((u: PlatformUser) => ({
-            ...u,
-            waiverStatus: cleanWaiverStatus(u.waiverStatus),
-          }));
-          setUsers(cleaned);
-          try {
-            localStorage.setItem("plaionn-admin-users", JSON.stringify(cleaned));
-          } catch {}
-          return;
-        }
-        const stored = localStorage.getItem("plaionn-admin-users");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const cleaned = parsed.map((u: PlatformUser) => ({
-              ...u,
-              waiverStatus: cleanWaiverStatus(u.waiverStatus),
-            }));
-            setUsers(cleaned);
-            try {
-              localStorage.setItem("plaionn-admin-users", JSON.stringify(cleaned));
-            } catch {}
-          }
-        }
-      })
-      .catch(() => {
-        try {
-          const stored = localStorage.getItem("plaionn-admin-users");
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              const cleaned = parsed.map((u: PlatformUser) => ({
-                ...u,
-                waiverStatus: cleanWaiverStatus(u.waiverStatus),
-              }));
-              setUsers(cleaned);
-            }
-          }
-        } catch {
-          // Ignored
-        }
-      });
+    Promise.all([fetch("/api/admin/users").then(r => r.json()), fetch("/api/admin/leagues").then(r => r.json())])
+      .then(([people, leagues]) => {
+        if (!people.success || !leagues.success) throw new Error("Could not load admin records.");
+        setUsers(people.users);
+        setLeaguesList(leagues.leagues.map((l: { name: string }) => l.name));
+      }).catch(() => setToast("Could not load server records. Please reload."));
   }, []);
 
-  const saveUsers = (updated: PlatformUser[]) => {
-    setUsers(updated);
-    try {
-      localStorage.setItem("plaionn-admin-users", JSON.stringify(updated));
-    } catch {
-      // Ignored
-    }
-  };
+  const saveUsers = (updated: PlatformUser[]) => setUsers(updated);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -284,7 +109,7 @@ export function AdminUsersManager() {
     if (newRole === "Super Admin" || newRole === "Regular Admin") {
       setFormScope("Global Platform");
     } else if (newRole === "League Admin") {
-      setFormScope(AVAILABLE_LEAGUES[0]);
+      setFormScope(leaguesList[0] || "");
     } else if (newRole === "Team Admin / Manager" || newRole === "Player") {
       setFormScope(AVAILABLE_TEAMS[0]);
     } else if (newRole === "Timekeeper") {
@@ -328,28 +153,11 @@ export function AdminUsersManager() {
         const updated = [data.user, ...users.filter((u) => u.email !== data.user.email)];
         saveUsers(updated);
         setIsAddOpen(false);
-        showToast(`Invitation email sent to ${payload.email} via Supabase SMTP!`);
+        showToast(data.message || "User and league assignment saved.");
         return;
       }
-    } catch {
-      // Fallback
-    }
-
-    const newUser: PlatformUser = {
-      id: `usr-${Date.now().toString().slice(-6)}`,
-      name: formName.trim(),
-      email: formEmail.trim(),
-      userType: formRole,
-      scope: formScope.trim() || "Global Platform",
-      status: formStatus,
-      waiverStatus: formWaiver,
-      color: ROLE_COLORS[formRole],
-    };
-
-    const updated = [newUser, ...users];
-    saveUsers(updated);
-    setIsAddOpen(false);
-    showToast(`User ${newUser.name} added successfully!`);
+      showToast(data.message || "Could not save user.");
+    } catch { showToast("Could not save user. Please retry."); }
   };
 
   const openEditModal = (u: PlatformUser) => {
@@ -377,14 +185,14 @@ export function AdminUsersManager() {
     };
 
     try {
-      await fetch("/api/admin/users", {
+      const res = await fetch("/api/admin/users", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-    } catch {
-      // Ignored
-    }
+      const result = await res.json();
+      if (!res.ok || !result.success) { showToast(result.message || "Could not save assignment."); return; }
+    } catch { showToast("Could not save assignment. Please retry."); return; }
 
     const updated = users.map((u) => {
       if (u.id === editingUser.id) {
@@ -410,12 +218,12 @@ export function AdminUsersManager() {
   const handleDeleteUser = async (u: PlatformUser) => {
     if (confirm(`Are you sure you want to delete user "${u.name}" (${u.email})?`)) {
       try {
-        await fetch(`/api/admin/users?id=${encodeURIComponent(u.id)}`, {
+        const res = await fetch(`/api/admin/users?id=${encodeURIComponent(u.id)}`, {
           method: "DELETE",
         });
-      } catch {
-        // Ignored
-      }
+        const result = await res.json();
+        if (!res.ok || !result.success) { showToast(result.message || "Could not delete user."); return; }
+      } catch { showToast("Could not delete user."); return; }
       const updated = users.filter((x) => x.id !== u.id);
       saveUsers(updated);
       showToast(`User ${u.name} deleted.`);
@@ -769,7 +577,7 @@ export function AdminUsersManager() {
                   </label>
                   <select
                     value={formRole}
-                    onChange={(e) => handleRoleChange(e.target.value as any)}
+                    onChange={(e) => handleRoleChange(e.target.value as PlatformUser["userType"])}
                     style={{
                       width: "100%",
                       background: "#13232e",
@@ -920,7 +728,7 @@ export function AdminUsersManager() {
                   </label>
                   <select
                     value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value as any)}
+                    onChange={(e) => setFormStatus(e.target.value as PlatformUser["status"])}
                     style={{
                       width: "100%",
                       background: "#13232e",
@@ -1046,7 +854,7 @@ export function AdminUsersManager() {
                   </label>
                   <select
                     value={formRole}
-                    onChange={(e) => handleRoleChange(e.target.value as any)}
+                    onChange={(e) => handleRoleChange(e.target.value as PlatformUser["userType"])}
                     style={{
                       width: "100%",
                       background: "#13232e",
@@ -1197,7 +1005,7 @@ export function AdminUsersManager() {
                   </label>
                   <select
                     value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value as any)}
+                    onChange={(e) => setFormStatus(e.target.value as PlatformUser["status"])}
                     style={{
                       width: "100%",
                       background: "#13232e",
