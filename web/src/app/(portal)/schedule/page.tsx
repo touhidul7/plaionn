@@ -80,7 +80,7 @@ export default async function SchedulePage({
           <div>
             <p className="eyebrow">FIXTURES &amp; RESULTS</p>
             <h1>Schedules &amp; Scores</h1>
-            <p>{league.name} · Official game schedules, scores, and live game center.</p>
+            <p>{league.name} · Official game schedules, scores, and live game centre.</p>
           </div>
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
             <a
@@ -227,7 +227,7 @@ export default async function SchedulePage({
                                 </Link>
                               )}
                               <Link className="button button-sm button-outline" href={"/schedule/" + game.game_id + "/live"}>
-                                Game Center
+                                Game Centre
                               </Link>
                             </div>
                           )}
@@ -444,7 +444,7 @@ export default async function SchedulePage({
         <div>
           <p className="eyebrow">FIXTURES &amp; RESULTS</p>
           <h1>Schedules &amp; Scores</h1>
-          <p>{league.name} · Official game schedules, scores, and live game center.</p>
+          <p>{league.name} · Official game schedules, scores, and live game centre.</p>
         </div>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <a

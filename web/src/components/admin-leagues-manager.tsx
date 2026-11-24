@@ -129,7 +129,11 @@ export function AdminLeaguesManager({
     setAcronym("");
     setSubdomain("");
     setCommissioner("");
-    showToast(`League "${newLeague.name}" created successfully! Click "Backend Hub →" to add teams & schedule.`);
+    showToast(`League "${newLeague.name}" created successfully! Opening League Backend Hub...`);
+    // Immediately navigate directly into the new league's Backend Hub for Demo Day flow
+    setTimeout(() => {
+      window.location.href = `/admin/league/${newId}`;
+    }, 600);
   };
 
   const handleDeleteCustomLeague = (id: string, leagueName: string) => {

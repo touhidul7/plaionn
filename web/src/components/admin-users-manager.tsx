@@ -184,6 +184,7 @@ function cleanWaiverStatus(status?: string): string {
 
 export function AdminUsersManager() {
   const [users, setUsers] = useState<PlatformUser[]>(DEFAULT_USERS);
+  const [leaguesList, setLeaguesList] = useState<string[]>(AVAILABLE_LEAGUES);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState<string>("All");
   const [toast, setToast] = useState<string | null>(null);
@@ -203,6 +204,19 @@ export function AdminUsersManager() {
 
   // Load from API + localStorage on client mount
   useEffect(() => {
+    try {
+      const storedLeagues = localStorage.getItem("plaionn_custom_leagues");
+      if (storedLeagues) {
+        const parsedLeagues = JSON.parse(storedLeagues);
+        if (Array.isArray(parsedLeagues)) {
+          const names = parsedLeagues.map((l: any) => l.name).filter(Boolean);
+          if (names.length > 0) {
+            setLeaguesList([...new Set([...names, ...AVAILABLE_LEAGUES])]);
+          }
+        }
+      }
+    } catch {}
+
     fetch("/api/admin/users")
       .then((r) => r.json())
       .then((data) => {
@@ -810,7 +824,7 @@ export function AdminUsersManager() {
                         fontSize: "13px",
                       }}
                     >
-                      {AVAILABLE_LEAGUES.map((lg) => (
+                      {leaguesList.map((lg) => (
                         <option key={lg} value={lg}>
                           {lg}
                         </option>
@@ -1087,7 +1101,7 @@ export function AdminUsersManager() {
                         fontSize: "13px",
                       }}
                     >
-                      {AVAILABLE_LEAGUES.map((lg) => (
+                      {leaguesList.map((lg) => (
                         <option key={lg} value={lg}>
                           {lg}
                         </option>

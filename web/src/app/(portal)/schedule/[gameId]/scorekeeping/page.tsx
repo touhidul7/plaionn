@@ -112,7 +112,7 @@ export default async function ScorekeepingPage({params,searchParams}:{params:Pro
       </div>
       <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
         <Link href={`/schedule/${gameId}/live`} className="button button-sm button-outline" target="_blank">
-          Open Public Game Center ↗
+          Open Public Game Centre ↗
         </Link>
         <Link href="/schedule" className="button button-sm">
           Back to schedule

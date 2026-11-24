@@ -31,7 +31,8 @@ export async function createLeague(_previous: CreateLeagueState, form: FormData)
     });
     revalidatePath("/", "layout");
     revalidatePath("/account");
-    redirect("/");
+    revalidatePath("/admin");
+    redirect(`/admin/league/${leagueId.data}`);
 }
 
 export async function joinDemoLeague(): Promise<CreateLeagueState> {
@@ -53,5 +54,6 @@ export async function joinDemoLeague(): Promise<CreateLeagueState> {
     });
     revalidatePath("/", "layout");
     revalidatePath("/account");
-    redirect("/");
+    revalidatePath("/admin");
+    redirect(`/admin/league/${leagueId.data}`);
 }

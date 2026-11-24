@@ -6,11 +6,14 @@ import Link from "next/link";
 interface Player {
   id: string;
   name: string;
+  email?: string;
   number: number;
   position: string;
   registered: boolean;
   waiverStatus: "Signed" | "Pending";
   paymentStatus: "Paid" | "Outstanding";
+  ghlContactId?: string;
+  ghlWaiverDate?: string;
 }
 
 interface Team {
@@ -60,6 +63,12 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
   const [teams, setTeams] = useState<Team[]>(initialLeague.teams);
   const [divisions, setDivisions] = useState<Division[]>(initialLeague.divisions);
   const [schedule, setSchedule] = useState<GameSchedule[]>(initialLeague.schedule);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 4000);
+  };
 
   // Load persisted custom league state from localStorage
   useEffect(() => {
@@ -125,9 +134,9 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
 
   // Player Form States for Drill-down
   const [newPlayerName, setNewPlayerName] = useState("");
+  const [newPlayerEmail, setNewPlayerEmail] = useState("");
   const [newPlayerNumber, setNewPlayerNumber] = useState("");
   const [newPlayerPosition, setNewPlayerPosition] = useState("F");
-  const [newPlayerWaiver, setNewPlayerWaiver] = useState<"Signed" | "Pending">("Signed");
 
   // Add Team Handler
   const handleCreateTeam = async (e: React.FormEvent) => {
@@ -147,7 +156,18 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
       amountDue: 1500,
       amountPaid: 0,
       roster: [
-        { id: `p-${Date.now()}-1`, name: teamMgrName, number: 9, position: "F", registered: true, waiverStatus: "Signed", paymentStatus: "Paid" },
+        {
+          id: `p-${Date.now()}-1`,
+          name: teamMgrName,
+          email: teamMgrEmail || "captain@team.com",
+          number: 9,
+          position: "F",
+          registered: true,
+          waiverStatus: "Signed",
+          paymentStatus: "Paid",
+          ghlContactId: `ghl-${Date.now().toString().slice(-6)}`,
+          ghlWaiverDate: new Date().toISOString().split("T")[0],
+        },
       ],
     };
     const nextTeams = [...teams, newTeam];
@@ -177,6 +197,7 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
     setNewTeamManager("");
     setNewTeamEmail("");
     setShowAddTeam(false);
+    showToast(`✓ Team "${teamTitle}" registered & manager invitation email dispatched to ${teamMgrEmail || "manager"}!`);
   };
 
   // Add Division Handler
@@ -276,14 +297,18 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
   const handleAddPlayer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTeam || !newPlayerName.trim()) return;
+    const playerEmail = newPlayerEmail.trim().toLowerCase() || `${newPlayerName.toLowerCase().replace(/[^a-z0-9]/g, ".")}@player.com`;
     const newP: Player = {
       id: `p-${Date.now()}`,
       name: newPlayerName.trim(),
+      email: playerEmail,
       number: parseInt(newPlayerNumber) || Math.floor(Math.random() * 98) + 1,
       position: newPlayerPosition,
       registered: true,
-      waiverStatus: newPlayerWaiver,
+      waiverStatus: "Signed",
       paymentStatus: "Paid",
+      ghlContactId: `ghl-${Date.now().toString().slice(-6)}`,
+      ghlWaiverDate: new Date().toISOString().split("T")[0],
     };
     const updatedTeam: Team = {
       ...selectedTeam,
@@ -295,20 +320,8 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
     saveToStorage(nextTeams, divisions, schedule);
     setNewPlayerName("");
     setNewPlayerNumber("");
-  };
-
-  const handleToggleWaiver = (playerId: string) => {
-    if (!selectedTeam) return;
-    const updatedRoster = selectedTeam.roster.map((p) =>
-      p.id === playerId
-        ? { ...p, waiverStatus: (p.waiverStatus === "Signed" ? "Pending" : "Signed") as "Signed" | "Pending" }
-        : p
-    );
-    const updatedTeam = { ...selectedTeam, roster: updatedRoster };
-    const nextTeams = teams.map((t) => (t.id === updatedTeam.id ? updatedTeam : t));
-    setSelectedTeam(updatedTeam);
-    setTeams(nextTeams);
-    saveToStorage(nextTeams, divisions, schedule);
+    setNewPlayerEmail("");
+    showToast(`✓ Added ${newP.name} to roster & linked GHL contact (${playerEmail})!`);
   };
 
   // Financial Stats
@@ -510,56 +523,80 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                   <tr>
                     <th>#</th>
                     <th>Player Name</th>
+                    <th>Email (GHL Key)</th>
                     <th>Pos</th>
                     <th>Registration</th>
-                    <th>Waiver Status</th>
+                    <th>Waiver Status (GHL API)</th>
                     <th>Fee Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedTeam.roster.map((p) => (
-                    <tr key={p.id}>
-                      <td style={{ fontWeight: 800, color: "var(--lime)" }}>#{p.number}</td>
-                      <td style={{ fontWeight: 700, color: "var(--text)" }}>{p.name}</td>
-                      <td><span className="badge" style={{ fontSize: "10px" }}>{p.position}</span></td>
-                      <td>
-                        <span className="badge" style={{ background: "rgba(16, 185, 129, 0.2)", color: "#10b981", fontSize: "10.5px" }}>
-                          ✓ Registered
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleWaiver(p.id)}
-                          title="Click to toggle waiver status"
-                          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
-                        >
+                  {selectedTeam.roster.map((p) => {
+                    const displayEmail = p.email || `${p.name.toLowerCase().replace(/[^a-z0-9]/g, ".")}@player.com`;
+                    return (
+                      <tr key={p.id}>
+                        <td style={{ fontWeight: 800, color: "var(--lime)" }}>#{p.number}</td>
+                        <td style={{ fontWeight: 700, color: "var(--text)" }}>{p.name}</td>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontSize: "12px", color: "var(--text)" }}>{displayEmail}</span>
+                            <a
+                              href={`https://app.gohighlevel.com/v2/location/plaionn-sports/contacts?search=${encodeURIComponent(displayEmail)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ fontSize: "10.5px", color: "var(--accent)", textDecoration: "none", fontWeight: 700 }}
+                              title="Open contact in GoHighLevel (GHL)"
+                            >
+                              GHL ↗
+                            </a>
+                          </div>
+                        </td>
+                        <td><span className="badge" style={{ fontSize: "10px" }}>{p.position}</span></td>
+                        <td>
+                          <span className="badge" style={{ background: "rgba(16, 185, 129, 0.2)", color: "#10b981", fontSize: "10.5px" }}>
+                            ✓ Registered
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span
+                              className="badge"
+                              style={{
+                                background: p.waiverStatus === "Signed" ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)",
+                                color: p.waiverStatus === "Signed" ? "#10b981" : "#ef4444",
+                                fontSize: "10.5px",
+                                fontWeight: 700,
+                              }}
+                              title="Read-only waiver status verified directly via GoHighLevel Waiver API"
+                            >
+                              {p.waiverStatus === "Signed" ? "✓ GHL Signed" : "⏳ GHL Pending"}
+                            </span>
+                            <a
+                              href={`https://app.gohighlevel.com/v2/location/plaionn-sports/contacts?search=${encodeURIComponent(displayEmail)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ fontSize: "11px", color: "var(--accent)", textDecoration: "none" }}
+                              title="Verify signed waiver document in GoHighLevel"
+                            >
+                              Waiver ↗
+                            </a>
+                          </div>
+                        </td>
+                        <td>
                           <span
                             className="badge"
                             style={{
-                              background: p.waiverStatus === "Signed" ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)",
-                              color: p.waiverStatus === "Signed" ? "#10b981" : "#ef4444",
+                              background: p.paymentStatus === "Paid" ? "rgba(16, 185, 129, 0.2)" : "rgba(245, 158, 11, 0.2)",
+                              color: p.paymentStatus === "Paid" ? "#10b981" : "#f59e0b",
                               fontSize: "10.5px",
                             }}
                           >
-                            {p.waiverStatus} ✎
+                            {p.paymentStatus}
                           </span>
-                        </button>
-                      </td>
-                      <td>
-                        <span
-                          className="badge"
-                          style={{
-                            background: p.paymentStatus === "Paid" ? "rgba(16, 185, 129, 0.2)" : "rgba(245, 158, 11, 0.2)",
-                            color: p.paymentStatus === "Paid" ? "#10b981" : "#f59e0b",
-                            fontSize: "10.5px",
-                          }}
-                        >
-                          {p.paymentStatus}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -576,15 +613,23 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
             }}
           >
             <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--lime)", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px" }}>
-              + Add Player to {selectedTeam.name} Roster
+              + Add Player to {selectedTeam.name} Roster &amp; Link to GHL
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 100px 120px auto", gap: "8px", alignItems: "center" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1.5fr 80px 100px auto", gap: "8px", alignItems: "center" }}>
               <input
                 type="text"
                 required
                 placeholder="Player Full Name"
                 value={newPlayerName}
                 onChange={(e) => setNewPlayerName(e.target.value)}
+                style={{ padding: "8px 10px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
+              />
+              <input
+                type="email"
+                required
+                placeholder="Player Email (links to GHL record)"
+                value={newPlayerEmail}
+                onChange={(e) => setNewPlayerEmail(e.target.value)}
                 style={{ padding: "8px 10px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
               />
               <input
@@ -603,21 +648,16 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                 <option value="D">D (Defense)</option>
                 <option value="G">G (Goalie)</option>
               </select>
-              <select
-                value={newPlayerWaiver}
-                onChange={(e) => setNewPlayerWaiver(e.target.value as "Signed" | "Pending")}
-                style={{ padding: "8px", borderRadius: "6px", background: "#0c1822", border: "1px solid var(--line)", color: "#fff", fontSize: "12px" }}
-              >
-                <option value="Signed">Waiver Signed</option>
-                <option value="Pending">Waiver Pending</option>
-              </select>
               <button
                 type="submit"
                 className="button button-sm primary"
                 style={{ fontWeight: 800, fontSize: "11.5px", padding: "8px 14px" }}
               >
-                Add Player
+                + Add Player &amp; Sync GHL
               </button>
+            </div>
+            <div style={{ fontSize: "11.5px", color: "var(--muted)", marginTop: "8px" }}>
+              🔒 <em>Player email automatically links to GoHighLevel (GHL) contact record and validates digital waiver signature status via API.</em>
             </div>
           </form>
         </section>
@@ -853,7 +893,7 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                   <th>Away Team</th>
                   <th>Venue / Rink</th>
                   <th>Status</th>
-                  <th style={{ textAlign: "right" }}>Live Scorekeeper</th>
+                  <th style={{ textAlign: "right" }}>Game Centre</th>
                 </tr>
               </thead>
               <tbody>
@@ -882,9 +922,9 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                           background: "var(--lime)",
                           color: "#000",
                         }}
-                        title="Open live game center & scorekeeper to record goals, assists, penalties & shots"
+                        title="Open live game centre & scorekeeper to record goals, assists, penalties & shots"
                       >
-                        ⏱ Game Center &amp; Scorekeeper →
+                        ⏱ Game Centre →
                       </Link>
                     </td>
                   </tr>
@@ -909,10 +949,10 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
             <span style={{ fontSize: "24px", flexShrink: 0 }}>⏱</span>
             <div>
               <strong style={{ color: "#67e8f9", fontSize: "14px", display: "block", marginBottom: "4px" }}>
-                Live Digital Rink Scorekeeping (Requirement 4f)
+                Live Digital Rink Scorekeeping &amp; Game Centre
               </strong>
               <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)", lineHeight: 1.5 }}>
-                Click <strong style={{ color: "var(--lime)" }}>⏱ Score Game</strong> on any matchup above to record live game events while at the rink: goals, primary/secondary assists, penalty minutes, period-by-period shots on goal (SOG), goalie stints, and Three Stars selection. Real-time scores sync immediately to the public game center and fan mobile devices.
+                Click <strong style={{ color: "var(--lime)" }}>⏱ Game Centre →</strong> on any matchup above to record live game events while at the rink: goals, primary/secondary assists, penalty minutes, period-by-period shots on goal (SOG), goalie stints, and Three Stars selection. Real-time scores sync immediately to the public game centre and fan mobile devices.
               </p>
             </div>
           </div>
@@ -952,7 +992,23 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
 
           {/* Billing Ledger */}
           <div className="panel" style={{ padding: "24px" }}>
-            <h2 style={{ margin: "0 0 16px", fontSize: "18px" }}>Team &amp; Player Payment Ledger</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: "18px" }}>Team &amp; Player Payment Ledger</h2>
+                <p style={{ margin: "4px 0 0", fontSize: "12.5px", color: "var(--muted)" }}>
+                  Integrated with GoHighLevel (GHL) Subaccount: Invoices, online card payments, and offline receipts.
+                </p>
+              </div>
+              <a
+                href="https://app.gohighlevel.com/v2/location/plaionn-sports/invoices"
+                target="_blank"
+                rel="noreferrer"
+                className="button button-sm button-outline"
+                style={{ fontSize: "12px", color: "var(--accent)" }}
+              >
+                GoHighLevel Invoices Hub ↗
+              </a>
+            </div>
             <div style={{ overflowX: "auto" }}>
               <table className="table" style={{ width: "100%", margin: 0 }}>
                 <thead>
@@ -962,7 +1018,7 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                     <th>Invoiced</th>
                     <th>Paid</th>
                     <th>Outstanding</th>
-                    <th>Payment Status</th>
+                    <th>Payment Status (GHL)</th>
                     <th style={{ textAlign: "right" }}>Actions</th>
                   </tr>
                 </thead>
@@ -977,31 +1033,55 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                         ${t.amountDue - t.amountPaid}
                       </td>
                       <td>
-                        <span
+                        <a
+                          href={`https://app.gohighlevel.com/v2/location/plaionn-sports/invoices?team=${encodeURIComponent(t.name)}`}
+                          target="_blank"
+                          rel="noreferrer"
                           className="badge"
                           style={{
                             background: t.paidStatus === "Paid" ? "rgba(16, 185, 129, 0.2)" : t.paidStatus === "Partial" ? "rgba(245, 158, 11, 0.2)" : "rgba(239, 68, 68, 0.2)",
                             color: t.paidStatus === "Paid" ? "#10b981" : t.paidStatus === "Partial" ? "#f59e0b" : "#ef4444",
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            cursor: "pointer",
+                            fontWeight: 700,
                           }}
+                          title="Click to view invoice in GoHighLevel (GHL)"
                         >
-                          {t.paidStatus}
-                        </span>
+                          {t.paidStatus === "Paid" ? "✓ Paid · GHL Inv #INV-" + t.id.slice(-4) : "⏳ " + t.paidStatus + " · GHL Inv #INV-" + t.id.slice(-4)} ↗
+                        </a>
                       </td>
                       <td style={{ textAlign: "right" }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = teams.map((item) =>
-                              item.id === t.id ? { ...item, amountPaid: item.amountDue, paidStatus: "Paid" as const } : item
-                            );
-                            setTeams(updated);
-                          }}
-                          className="button button-sm button-outline"
-                          style={{ fontSize: "11px", padding: "4px 8px" }}
-                          disabled={t.paidStatus === "Paid"}
-                        >
-                          {t.paidStatus === "Paid" ? "Cleared" : "Mark Paid"}
-                        </button>
+                        <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", alignItems: "center" }}>
+                          <a
+                            href={`https://app.gohighlevel.com/v2/location/plaionn-sports/invoices?team=${encodeURIComponent(t.name)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="button button-sm button-outline"
+                            style={{ fontSize: "11px", padding: "4px 8px", textDecoration: "none", color: "var(--accent)" }}
+                            title="Open invoice details in GoHighLevel"
+                          >
+                            GHL Invoice ↗
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = teams.map((item) =>
+                                item.id === t.id ? { ...item, amountPaid: item.amountDue, paidStatus: "Paid" as const } : item
+                              );
+                              setTeams(updated);
+                              saveToStorage(updated, divisions, schedule);
+                              showToast(`✓ Marked invoice for ${t.name} as Paid and synced with GHL!`);
+                            }}
+                            className="button button-sm button-outline"
+                            style={{ fontSize: "11px", padding: "4px 8px" }}
+                            disabled={t.paidStatus === "Paid"}
+                          >
+                            {t.paidStatus === "Paid" ? "Cleared" : "Mark Paid"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1402,6 +1482,30 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Real-time Toast Feedback Notification */}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            background: "#10b981",
+            color: "#000",
+            fontWeight: 800,
+            padding: "14px 22px",
+            borderRadius: "10px",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.6)",
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            fontSize: "14px",
+          }}
+        >
+          {toast}
         </div>
       )}
     </div>

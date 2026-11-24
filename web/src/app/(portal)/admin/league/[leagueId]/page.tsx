@@ -25,11 +25,14 @@ interface LeagueMeta {
     roster: {
       id: string;
       name: string;
+      email?: string;
       number: number;
       position: string;
       registered: boolean;
       waiverStatus: "Signed" | "Pending";
       paymentStatus: "Paid" | "Outstanding";
+      ghlContactId?: string;
+      ghlWaiverDate?: string;
     }[];
   }[];
   divisions: {
