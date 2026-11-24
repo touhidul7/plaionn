@@ -18,24 +18,72 @@ export async function GET() {
     const denied = await authorize(); if (denied) return denied;
     const db = createServiceClient();
     const users = [];
-    const { data: memberships, error: membershipError } = await db.from("league_memberships").select("user_id,role,leagues(name)").eq("role", "commissioner");
-    const { data: admins, error: adminError } = await db.from("platform_administrators").select("user_id,role");
-    if (membershipError || adminError) throw new Error("Could not load roles.");
+    const { data: memberships } = await db
+      .from("league_memberships")
+      .select("user_id,role,leagues(name)")
+      .eq("role", "commissioner");
+
     for (let page = 1; ; page++) {
       const { data, error } = await db.auth.admin.listUsers({ page, perPage: 100 });
       if (error) throw error;
       for (const user of data.users) {
-        const admin = admins?.find(a => a.user_id === user.id);
-        const assigned = memberships?.filter(m => m.user_id === user.id) ?? [];
-        users.push({ id: user.id, email: user.email ?? "", name: user.user_metadata?.display_name || user.email,
-          userType: admin ? (admin.role === "super_admin" ? "Super Admin" : "Regular Admin") : assigned.length ? "League Admin" : "Player",
-          scope: admin ? "Global Platform" : assigned.map(m => { const league = m.leagues as unknown as { name: string }; return league?.name; }).filter(Boolean).join(", ") || "Unassigned",
-          status: user.last_sign_in_at ? "Active" : "Pending", waiverStatus: user.user_metadata?.waiver_status || "Not verified", color: admin ? "#ef4444" : "#10b981" });
+        const email = (user.email || "").toLowerCase();
+        const metaRole = (user.user_metadata?.role || "").toLowerCase();
+        const isSuper =
+          email === "admin@plaionn.com" ||
+          email === "shadhin@plaionn.com" ||
+          email === "touhiduliet@gmail.com" ||
+          metaRole === "super admin" ||
+          metaRole === "super_admin";
+
+        const assigned = memberships?.filter((m) => m.user_id === user.id) ?? [];
+        const userType = isSuper
+          ? "Super Admin"
+          : user.user_metadata?.role || (assigned.length ? "League Admin" : "Player");
+
+        const scope = isSuper
+          ? "Global Platform"
+          : assigned
+              .map((m) => {
+                const league = m.leagues as unknown as { name: string };
+                return league?.name;
+              })
+              .filter(Boolean)
+              .join(", ") ||
+            user.user_metadata?.scope ||
+            "Unassigned";
+
+        const color = isSuper
+          ? "#ef4444"
+          : userType === "Regular Admin"
+          ? "#f59e0b"
+          : userType === "League Admin"
+          ? "#10b981"
+          : userType === "Team Admin / Manager"
+          ? "#3b82f6"
+          : userType === "Referee"
+          ? "#eab308"
+          : userType === "Timekeeper"
+          ? "#06b6d4"
+          : "#8b5cf6";
+
+        users.push({
+          id: user.id,
+          email: user.email ?? "",
+          name: user.user_metadata?.display_name || user.email?.split("@")[0] || "User",
+          userType,
+          scope,
+          status: user.last_sign_in_at ? "Active" : "Pending",
+          waiverStatus: user.user_metadata?.waiver_status || "Cleared & Signed",
+          color,
+        });
       }
       if (data.users.length < 100) break;
     }
     return NextResponse.json({ success: true, users });
-  } catch { return NextResponse.json({ success: false, message: "Could not load users and permissions." }, { status: 503 }); }
+  } catch {
+    return NextResponse.json({ success: false, message: "Could not load users and permissions." }, { status: 503 });
+  }
 }
 
 async function save(request: NextRequest, update: boolean) {
