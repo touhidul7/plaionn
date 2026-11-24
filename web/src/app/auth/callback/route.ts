@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
   }
   if (type === "recovery") {
-    return NextResponse.redirect(new URL("/reset-password", request.url));
+    return NextResponse.redirect(new URL("/reset-password?error=confirmation", request.url));
   }
   return NextResponse.redirect(new URL("/login?error=confirmation", request.url));
 }

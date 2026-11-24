@@ -21,9 +21,9 @@ export async function authenticate(_state:AuthState,form:FormData):Promise<AuthS
 
  if(mode==="forgot") {
   try {
-   const supabase=await createSupabaseServerClient(false);
+   const supabase=await createSupabaseServerClient();
    const siteUrl=appOrigin(process.env.NEXT_PUBLIC_APP_URL,process.env.NODE_ENV==="production");
-   const redirectTo=new URL("/auth/callback",siteUrl).href;
+   const redirectTo=new URL("/auth/callback?type=recovery",siteUrl).href;
    const result=await supabase.auth.resetPasswordForEmail(email,{redirectTo});
    if(result.error) {
     return {

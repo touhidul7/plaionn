@@ -15,7 +15,7 @@ export function AccountAuthClientRedirect() {
       hash.includes("type=recovery") ||
       search.includes("code=")
     ) {
-      window.location.replace("/reset-password" + hash);
+      window.location.replace("/reset-password" + search + hash);
       return;
     }
 
