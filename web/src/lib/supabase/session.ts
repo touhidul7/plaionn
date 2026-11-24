@@ -100,13 +100,17 @@ export const getLeagueContext = cache(async () => {
     // Graceful fallback
   }
 
-  const userEmail = (user?.email || "").toLowerCase();
+  const userEmail = (user?.email || "").toLowerCase().trim();
+  const metadataRole = (user?.user_metadata?.role || "").toLowerCase().trim();
   const isSuperAdmin = Boolean(
     userEmail &&
-      (userEmail.includes("shadhin") ||
-        userEmail.includes("admin@plaionn") ||
-        userEmail.includes("touhidul") ||
-        userEmail.includes("mark.accardi"))
+      (userEmail === "admin@plaionn.com" ||
+        userEmail === "shadhin@plaionn.com" ||
+        userEmail === "touhiduliet@gmail.com" ||
+        metadataRole === "super admin" ||
+        metadataRole === "super_admin") &&
+      metadataRole !== "league admin" &&
+      metadataRole !== "player"
   );
   const platformAdmin = isSuperAdmin ? { role: "super_admin" } : null;
   const cookieLeagueId = (await cookies()).get("plaionn-league")?.value;

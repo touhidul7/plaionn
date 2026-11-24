@@ -23,12 +23,16 @@ export async function getAdminAccess() {
   } = await supabase.auth.getUser();
   if (!user) return { user, supabase, ...resolveAdminPermissions(null, null, []) };
 
-  const userEmail = (user.email || "").toLowerCase();
-  const isSuper =
-    userEmail.includes("shadhin") ||
-    userEmail.includes("admin@plaionn") ||
-    userEmail.includes("touhidul") ||
-    userEmail.includes("mark.accardi");
+  const userEmail = (user.email || "").toLowerCase().trim();
+  const metadataRole = (user.user_metadata?.role || "").toLowerCase().trim();
+  const isExplicitSuperAdmin =
+    userEmail === "admin@plaionn.com" ||
+    userEmail === "shadhin@plaionn.com" ||
+    userEmail === "touhiduliet@gmail.com" ||
+    metadataRole === "super admin" ||
+    metadataRole === "super_admin";
+
+  const isSuper = isExplicitSuperAdmin && metadataRole !== "league admin" && metadataRole !== "player";
 
   let memberships: { league_id: string; role: string }[] = [];
   try {
