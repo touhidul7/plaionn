@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getVerifiedSession } from "@/lib/supabase/session";
+import { getOptionalSession } from "@/lib/supabase/session";
+import { AccountAuthClientRedirect } from "./account-redirect";
 import { selectLeague, signOut } from "@/app/login/actions";
 import { CreateLeagueForm } from "@/components/create-league-form";
 import { ChangePasswordForm } from "@/components/change-password-form";
@@ -8,7 +9,10 @@ import { sanitizeLeagueName } from "@/lib/sanitize";
 export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
-  const { supabase, user } = await getVerifiedSession();
+  const { supabase, user } = await getOptionalSession();
+  if (!user) {
+    return <AccountAuthClientRedirect />;
+  }
   const { data: memberships, error } = await supabase
     .from("league_memberships")
     .select("league_id,role")

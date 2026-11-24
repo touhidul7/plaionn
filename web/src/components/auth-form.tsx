@@ -22,7 +22,9 @@ export function AuthForm() {
     if (typeof window !== "undefined") {
       const hash = window.location.hash || "";
       const search = window.location.search || "";
-      if (
+      if (search.includes("expired=1") || hash.includes("otp_expired") || hash.includes("access_denied")) {
+        setMode("forgot");
+      } else if (
         hash.includes("type=recovery") ||
         hash.includes("access_token") ||
         search.includes("type=recovery") ||
