@@ -24,12 +24,25 @@ export function AuthForm() {
       const search = window.location.search || "";
       if (
         hash.includes("type=recovery") ||
+        hash.includes("access_token") ||
         search.includes("type=recovery") ||
+        search.includes("code=") ||
         search.includes("mode=reset")
       ) {
         setMode("reset");
       }
     }
+
+    const supabase = createSupabaseBrowserClient();
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("reset");
+      }
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   const handleSetNewPassword = async (e: React.FormEvent) => {
@@ -72,11 +85,27 @@ export function AuthForm() {
     return (
       <form onSubmit={handleSetNewPassword} className="panel form-stack auth-panel">
         <div className="auth-mode-switch" style={{ marginBottom: "1rem" }}>
-          <div style={{ textAlign: "center", width: "100%", padding: "4px 0" }}>
-            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--accent, #67e8f9)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-              🔑 Set Your New Password
-            </span>
-          </div>
+          <button
+            type="button"
+            className="auth-switch-btn"
+            onClick={() => setMode("login")}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            className="auth-switch-btn"
+            onClick={() => setMode("signup")}
+          >
+            Create Account
+          </button>
+          <button
+            type="button"
+            className="auth-switch-btn active"
+            onClick={() => setMode("reset")}
+          >
+            Set Password
+          </button>
         </div>
 
         <div>
@@ -198,6 +227,14 @@ export function AuthForm() {
               disabled={pending}
             >
               Create Account
+            </button>
+            <button
+              type="button"
+              className="auth-switch-btn"
+              onClick={() => setMode("reset")}
+              disabled={pending}
+            >
+              Set Password
             </button>
           </>
         )}
