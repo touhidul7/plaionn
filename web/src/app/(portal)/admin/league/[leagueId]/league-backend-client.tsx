@@ -57,6 +57,8 @@ interface LeagueMeta {
   schedule: GameSchedule[];
 }
 
+const GHL_LOCATION_ID = "KpXhaMbw6oH87n9qsz20";
+
 export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMeta }) {
   const [activeTab, setActiveTab] = useState<"teams" | "divisions" | "schedule" | "billing">("teams");
   const [leagueMeta, setLeagueMeta] = useState<LeagueMeta>(initialLeague);
@@ -541,7 +543,7 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                             <span style={{ fontSize: "12px", color: "var(--text)" }}>{displayEmail}</span>
                             <a
-                              href={`https://app.gohighlevel.com/v2/location/plaionn-sports/contacts?search=${encodeURIComponent(displayEmail)}`}
+                              href={`https://app.gohighlevel.com/v2/location/${GHL_LOCATION_ID}/contacts?search=${encodeURIComponent(displayEmail)}`}
                               target="_blank"
                               rel="noreferrer"
                               style={{ fontSize: "10.5px", color: "var(--accent)", textDecoration: "none", fontWeight: 700 }}
@@ -572,7 +574,7 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                               {p.waiverStatus === "Signed" ? "✓ GHL Signed" : "⏳ GHL Pending"}
                             </span>
                             <a
-                              href={`https://app.gohighlevel.com/v2/location/plaionn-sports/contacts?search=${encodeURIComponent(displayEmail)}`}
+                              href={`https://app.gohighlevel.com/v2/location/${GHL_LOCATION_ID}/contacts?search=${encodeURIComponent(displayEmail)}`}
                               target="_blank"
                               rel="noreferrer"
                               style={{ fontSize: "11px", color: "var(--accent)", textDecoration: "none" }}
@@ -1000,7 +1002,7 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                 </p>
               </div>
               <a
-                href="https://app.gohighlevel.com/v2/location/plaionn-sports/invoices"
+                href={`https://app.gohighlevel.com/v2/location/${GHL_LOCATION_ID}/invoices`}
                 target="_blank"
                 rel="noreferrer"
                 className="button button-sm button-outline"
@@ -1034,7 +1036,7 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                       </td>
                       <td>
                         <a
-                          href={`https://app.gohighlevel.com/v2/location/plaionn-sports/invoices?team=${encodeURIComponent(t.name)}`}
+                          href={`https://app.gohighlevel.com/v2/location/${GHL_LOCATION_ID}/invoices?team=${encodeURIComponent(t.name)}`}
                           target="_blank"
                           rel="noreferrer"
                           className="badge"
@@ -1056,7 +1058,7 @@ export function LeagueBackendClient({ initialLeague }: { initialLeague: LeagueMe
                       <td style={{ textAlign: "right" }}>
                         <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", alignItems: "center" }}>
                           <a
-                            href={`https://app.gohighlevel.com/v2/location/plaionn-sports/invoices?team=${encodeURIComponent(t.name)}`}
+                            href={`https://app.gohighlevel.com/v2/location/${GHL_LOCATION_ID}/invoices?team=${encodeURIComponent(t.name)}`}
                             target="_blank"
                             rel="noreferrer"
                             className="button button-sm button-outline"
