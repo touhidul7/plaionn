@@ -12,30 +12,68 @@ export default function ResetPasswordPage() {
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const initialization = useRef<Promise<void> | null>(null);
+
+  // Stable single Supabase client instance
+  const [supabase] = useState(() => createSupabaseBrowserClient());
+  const tokensRef = useRef<{ access_token: string; refresh_token: string } | null>(null);
 
   useEffect(() => {
     let active = true;
-    // Reuse the promise when React replays the effect: links are single-use.
-    initialization.current ??= establishPasswordSession(
-      createSupabaseBrowserClient().auth, window.location.href,
-    );
-    initialization.current.then(() => {
-      if (active) {
-        window.history.replaceState(null, "", window.location.pathname);
+
+    async function initSession() {
+      try {
+        const url = new URL(window.location.href);
+        const hash = new URLSearchParams(url.hash.slice(1));
+        const access_token = hash.get("access_token");
+        const refresh_token = hash.get("refresh_token");
+
+        if (access_token && refresh_token) {
+          tokensRef.current = { access_token, refresh_token };
+          const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (!error && data.session && active) {
+            setSessionReady(true);
+            setCheckingSession(false);
+            return;
+          }
+        }
+
+        const code = url.searchParams.get("code");
+        if (code) {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (!error && data.session && active) {
+            setSessionReady(true);
+            setCheckingSession(false);
+            return;
+          }
+        }
+
+        const { data } = await supabase.auth.getSession();
+        if (data.session && active) {
+          setSessionReady(true);
+        } else if (active) {
+          setMessage({ text: PASSWORD_LINK_ERROR, error: true });
+        }
+      } catch {
+        if (active) setMessage({ text: PASSWORD_LINK_ERROR, error: true });
+      } finally {
+        if (active) setCheckingSession(false);
+      }
+    }
+
+    initSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && active) {
         setSessionReady(true);
+        setCheckingSession(false);
       }
-    }).catch(() => {
-      if (active) {
-        window.history.replaceState(null, "", window.location.pathname);
-        setMessage({ text: PASSWORD_LINK_ERROR, error: true });
-      }
-    }).finally(() => {
-      if (active) setCheckingSession(false);
     });
 
-    return () => { active = false; };
-  }, []);
+    return () => {
+      active = false;
+      authListener?.subscription?.unsubscribe();
+    };
+  }, [supabase]);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,12 +91,12 @@ export default function ResetPasswordPage() {
     setMessage(null);
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData.session) {
-        setSessionReady(false);
-        throw new Error(PASSWORD_LINK_ERROR);
+      // Ensure session is active before updating user
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session && tokensRef.current) {
+        await supabase.auth.setSession(tokensRef.current);
       }
+
       const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
