@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 export interface ClipItem {
   id: string;
@@ -103,11 +103,18 @@ export function TheScoreClipsCarousel({
   const [uploadPlayer, setUploadPlayer] = useState("");
   const [uploadVideoUrl, setUploadVideoUrl] = useState("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4");
   const [uploadCaption, setUploadCaption] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFileName, setUploadedFileName] = useState("");
+  const [showUrlFallback, setShowUrlFallback] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploadedFileName(file.name);
+    if (!uploadTitle.trim()) {
+      setUploadTitle(file.name.replace(/\.[^/.]+$/, ""));
+    }
     setUploadingFile(true);
     try {
       const data = new FormData();
@@ -121,9 +128,11 @@ export function TheScoreClipsCarousel({
         setUploadVideoUrl(result.url);
       } else {
         alert(result.message || "Could not upload file to storage.");
+        setUploadedFileName("");
       }
     } catch {
       alert("Failed to upload file to storage.");
+      setUploadedFileName("");
     } finally {
       setUploadingFile(false);
     }
@@ -664,57 +673,105 @@ export function TheScoreClipsCarousel({
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "4px" }}>
-                  Upload Video File or Paste URL
+                <label style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginBottom: "6px" }}>
+                  Video Footage File (MP4, MOV, WEBM)
                 </label>
-                <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px" }}>
-                  <input
-                    type="file"
-                    accept="video/mp4,video/webm,video/quicktime"
-                    onChange={handleFileSelect}
-                    style={{ fontSize: "12px", color: "var(--text)" }}
-                  />
-                  {uploadingFile && <span style={{ fontSize: "12px", color: "var(--lime)" }}>Uploading to storage…</span>}
-                </div>
                 <input
-                  required
-                  type="url"
-                  value={uploadVideoUrl}
-                  onChange={(e) => setUploadVideoUrl(e.target.value)}
-                  placeholder="https://.../video.mp4"
-                  style={{
-                    width: "100%",
-                    background: "#13232e",
-                    border: "1px solid var(--line)",
-                    borderRadius: "6px",
-                    padding: "8px 12px",
-                    color: "var(--text)",
-                    fontSize: "13px",
-                  }}
+                  ref={fileInputRef}
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime,video/*"
+                  onChange={handleFileSelect}
+                  style={{ display: "none" }}
                 />
-                <div style={{ display: "flex", gap: "6px", marginTop: "6px", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: "11px", color: "var(--muted)" }}>Preset clips:</span>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    border: "2px dashed " + (uploadedFileName ? "var(--lime)" : "rgba(255,255,255,0.2)"),
+                    borderRadius: "10px",
+                    padding: "24px 16px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    background: uploadedFileName ? "rgba(16, 185, 129, 0.1)" : "rgba(255, 255, 255, 0.04)",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {uploadingFile ? (
+                    <div style={{ color: "var(--lime)", fontWeight: 700, fontSize: "14px" }}>
+                      ⏳ Uploading footage to Supabase storage…
+                    </div>
+                  ) : uploadedFileName ? (
+                    <div>
+                      <span style={{ fontSize: "24px", display: "block", marginBottom: "4px" }}>✅</span>
+                      <strong style={{ color: "var(--lime)", fontSize: "14px", display: "block" }}>
+                        Video Uploaded: {uploadedFileName}
+                      </strong>
+                      <span style={{ fontSize: "11px", color: "var(--muted)" }}>Click to browse and choose a different video</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <span style={{ fontSize: "32px", display: "block", marginBottom: "8px" }}>📤</span>
+                      <strong style={{ fontSize: "14.5px", color: "var(--text)", display: "block", marginBottom: "4px" }}>
+                        Click to Browse &amp; Upload Video File
+                      </strong>
+                      <span style={{ fontSize: "12px", color: "var(--muted)" }}>
+                        Uploads directly to Supabase storage (MP4, MOV, WEBM)
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Optional Web Link Accordion */}
+                <div style={{ marginTop: "10px" }}>
                   <button
                     type="button"
-                    onClick={() => setUploadVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4")}
-                    style={{ fontSize: "10px", background: "rgba(255,255,255,0.08)", border: "none", color: "var(--accent)", padding: "2px 6px", borderRadius: "4px", cursor: "pointer" }}
+                    onClick={() => setShowUrlFallback(!showUrlFallback)}
+                    style={{ background: "none", border: "none", color: "var(--accent)", fontSize: "11.5px", cursor: "pointer", padding: 0 }}
                   >
-                    Rush
+                    {showUrlFallback ? "▲ Hide web URL link" : "▼ Or enter a direct web video link / sample clip"}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setUploadVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4")}
-                    style={{ fontSize: "10px", background: "rgba(255,255,255,0.08)", border: "none", color: "var(--accent)", padding: "2px 6px", borderRadius: "4px", cursor: "pointer" }}
-                  >
-                    Snipe
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUploadVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4")}
-                    style={{ fontSize: "10px", background: "rgba(255,255,255,0.08)", border: "none", color: "var(--accent)", padding: "2px 6px", borderRadius: "4px", cursor: "pointer" }}
-                  >
-                    Glove Save
-                  </button>
+                  {showUrlFallback && (
+                    <div style={{ marginTop: "8px" }}>
+                      <input
+                        type="url"
+                        value={uploadVideoUrl}
+                        onChange={(e) => setUploadVideoUrl(e.target.value)}
+                        placeholder="https://.../video.mp4"
+                        style={{
+                          width: "100%",
+                          background: "#13232e",
+                          border: "1px solid var(--line)",
+                          borderRadius: "6px",
+                          padding: "8px 12px",
+                          color: "var(--text)",
+                          fontSize: "13px",
+                        }}
+                      />
+                      <div style={{ display: "flex", gap: "6px", marginTop: "6px", flexWrap: "wrap", alignItems: "center" }}>
+                        <span style={{ fontSize: "11px", color: "var(--muted)" }}>Sample clips:</span>
+                        <button
+                          type="button"
+                          onClick={() => { setUploadVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"); setUploadedFileName("Sample-Rush.mp4"); }}
+                          style={{ fontSize: "10px", background: "rgba(255,255,255,0.08)", border: "none", color: "var(--accent)", padding: "2px 6px", borderRadius: "4px", cursor: "pointer" }}
+                        >
+                          Rush
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setUploadVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4"); setUploadedFileName("Sample-Snipe.mp4"); }}
+                          style={{ fontSize: "10px", background: "rgba(255,255,255,0.08)", border: "none", color: "var(--accent)", padding: "2px 6px", borderRadius: "4px", cursor: "pointer" }}
+                        >
+                          Snipe
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setUploadVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4"); setUploadedFileName("Sample-GloveSave.mp4"); }}
+                          style={{ fontSize: "10px", background: "rgba(255,255,255,0.08)", border: "none", color: "var(--accent)", padding: "2px 6px", borderRadius: "4px", cursor: "pointer" }}
+                        >
+                          Glove Save
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
