@@ -127,6 +127,12 @@ export function PublicHeaderClient({
   }
 
   if (pathname?.startsWith("/admin")) {
+    const activeLeagueParam = (pathname?.startsWith("/admin/league/") ? pathname.split("/admin/league/")[1]?.split("/")[0] : null)
+      || (leagueId && leagueId !== "platform" ? leagueId : null);
+    const publicLeagueUrl = activeLeagueParam
+      ? `/api/switch-league?league=${activeLeagueParam}&redirect=/`
+      : "/";
+
     return (
       <header className="plaionn-header-wrap" style={{ borderBottom: "1px solid var(--line)" }}>
         <div className="plaionn-header-top" style={{ padding: "14px 0", background: "#081017" }}>
@@ -141,7 +147,7 @@ export function PublicHeaderClient({
               </div>
             </Link>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <Link href="/" className="button button-sm button-outline" style={{ fontSize: "12px", padding: "6px 14px" }}>
+              <Link href={publicLeagueUrl} className="button button-sm button-outline" style={{ fontSize: "12px", padding: "6px 14px" }}>
                 Public League Website ↗
               </Link>
               <Link href="/account" className="button button-sm button-outline" style={{ fontSize: "12px", padding: "6px 14px" }}>

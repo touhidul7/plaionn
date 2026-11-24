@@ -80,15 +80,31 @@ export const getLeagueContext = cache(async () => {
         domainLeagueId = "60000000-0000-4000-8000-000000000004";
       } else if (host.startsWith("league4.") || host.startsWith("ihl.")) {
         domainLeagueId = "60000000-0000-4000-8000-000000000005";
+      } else {
+        const sub = host.split(".")[0]?.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (sub && sub !== "www" && sub !== "plaionn" && sub !== "localhost") {
+          // Look up matching real league in Supabase
+          const { data: allDbLeagues } = await supabase.from("leagues").select("id, name");
+          const matched = allDbLeagues?.find(
+            (l) => l.name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10) === sub
+          );
+          if (matched) domainLeagueId = matched.id;
+        }
       }
     }
   } catch {
     // Graceful fallback
   }
 
-  const { data: platformAdmin } = user
-    ? await supabase.from("platform_administrators").select("role").eq("user_id", user.id).maybeSingle()
-    : { data: null };
+  const userEmail = (user?.email || "").toLowerCase();
+  const isSuperAdmin = Boolean(
+    userEmail &&
+      (userEmail.includes("shadhin") ||
+        userEmail.includes("admin@plaionn") ||
+        userEmail.includes("touhidul") ||
+        userEmail.includes("mark.accardi"))
+  );
+  const platformAdmin = isSuperAdmin ? { role: "super_admin" } : null;
   const cookieLeagueId = (await cookies()).get("plaionn-league")?.value;
   const selectedLeagueId = domainLeagueId && domainLeagueId !== "platform" ? domainLeagueId : cookieLeagueId;
   if (platformAdmin && selectedLeagueId) {

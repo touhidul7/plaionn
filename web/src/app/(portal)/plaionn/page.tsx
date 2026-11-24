@@ -1,52 +1,79 @@
 import Link from "next/link";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export default function PlaionnPlatformPage() {
-  const showcaseLeagues = [
-    {
-      name: "Bangladesh Hockey League (BHL)",
-      acronym: "BHL",
-      domain: "league1.plaionn.brittosoft.online",
-      url: "https://league1.plaionn.brittosoft.online",
-      description: "Official National Hockey Championship network with player registration and digital liability waivers.",
-      teams: 8,
-      seasons: "Winter 2026, Summer 2025",
-      featured: true,
-      color: "#10b981",
-    },
-    {
-      name: "Wave Adult Hockey League (WAHL)",
-      acronym: "WAHL",
-      domain: "league2.plaionn.brittosoft.online",
-      url: "https://league2.plaionn.brittosoft.online",
-      description: "Adult recreational circuit with custom top scores ticker and horizontal navigation.",
-      teams: 10,
-      seasons: "Winter 2026",
-      featured: true,
-      color: "#60a5fa",
-    },
-    {
-      name: "Canada Hockey League (CHL)",
-      acronym: "CHL",
-      domain: "league3.plaionn.brittosoft.online",
-      url: "https://league3.plaionn.brittosoft.online",
-      description: "Elite developmental hockey circuit with verified player career logs and scoring leaders.",
-      teams: 16,
-      seasons: "Winter 2026, Fall 2025",
-      featured: false,
-      color: "#f59e0b",
-    },
-    {
-      name: "Italy Hockey League (IHL)",
-      acronym: "IHL",
-      domain: "league4.plaionn.brittosoft.online",
-      url: "https://league4.plaionn.brittosoft.online",
-      description: "Flagship European circuit featuring real-time scoreboard, automated schedules, and verified statistics.",
-      teams: 6,
-      seasons: "Winter 2026, Spring 2026",
-      featured: false,
-      color: "#ec4899",
-    },
-  ];
+export const dynamic = "force-dynamic";
+
+export default async function PlaionnPlatformPage() {
+  const supabase = await createSupabaseServerClient(false);
+  
+  // Dynamically load all leagues from Supabase
+  let showcaseLeagues: Array<{
+    name: string;
+    acronym: string;
+    domain: string;
+    url: string;
+    description: string;
+    teams: number;
+    seasons: string;
+    featured: boolean;
+    color: string;
+    leagueId: string;
+  }> = [];
+
+  const colors = ["#10b981", "#60a5fa", "#f59e0b", "#ec4899", "#8b5cf6", "#14b8a6"];
+
+  try {
+    const { data: dbLeagues } = await supabase.from("leagues").select("id, name, created_at").order("created_at", { ascending: false });
+    const { data: dbSeasons } = await supabase.from("seasons").select("league_id, name");
+    const { data: dbTeams } = await supabase.from("teams").select("league_id, id");
+
+    if (dbLeagues && dbLeagues.length > 0) {
+      showcaseLeagues = dbLeagues.map((lg, index) => {
+        const slug = lg.name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10);
+        const acr = lg.name
+          .split(" ")
+          .map((w: string) => w[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 4) || "LGE";
+        const seasonName = dbSeasons?.find(s => s.league_id === lg.id)?.name || "Winter 2026";
+        const teamCount = dbTeams?.filter(t => t.league_id === lg.id).length || 0;
+        const color = colors[index % colors.length];
+
+        return {
+          name: lg.name,
+          acronym: acr,
+          domain: `${slug}.plaionn.brittosoft.online`,
+          url: `/api/switch-league?league=${lg.id}&redirect=/`,
+          description: `Dedicated multi-tenant league portal for ${lg.name} featuring real-time scoreboard, rosters, and schedules.`,
+          teams: teamCount,
+          seasons: seasonName,
+          featured: index < 2,
+          color,
+          leagueId: lg.id,
+        };
+      });
+    }
+  } catch {
+    // Fallback if query fails
+  }
+
+  if (showcaseLeagues.length === 0) {
+    showcaseLeagues = [
+      {
+        name: "Bangladesh Hockey League (BHL)",
+        acronym: "BHL",
+        domain: "league1.plaionn.brittosoft.online",
+        url: "/api/switch-league?league=60000000-0000-4000-8000-000000000001&redirect=/",
+        description: "Official National Hockey Championship network with player registration and digital liability waivers.",
+        teams: 8,
+        seasons: "Winter 2026, Summer 2025",
+        featured: true,
+        color: "#10b981",
+        leagueId: "60000000-0000-4000-8000-000000000001",
+      },
+    ];
+  }
 
   const features = [
     {
