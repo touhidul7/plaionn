@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { saveGame, type ScheduleState } from "@/app/(portal)/schedule/actions";
+import { bulkImportScheduleAction, type BulkImportItem } from "@/app/(portal)/schedule/import-schedule-action";
 import type { Entry, Rink, Venue } from "@/lib/schedule-schema";
 
 interface ScheduleImporterProps {
@@ -187,51 +187,52 @@ export function ScheduleImporter({ leagueId, entries, venues, rinks }: ScheduleI
     setImportProgress({ current: 0, total: readyRows.length, success: 0, failed: 0 });
     const logs: string[] = [];
 
-    let successCount = 0;
-    let failedCount = 0;
+    const importPayload: BulkImportItem[] = readyRows.map((row) => ({
+      id: row.id,
+      homeEntryId: row.homeEntryId!,
+      awayEntryId: row.awayEntryId!,
+      rinkId: row.rinkId!,
+      localStart: `${row.date}T${row.time}`,
+      duration: row.duration,
+      status: "scheduled",
+    }));
 
-    for (let i = 0; i < readyRows.length; i++) {
-      const row = readyRows[i];
-      setImportProgress({
-        current: i + 1,
-        total: readyRows.length,
-        success: successCount,
-        failed: failedCount,
+    try {
+      const res = await bulkImportScheduleAction({
+        leagueId,
+        games: importPayload,
       });
 
-      const localStart = `${row.date}T${row.time}`;
-      const formData = new FormData();
-      formData.set("id", row.id);
-      formData.set("revision", "0");
-      formData.set("home_entry_id", row.homeEntryId!);
-      formData.set("away_entry_id", row.awayEntryId!);
-      formData.set("rink_id", row.rinkId!);
-      formData.set("local_start", localStart);
-      formData.set("duration", String(row.duration));
-      formData.set("status", "scheduled");
-      formData.set("reason", "Bulk Schedule Importer");
-
-      try {
-        const res = await saveGame({ error: false, message: "", revision: 0 }, formData);
-        if (res.error) {
-          failedCount++;
-          logs.push(`❌ Row ${i + 1} (${row.homeRaw} vs ${row.awayRaw}): ${res.message}`);
-        } else {
-          successCount++;
-          logs.push(`✅ Row ${i + 1} (${row.homeRaw} vs ${row.awayRaw}) scheduled`);
+      if (res.success) {
+        logs.push(`✅ Successfully imported ${res.importedCount} game(s) into database schedule.`);
+        if (res.errors.length > 0) {
+          res.errors.forEach((e) => logs.push(`⚠️ ${e}`));
         }
-      } catch (err: any) {
-        failedCount++;
-        logs.push(`❌ Row ${i + 1}: ${err.message || "Failed to schedule"}`);
+        setImportProgress({
+          current: readyRows.length,
+          total: readyRows.length,
+          success: res.importedCount,
+          failed: res.errors.length,
+        });
+      } else {
+        logs.push(`❌ Import failed: ${res.errors.join(", ") || "Unknown error"}`);
+        setImportProgress({
+          current: readyRows.length,
+          total: readyRows.length,
+          success: 0,
+          failed: readyRows.length,
+        });
       }
+    } catch (err: any) {
+      logs.push(`❌ Import error: ${err.message || "Failed to execute bulk import"}`);
+      setImportProgress({
+        current: readyRows.length,
+        total: readyRows.length,
+        success: 0,
+        failed: readyRows.length,
+      });
     }
 
-    setImportProgress({
-      current: readyRows.length,
-      total: readyRows.length,
-      success: successCount,
-      failed: failedCount,
-    });
     setImportLogs(logs);
     setIsImporting(false);
   };

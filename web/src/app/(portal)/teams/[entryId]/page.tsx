@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { getLeagueData } from "@/lib/league";
 import { getLeagueContext } from "@/lib/supabase/session";
+import { getAdminAccess } from "@/lib/supabase/admin";
 import { PlayerForm, RosterForm, EligibilityCard } from "@/components/roster-forms";
 import { RosterCsvImportModal } from "@/components/roster-csv-import";
-import { TeamCaptainManager } from "@/components/team-captain-manager";
+import { TeamCaptainManager, type TeamMemberItem } from "@/components/team-captain-manager";
 import { teamEligibilitySchema, type PlayerOption, type RosterRow } from "@/lib/roster-schema";
 import { sanitizeLeagueName, sanitizeSeasonName, sanitizePlayerName } from "@/lib/sanitize";
 
@@ -33,51 +33,68 @@ export default async function TeamRosterPage({
   const { entryId } = await params;
   if (!z.uuid().safeParse(entryId).success) notFound();
 
-  const [leagueData, context] = await Promise.all([
-    getLeagueData(),
-    getLeagueContext(),
-  ]);
+  const context = await getLeagueContext();
+  const { supabase, user } = context;
 
-  const { supabase, league, canManage, user } = context;
+  // Resolve team directly from team_entries (prevents cookie mismatch)
+  const { data: dbEntry, error: dbEntryErr } = await supabase
+    .from("team_entries")
+    .select(`
+      id,
+      team_id,
+      division_id,
+      league_id,
+      teams(id, name),
+      divisions(id, name, season_id, seasons(id, name)),
+      leagues(id, name)
+    `)
+    .eq("id", entryId)
+    .maybeSingle();
 
-  // Resolve team from leagueData (supports both authenticated and public guests)
-  const teamEntry = leagueData.teams.find((t) => t.entry_id === entryId);
-  const teamName = teamEntry?.name ?? "Team Roster";
-  const divisionName = teamEntry?.division_name ?? "Premier";
-  const seasonName = sanitizeSeasonName(teamEntry?.season_name ?? "Winter 2026");
+  if (dbEntryErr || !dbEntry) notFound();
 
-  // Find target season for player statistics
-  const currentSeason = leagueData.seasons.find((s) => s.name === teamEntry?.season_name) ?? leagueData.seasons[0];
-  const targetSeasonId = currentSeason?.id ?? "60000000-0000-4000-8000-000000000002";
+  const realLeagueId = dbEntry.league_id;
+  const teamName = (dbEntry.teams as any)?.name ?? "Team Roster";
+  const divisionName = (dbEntry.divisions as any)?.name ?? "Premier";
+  const seasonName = sanitizeSeasonName((dbEntry.divisions as any)?.seasons?.name ?? "Winter Season");
+  const targetSeasonId = (dbEntry.divisions as any)?.season_id ?? (dbEntry.divisions as any)?.seasons?.id ?? "";
+
+  // Check management access
+  const access = await getAdminAccess();
+  const canManage = Boolean(
+    user && (access.isPlatformAdmin || access.canManageLeague(realLeagueId))
+  );
 
   // Fetch player stats using public security-definer RPC
   let playerStats: SkaterStatRow[] = [];
   try {
-    const { data: statsData } = await supabase.rpc("get_season_skater_leaders", {
-      target_season: targetSeasonId,
-    });
-    if (statsData && Array.isArray(statsData)) {
-      playerStats = statsData
-        .filter((r: any) => r.team_entry_id === entryId)
-        .map((r: any) => ({
-          player_id: r.player_id,
-          display_name: sanitizePlayerName(r.display_name),
-          team_entry_id: r.team_entry_id,
-          team_name: r.team_name,
-          jersey_number: r.jersey_number,
-          player_position: r.player_position ?? "F",
-          games_played: Number(r.games_played ?? 0),
-          goals: Number(r.goals ?? 0),
-          assists: Number(r.assists ?? 0),
-          points: Number(r.points ?? 0),
-          penalty_minutes: Number(r.penalty_minutes ?? 0),
-        }));
+    if (targetSeasonId) {
+      const { data: statsData } = await supabase.rpc("get_season_skater_leaders", {
+        target_season: targetSeasonId,
+      });
+      if (statsData && Array.isArray(statsData)) {
+        playerStats = statsData
+          .filter((r: any) => r.team_entry_id === entryId)
+          .map((r: any) => ({
+            player_id: r.player_id,
+            display_name: sanitizePlayerName(r.display_name),
+            team_entry_id: r.team_entry_id,
+            team_name: r.team_name,
+            jersey_number: r.jersey_number,
+            player_position: r.player_position ?? "F",
+            games_played: Number(r.games_played ?? 0),
+            goals: Number(r.goals ?? 0),
+            assists: Number(r.assists ?? 0),
+            points: Number(r.points ?? 0),
+            penalty_minutes: Number(r.penalty_minutes ?? 0),
+          }));
+      }
     }
   } catch {
     // Graceful fallback
   }
 
-  // Manager data (only attempted if user is authenticated and has management rights)
+  // Fetch verified roster rows
   let rosterData: RosterRow[] = [];
   let availablePlayers: PlayerOption[] = [];
   let allPlayersList: PlayerOption[] = [];
@@ -86,71 +103,75 @@ export default async function TeamRosterPage({
   let rosterLimit = 25;
   let billingSummary: any = null;
 
-  if (canManage && user) {
-    try {
-      const [rosterRes, linksRes, settingsRes, eligibilityRes, billingRes] = await Promise.all([
-        supabase
-          .from("roster_memberships")
-          .select("id,player_id,jersey_number,position,status,revision")
-          .eq("team_entry_id", entryId)
-          .eq("league_id", league.id)
-          .order("id")
-          .returns<RosterRow[]>(),
-        supabase.from("league_players").select("player_id").eq("league_id", league.id),
-        supabase
-          .from("season_settings")
-          .select("roster_limit")
-          .eq("season_id", targetSeasonId)
-          .eq("league_id", league.id)
-          .maybeSingle(),
-        supabase.rpc("list_team_eligibility", { target_entry: entryId }),
-        supabase.rpc("get_team_billing_summary", { target_entry: entryId }),
-      ]);
+  try {
+    const [rosterRes, linksRes, settingsRes, billingRes] = await Promise.all([
+      supabase
+        .from("roster_memberships")
+        .select("id,player_id,jersey_number,position,status,revision")
+        .eq("team_entry_id", entryId)
+        .order("jersey_number"),
+      supabase
+        .from("league_players")
+        .select("player_id")
+        .eq("league_id", realLeagueId),
+      targetSeasonId
+        ? supabase
+            .from("season_settings")
+            .select("roster_limit")
+            .eq("season_id", targetSeasonId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      canManage
+        ? supabase.rpc("get_team_billing_summary", { target_entry: entryId })
+        : Promise.resolve({ data: null }),
+    ]);
 
-      if (rosterRes.data) {
-        rosterData = rosterRes.data;
-      }
-      if (settingsRes.data?.roster_limit) {
-        rosterLimit = settingsRes.data.roster_limit;
-      }
-      if (billingRes.data && Array.isArray(billingRes.data) && billingRes.data.length > 0) {
-        billingSummary = billingRes.data[0];
-      }
-
-      if (linksRes.data && linksRes.data.length > 0) {
-        const pIds = linksRes.data.map((p) => p.player_id);
-        const { data: pData } = await supabase
-          .from("players")
-          .select("id,display_name")
-          .in("id", pIds)
-          .order("display_name")
-          .returns<PlayerOption[]>();
-        if (pData) {
-          const sanitized = pData.map((p) => ({ ...p, display_name: sanitizePlayerName(p.display_name) }));
-          allPlayersList = sanitized;
-          availablePlayers = sanitized.filter((p) => !rosterData.some((r) => r.player_id === p.id));
-        }
-      }
-
-      const parsedElig = teamEligibilitySchema.safeParse(eligibilityRes.data);
-      if (parsedElig.success) {
-        eligibilityList = parsedElig.data;
-      }
-
-      if (rosterData.length > 0) {
-        const { data: oData } = await supabase
-          .from("player_eligibility_overrides")
-          .select("id,roster_membership_id,reason,granted_by,granted_at,revoked_by,revoked_at,revocation_reason")
-          .in("roster_membership_id", rosterData.map((row) => row.id))
-          .eq("league_id", league.id)
-          .order("granted_at", { ascending: false });
-        if (oData) {
-          overrideHistory = oData;
-        }
-      }
-    } catch {
-      // Graceful fallback for management data
+    if (rosterRes.data) {
+      rosterData = rosterRes.data as RosterRow[];
     }
+    if (settingsRes.data?.roster_limit) {
+      rosterLimit = settingsRes.data.roster_limit;
+    }
+    if (billingRes.data && Array.isArray(billingRes.data) && billingRes.data.length > 0) {
+      billingSummary = billingRes.data[0];
+    }
+
+    // Load player profiles for players on this team and in the league
+    const teamPlayerIds = rosterData.map((r) => r.player_id);
+    const leaguePlayerIds = (linksRes.data || []).map((p: any) => p.player_id);
+    const allUniqueIds = Array.from(new Set([...teamPlayerIds, ...leaguePlayerIds]));
+
+    if (allUniqueIds.length > 0) {
+      const { data: pData } = await supabase
+        .from("players")
+        .select("id,display_name")
+        .in("id", allUniqueIds)
+        .order("display_name");
+      if (pData) {
+        const sanitized = pData.map((p) => ({
+          id: p.id,
+          display_name: sanitizePlayerName(p.display_name),
+        }));
+        allPlayersList = sanitized;
+        availablePlayers = sanitized.filter(
+          (p) => !rosterData.some((r) => r.player_id === p.id)
+        );
+      }
+    }
+
+    // Eligibility and Overrides
+    if (rosterData.length > 0) {
+      const { data: oData } = await supabase
+        .from("player_eligibility_overrides")
+        .select("id,roster_membership_id,reason,granted_by,granted_at,revoked_by,revoked_at,revocation_reason")
+        .in("roster_membership_id", rosterData.map((row) => row.id))
+        .is("revoked_at", null);
+      if (oData) {
+        overrideHistory = oData;
+      }
+    }
+  } catch {
+    // Graceful fallback for management data
   }
 
   // Combine roster display: if manager has raw rosterData, merge with stats; otherwise use public stats
@@ -214,6 +235,25 @@ export default async function TeamRosterPage({
 
   const activeCount = finalRoster.filter((r) => r.status === "active").length;
 
+  const overrideSet = new Set((overrideHistory || []).map((o: any) => o.roster_membership_id));
+  const overrideReasonMap = new Map((overrideHistory || []).map((o: any) => [o.roster_membership_id, o.reason]));
+
+  const teamMembers: TeamMemberItem[] = rosterData.map((r) => {
+    const profile = allPlayersList.find((p) => p.id === r.player_id);
+    const hasOverride = overrideSet.has(r.id);
+    return {
+      id: r.id,
+      playerId: r.player_id,
+      name: profile?.display_name ?? "Player",
+      jersey: r.jersey_number,
+      position: r.position ?? "F",
+      status: (r.status as "active" | "inactive") ?? "active",
+      isCleared: hasOverride || r.status === "active",
+      clearanceReason: hasOverride ? overrideReasonMap.get(r.id) : "Active on team roster",
+      overrideId: hasOverride ? (overrideHistory.find((o: any) => o.roster_membership_id === r.id)?.id ?? null) : null,
+    };
+  });
+
   return (
     <main id="main" className="public-portal-container">
       {/* 1. Header with Team, Division, Season */}
@@ -227,8 +267,8 @@ export default async function TeamRosterPage({
         </div>
         <div style={{ display: "flex", gap: "10px" }}>
           {canManage && (
-            <Link className="button" href="/league/billing">
-              League Billing
+            <Link className="button" href={`/admin/league/${realLeagueId}?tab=teams`}>
+              League Console
             </Link>
           )}
           <Link className="button" href="/teams">
@@ -271,14 +311,16 @@ export default async function TeamRosterPage({
         </div>
       )}
 
-      {/* 2b. Captain Roster Management Hub (Pending Spots, Claim Links, Group Invite Link) */}
+      {/* 2b. Captain Roster Management Hub (Real database records, claim links, group invite link) */}
       {canManage && (
         <TeamCaptainManager
           entryId={entryId}
           teamName={teamName}
-          leagueId={league.id}
+          leagueId={realLeagueId}
+          seasonId={targetSeasonId}
           seasonName={seasonName}
           canManage={canManage}
+          roster={teamMembers}
         />
       )}
 

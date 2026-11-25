@@ -2,10 +2,15 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ScheduleImporter } from "@/components/schedule-importer";
 import { SetupForm } from "@/components/setup-form";
 import { SeasonSettingsForm } from "@/components/season-settings-form";
+import {
+  addStaffMemberAction,
+  removeStaffMemberAction,
+  saveLeagueDomainAction,
+} from "@/app/(portal)/admin/league/[leagueId]/admin-actions";
 
 export interface LeagueAdminData {
   league: {
@@ -28,6 +33,9 @@ export interface LeagueAdminData {
   venues: any[];
   rinks: any[];
   staff: { user_id: string; email: string; role: string }[];
+  registrations: { id: string; playerName: string; position: string; status: string; createdAt: string }[];
+  rosterCount: number;
+  overridesCount: number;
   settings?: any;
 }
 
@@ -42,7 +50,33 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
   const searchParams = useSearchParams();
   const activeTab = searchParams.get("tab") || initialTab;
 
-  const { league, seasons, divisions, teams, games, venues, rinks, staff, settings } = data;
+  const {
+    league,
+    seasons,
+    divisions,
+    teams,
+    games,
+    venues,
+    rinks,
+    staff,
+    registrations,
+    rosterCount,
+    overridesCount,
+    settings,
+  } = data;
+
+  // Staff form state
+  const [staffEmail, setStaffEmail] = useState("");
+  const [staffRole, setStaffRole] = useState("commissioner");
+  const [isStaffPending, setIsStaffPending] = useState(false);
+  const [staffMsg, setStaffMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Domain form state
+  const [domainInput, setDomainInput] = useState(
+    `${league.name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`
+  );
+  const [isDomainPending, setIsDomainPending] = useState(false);
+  const [domainMsg, setDomainMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const entriesForSchedule = teams.map((t) => ({
     id: t.entry_id,
@@ -57,13 +91,60 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
     { key: "teams", label: "Teams & Rosters", icon: "👥", badge: teams.length },
     { key: "schedule", label: "Schedule & Fixtures", icon: "📅", badge: games.length },
     { key: "gamecentre", label: "Game Centre & Scores", icon: "⏱️" },
-    { key: "registrations", label: "Registrations & Waivers", icon: "📝" },
+    { key: "registrations", label: "Registrations & Waivers", icon: "📝", badge: registrations.length },
     { key: "governance", label: "Staff & Governance", icon: "🛡️", badge: staff.length },
     { key: "settings", label: "League Settings & Domain", icon: "⚙️" },
   ];
 
   const setTab = (key: string) => {
     router.push(`/admin/league/${league.id}?tab=${key}`);
+  };
+
+  const handleAddStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!staffEmail.trim()) return;
+
+    setIsStaffPending(true);
+    setStaffMsg(null);
+
+    const res = await addStaffMemberAction({
+      leagueId: league.id,
+      email: staffEmail.trim(),
+      role: staffRole,
+    });
+
+    setIsStaffPending(false);
+    if (res.success) {
+      setStaffEmail("");
+      setStaffMsg({ type: "success", text: res.message });
+    } else {
+      setStaffMsg({ type: "error", text: res.message });
+    }
+  };
+
+  const handleRemoveStaff = async (userId: string, role: string) => {
+    setIsStaffPending(true);
+    setStaffMsg(null);
+    const res = await removeStaffMemberAction({ leagueId: league.id, userId, role });
+    setIsStaffPending(false);
+    if (res.success) {
+      setStaffMsg({ type: "success", text: res.message });
+    } else {
+      setStaffMsg({ type: "error", text: res.message });
+    }
+  };
+
+  const handleSaveDomain = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsDomainPending(true);
+    setDomainMsg(null);
+    const res = await saveLeagueDomainAction({ leagueId: league.id, domain: domainInput });
+    setIsDomainPending(false);
+    if (res.success) {
+      setDomainMsg({ type: "success", text: res.message });
+    } else {
+      setDomainMsg({ type: "error", text: res.message });
+    }
   };
 
   return (
@@ -203,7 +284,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
           </nav>
         </div>
 
-        {/* Sidebar Footer: Platform Controls & View Public */}
+        {/* Sidebar Footer */}
         <div style={{ borderTop: "1px solid #162634", paddingTop: "14px", display: "flex", flexDirection: "column", gap: "6px" }}>
           <a
             href={`/api/switch-league?league=${league.id}&redirect=%2F`}
@@ -344,7 +425,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                   style={{ textAlign: "left", padding: "12px 16px", height: "auto" }}
                 >
                   <strong style={{ display: "block", color: "var(--lime)" }}>👥 Team Rosters &amp; Invites</strong>
-                  <span style={{ fontSize: "12px", color: "var(--muted)" }}>Pending spots &amp; WhatsApp links</span>
+                  <span style={{ fontSize: "12px", color: "var(--muted)" }}>Manage rosters &amp; WhatsApp links</span>
                 </button>
                 <button
                   type="button"
@@ -353,7 +434,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                   style={{ textAlign: "left", padding: "12px 16px", height: "auto" }}
                 >
                   <strong style={{ display: "block", color: "var(--lime)" }}>🏆 Seasons &amp; Divisions</strong>
-                  <span style={{ fontSize: "12px", color: "var(--muted)" }}>Configure league structure</span>
+                  <span style={{ fontSize: "12px", color: "var(--muted)" }}>Configure competition structure</span>
                 </button>
                 <button
                   type="button"
@@ -448,7 +529,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               <div style={{ padding: "16px 20px", borderBottom: "1px solid #162634", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: "16px", color: "#f0f4f8" }}>League Teams Directory</h3>
-                  <span style={{ fontSize: "12px", color: "var(--muted)" }}>Manage rosters, pending spots, and captain claim tokens</span>
+                  <span style={{ fontSize: "12px", color: "var(--muted)" }}>Manage active rosters, claim tokens, and clearance pipeline</span>
                 </div>
                 <span className="badge" style={{ fontSize: "11px" }}>{teams.length} Teams</span>
               </div>
@@ -572,32 +653,70 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
           </div>
         )}
 
-        {/* Registrations & Waivers Tab */}
+        {/* Registrations & Waivers Tab (Real Database Records) */}
         {activeTab === "registrations" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "14px", padding: "24px" }}>
-              <h3 style={{ margin: "0 0 6px", fontSize: "17px" }}>Player Registrations &amp; GoHighLevel Waivers</h3>
+              <h3 style={{ margin: "0 0 6px", fontSize: "17px" }}>Player Registrations &amp; Liability Waivers</h3>
               <p style={{ margin: "0 0 20px", fontSize: "13px", color: "var(--muted)" }}>
-                Track signed digital liability waivers, payment clearances, and player onboarding status across the league.
+                Live database clearance metrics from <code>player_registrations</code> and <code>player_eligibility_overrides</code>.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px" }}>
                 <div style={{ background: "#081017", padding: "16px", borderRadius: "10px", border: "1px solid #162634" }}>
-                  <span style={{ fontSize: "11.5px", color: "#facc15" }}>🟡 Invited / Pending</span>
-                  <div style={{ fontSize: "24px", fontWeight: 900, marginTop: "4px" }}>18</div>
-                </div>
-                <div style={{ background: "#081017", padding: "16px", borderRadius: "10px", border: "1px solid #162634" }}>
-                  <span style={{ fontSize: "11.5px", color: "#fb923c" }}>🟠 Waiver Needed</span>
-                  <div style={{ fontSize: "24px", fontWeight: 900, marginTop: "4px" }}>7</div>
-                </div>
-                <div style={{ background: "#081017", padding: "16px", borderRadius: "10px", border: "1px solid #162634" }}>
-                  <span style={{ fontSize: "11.5px", color: "#60a5fa" }}>🔵 Payment Due</span>
-                  <div style={{ fontSize: "24px", fontWeight: 900, marginTop: "4px" }}>4</div>
+                  <span style={{ fontSize: "11.5px", color: "var(--lime)" }}>👥 Total Team Rosters</span>
+                  <div style={{ fontSize: "28px", fontWeight: 900, marginTop: "4px" }}>{rosterCount}</div>
                 </div>
                 <div style={{ background: "#081017", padding: "16px", borderRadius: "10px", border: "1px solid #162634" }}>
                   <span style={{ fontSize: "11.5px", color: "#34d399" }}>🟢 Cleared to Play</span>
-                  <div style={{ fontSize: "24px", fontWeight: 900, marginTop: "4px" }}>82</div>
+                  <div style={{ fontSize: "28px", fontWeight: 900, marginTop: "4px" }}>
+                    {overridesCount + registrations.filter(r => r.status === 'approved').length}
+                  </div>
+                </div>
+                <div style={{ background: "#081017", padding: "16px", borderRadius: "10px", border: "1px solid #162634" }}>
+                  <span style={{ fontSize: "11.5px", color: "#fb923c" }}>🟠 Waiver Needed</span>
+                  <div style={{ fontSize: "28px", fontWeight: 900, marginTop: "4px" }}>
+                    {registrations.filter(r => r.status === 'pending').length}
+                  </div>
+                </div>
+                <div style={{ background: "#081017", padding: "16px", borderRadius: "10px", border: "1px solid #162634" }}>
+                  <span style={{ fontSize: "11.5px", color: "#60a5fa" }}>📝 Total Registrations</span>
+                  <div style={{ fontSize: "28px", fontWeight: 900, marginTop: "4px" }}>{registrations.length}</div>
                 </div>
               </div>
+            </div>
+
+            <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "14px", overflow: "hidden" }}>
+              <div style={{ padding: "16px 20px", borderBottom: "1px solid #162634" }}>
+                <h3 style={{ margin: 0, fontSize: "15px" }}>Registered Players ({registrations.length})</h3>
+              </div>
+              {registrations.length > 0 ? (
+                <table className="table" style={{ width: "100%", margin: 0, fontSize: "13px" }}>
+                  <thead>
+                    <tr>
+                      <th>PLAYER</th>
+                      <th>POSITION</th>
+                      <th>REGISTERED AT</th>
+                      <th style={{ textAlign: "right" }}>STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {registrations.map((r) => (
+                      <tr key={r.id}>
+                        <td><strong>{r.playerName}</strong></td>
+                        <td>{r.position}</td>
+                        <td style={{ color: "var(--muted)" }}>{r.createdAt}</td>
+                        <td style={{ textAlign: "right" }}>
+                          <span className="badge" style={{ fontSize: "10.5px" }}>{r.status.toUpperCase()}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div style={{ padding: "32px", textAlign: "center", color: "var(--muted)" }}>
+                  No player self-registrations recorded in the database yet.
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -605,28 +724,118 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
         {/* Staff & Governance Tab */}
         {activeTab === "governance" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            {/* Add Staff Member Form */}
+            <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "14px", padding: "20px" }}>
+              <h3 style={{ margin: "0 0 4px", fontSize: "16px" }}>Invite or Assign Staff Member</h3>
+              <p style={{ margin: "0 0 16px", fontSize: "12.5px", color: "var(--muted)" }}>
+                Assign Commissioners, Referees, and Timekeepers for {league.name}.
+              </p>
+
+              <form onSubmit={handleAddStaff} style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "flex-end" }}>
+                <div style={{ flex: 1, minWidth: "240px" }}>
+                  <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", display: "block", marginBottom: "4px" }}>
+                    Staff Email Address
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={staffEmail}
+                    onChange={(e) => setStaffEmail(e.target.value)}
+                    placeholder="official@example.com"
+                    style={{
+                      width: "100%",
+                      background: "#081017",
+                      border: "1px solid #162634",
+                      borderRadius: "8px",
+                      padding: "8px 12px",
+                      color: "#f0f4f8",
+                      fontSize: "13px",
+                    }}
+                  />
+                </div>
+
+                <div style={{ width: "160px" }}>
+                  <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", display: "block", marginBottom: "4px" }}>
+                    Role
+                  </label>
+                  <select
+                    value={staffRole}
+                    onChange={(e) => setStaffRole(e.target.value)}
+                    style={{
+                      width: "100%",
+                      background: "#081017",
+                      border: "1px solid #162634",
+                      borderRadius: "8px",
+                      padding: "8px 12px",
+                      color: "#f0f4f8",
+                      fontSize: "13px",
+                    }}
+                  >
+                    <option value="commissioner">Commissioner</option>
+                    <option value="referee">Referee</option>
+                    <option value="timekeeper">Timekeeper</option>
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isStaffPending || !staffEmail.trim()}
+                  className="button primary"
+                  style={{ fontWeight: 800, padding: "8px 18px", fontSize: "13px" }}
+                >
+                  {isStaffPending ? "Saving..." : "+ Assign Staff"}
+                </button>
+              </form>
+
+              {staffMsg && (
+                <div
+                  style={{
+                    marginTop: "12px",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    fontSize: "12.5px",
+                    background: staffMsg.type === "success" ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
+                    color: staffMsg.type === "success" ? "#6ee7b7" : "#fca5a5",
+                  }}
+                >
+                  {staffMsg.text}
+                </div>
+              )}
+            </div>
+
+            {/* Current Staff List */}
             <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "14px", overflow: "hidden" }}>
               <div style={{ padding: "16px 20px", borderBottom: "1px solid #162634", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: "16px" }}>League Staff &amp; Officials</h3>
-                  <span style={{ fontSize: "12px", color: "var(--muted)" }}>Commissioners, referees, timekeepers, and assignors</span>
+                  <h3 style={{ margin: 0, fontSize: "16px" }}>Current Staff &amp; Officials ({staff.length})</h3>
+                  <span style={{ fontSize: "12px", color: "var(--muted)" }}>Active governance permissions</span>
                 </div>
-                <span className="badge">{staff.length} Active Staff</span>
               </div>
               <table className="table" style={{ width: "100%", margin: 0, fontSize: "13px" }}>
                 <thead>
                   <tr>
                     <th>EMAIL</th>
                     <th>ROLE</th>
-                    <th style={{ textAlign: "right" }}>STATUS</th>
+                    <th style={{ width: "100px", textAlign: "right" }}>ACTION</th>
                   </tr>
                 </thead>
                 <tbody>
                   {staff.map((s) => (
-                    <tr key={s.user_id || s.email}>
+                    <tr key={`${s.user_id}-${s.role}`}>
                       <td><strong>{s.email}</strong></td>
                       <td><span className="badge" style={{ fontSize: "11px" }}>{s.role.toUpperCase()}</span></td>
-                      <td style={{ textAlign: "right" }}><span style={{ color: "#34d399", fontSize: "12px" }}>Active</span></td>
+                      <td style={{ textAlign: "right" }}>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStaff(s.user_id, s.role)}
+                          className="button button-sm button-outline"
+                          style={{ fontSize: "11px", color: "#f87171", padding: "2px 8px" }}
+                          disabled={isStaffPending}
+                          title="Remove staff role"
+                        >
+                          Remove
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -643,10 +852,12 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               <p style={{ margin: "0 0 16px", fontSize: "13px", color: "var(--muted)" }}>
                 Route your custom domain (e.g. <code>alaskaleague.com</code> or <code>bhl.com</code>) directly to your branded portal.
               </p>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center", maxWidth: "600px" }}>
+              <form onSubmit={handleSaveDomain} style={{ display: "flex", gap: "10px", alignItems: "center", maxWidth: "600px" }}>
                 <input
                   type="text"
-                  defaultValue={`${league.name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`}
+                  required
+                  value={domainInput}
+                  onChange={(e) => setDomainInput(e.target.value)}
                   style={{
                     flex: 1,
                     background: "#081017",
@@ -657,13 +868,34 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                     fontSize: "13.5px",
                   }}
                 />
-                <button type="button" className="button primary" style={{ fontWeight: 800 }}>
-                  Save Custom Domain
+                <button
+                  type="submit"
+                  disabled={isDomainPending || !domainInput.trim()}
+                  className="button primary"
+                  style={{ fontWeight: 800 }}
+                >
+                  {isDomainPending ? "Saving..." : "Save Custom Domain"}
                 </button>
-              </div>
+              </form>
+
+              {domainMsg && (
+                <div
+                  style={{
+                    marginTop: "12px",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    fontSize: "12.5px",
+                    background: domainMsg.type === "success" ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
+                    color: domainMsg.type === "success" ? "#6ee7b7" : "#fca5a5",
+                    maxWidth: "600px",
+                  }}
+                >
+                  {domainMsg.text}
+                </div>
+              )}
             </div>
 
-            {settings && (
+            {settings ? (
               <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "14px", padding: "24px" }}>
                 <h3 style={{ margin: "0 0 16px", fontSize: "17px" }}>Season Rules &amp; Competition Format</h3>
                 <SeasonSettingsForm
@@ -671,6 +903,20 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                   seasonId={settings.season_id || seasons[0]?.id || ""}
                   canManage={true}
                 />
+              </div>
+            ) : (
+              <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "14px", padding: "24px" }}>
+                <h3 style={{ margin: "0 0 8px", fontSize: "17px" }}>Season Rules &amp; Competition Format</h3>
+                <p style={{ color: "var(--muted)", fontSize: "13px", marginBottom: "16px" }}>
+                  No season settings configured yet for this league. Initialize rules using the Season Settings form.
+                </p>
+                {seasons.length > 0 && (
+                  <SeasonSettingsForm
+                    settings={null}
+                    seasonId={seasons[0].id}
+                    canManage={true}
+                  />
+                )}
               </div>
             )}
           </div>
