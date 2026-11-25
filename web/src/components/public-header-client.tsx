@@ -34,6 +34,11 @@ export function PublicHeaderClient({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // If on admin or commissioner management back-office route, completely omit public website header
+  if (pathname.startsWith("/admin") || pathname.startsWith("/league")) {
+    return null;
+  }
+
   const leagueInitial = (leagueName || "P").trim().charAt(0).toUpperCase();
 
   const scrollTicker = (direction: "left" | "right") => {

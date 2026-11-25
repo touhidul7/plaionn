@@ -17,6 +17,8 @@ import {
 } from "@/components/schedule-forms";
 import { IceContractsDashboard } from "@/components/ice-contracts-dashboard";
 import { ScheduleFairnessDashboard } from "@/components/schedule-fairness-dashboard";
+import { ScheduleFilterView } from "@/components/schedule-filter-view";
+import { ScheduleImporter } from "@/components/schedule-importer";
 import type { Venue, Rink, Game, Entry } from "@/lib/schedule-schema";
 import type { ScheduleBlackout } from "@/lib/ice-slot-schema";
 import type { ScheduleAuditInput } from "@/lib/schedule-fairness";
@@ -98,153 +100,12 @@ export default async function SchedulePage({
           </div>
         </div>
 
-        {/* Recent Scores Grid */}
-        {completedGames.length > 0 && (
-          <section className="panel" style={{ marginBottom: "2rem" }}>
-            <div className="section-heading" style={{ marginTop: 0 }}>
-              <h2>Recent Final Scores</h2>
-              <span>Approved official results</span>
-            </div>
-            <div className="scoreboard-grid">
-              {completedGames.map((game) => {
-                const homeScore = game.home_score ?? 0;
-                const awayScore = game.away_score ?? 0;
-                const homeWon = homeScore > awayScore;
-                const awayWon = awayScore > homeScore;
-                const time = new Intl.DateTimeFormat("en-CA", {
-                  timeZone: game.time_zone || "America/Toronto",
-                  dateStyle: "short",
-                  timeStyle: "short",
-                }).format(new Date(game.starts_at));
-
-                return (
-                  <article key={game.game_id} className="score-card">
-                    <div className="score-card-header">
-                      <span>
-                        FINAL{game.decision && game.decision !== "regulation" ? ` (${game.decision.toUpperCase()})` : ""}
-                      </span>
-                      <time dateTime={game.starts_at}>{time}</time>
-                    </div>
-                    <div className={`score-card-team ${homeWon ? "winner" : awayWon ? "loser" : ""}`}>
-                      <span>{game.home_team_name}</span>
-                      <span className="score-card-score">{homeScore}</span>
-                    </div>
-                    <div className={`score-card-team ${awayWon ? "winner" : homeWon ? "loser" : ""}`}>
-                      <span>{game.away_team_name}</span>
-                      <span className="score-card-score">{awayScore}</span>
-                    </div>
-                    <div style={{ marginTop: "4px" }}>
-                      <Link className="button button-sm button-outline" href={`/schedule/${game.game_id}/live`}>
-                        Boxscore &amp; Live Stats →
-                      </Link>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* Complete Schedule Table */}
-        <section className="panel">
-          <h2>All Schedules &amp; Scores</h2>
-          {publicGames.length ? (
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th scope="col">Matchup</th>
-                    <th scope="col">Start / Duration</th>
-                    <th scope="col">Venue / Rink</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Score / Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {publicGames.map((game) => {
-                    const time = new Intl.DateTimeFormat("en-CA", {
-                      timeZone: game.time_zone || "America/Toronto",
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }).format(new Date(game.starts_at));
-                    const isFinal = game.home_score !== null && game.away_score !== null;
-
-                    return (
-                      <tr key={game.game_id}>
-                        <td>
-                          <strong>{game.home_team_name}</strong>
-                          <br />
-                          vs {game.away_team_name}
-                        </td>
-                        <td>
-                          <time dateTime={game.starts_at}>{time}</time>
-                          <br />
-                          <small>{game.time_zone}</small>
-                        </td>
-                        <td>
-                          {sanitizeVenueName(game.venue_name)}
-                          <br />
-                          <small>{game.rink_name ?? "Rink 1"}</small>
-                        </td>
-                        <td>
-                          <span className="badge">
-                            {isFinal ? "FINAL" : game.status.toUpperCase()}
-                          </span>
-                        </td>
-                        <td>
-                          {isFinal ? (
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                              <strong style={{ fontSize: "1.1rem", color: "var(--lime)" }}>
-                                {game.home_score} – {game.away_score}
-                                {game.decision && game.decision !== "regulation" && (
-                                  <small style={{ color: "var(--muted)", fontWeight: "normal" }}>
-                                    {" "}({game.decision.toUpperCase()})
-                                  </small>
-                                )}
-                              </strong>
-                              {(canManage || Boolean(user)) && (
-                                <Link
-                                  className="button button-sm primary"
-                                  href={"/schedule/" + game.game_id + "/scorekeeping"}
-                                  style={{ fontWeight: 800, fontSize: "11px", padding: "4px 10px" }}
-                                >
-                                  ⏱ Review / Edit
-                                </Link>
-                              )}
-                              <Link className="button button-sm button-outline" href={"/schedule/" + game.game_id + "/live"}>
-                                Boxscore
-                              </Link>
-                            </div>
-                          ) : (
-                            <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
-                              {(canManage || Boolean(user)) && (
-                                <Link
-                                  className="button button-sm primary"
-                                  href={"/schedule/" + game.game_id + "/scorekeeping"}
-                                  style={{ fontWeight: 800, fontSize: "11px", padding: "4px 10px" }}
-                                >
-                                  ⏱ Score Game
-                                </Link>
-                              )}
-                              <Link className="button button-sm button-outline" href={"/schedule/" + game.game_id + "/live"}>
-                                Game Centre
-                              </Link>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="empty">
-              <h2>No games scheduled yet.</h2>
-              <p>Your league schedule will appear here once published.</p>
-            </div>
-          )}
-        </section>
+        <ScheduleFilterView
+          games={publicGames}
+          leagueName={league.name}
+          leagueId={league.id}
+          canManage={canManage}
+        />
       </main>
     );
   }
@@ -446,7 +307,13 @@ export default async function SchedulePage({
           <h1>Schedules &amp; Scores</h1>
           <p>{league.name} · Official game schedules, scores, and live game centre.</p>
         </div>
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+          <ScheduleImporter
+            leagueId={league.id}
+            entries={entries}
+            venues={venues.data}
+            rinks={rinks.data}
+          />
           <a
             className="button button-sm button-outline"
             href={`/api/calendar?leagueId=${league.id}`}

@@ -1,6 +1,7 @@
 import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 import { SponsorBanner } from "@/components/sponsor-banner";
+import { PortalShell } from "@/components/portal-shell";
 import { getLeagueContext } from "@/lib/supabase/session";
 
 export default async function PortalLayout({
@@ -12,20 +13,13 @@ export default async function PortalLayout({
   const isPlatform = league.id === "platform";
 
   return (
-    <div className="public-portal-root">
-      <a className="skip-link" href="#main">
-        Skip to content
-      </a>
-      <PublicHeader />
-      <div className="public-portal-body">
-        {children}
-        {!isPlatform && (
-          <div style={{ maxWidth: "1200px", margin: "0 auto", width: "100%", padding: "0 24px" }}>
-            <SponsorBanner />
-          </div>
-        )}
-      </div>
-      <PublicFooter leagueName={league.name} />
-    </div>
+    <PortalShell
+      isPlatform={isPlatform}
+      header={<PublicHeader />}
+      footer={<PublicFooter leagueName={league.name} />}
+      sponsor={<SponsorBanner />}
+    >
+      {children}
+    </PortalShell>
   );
 }

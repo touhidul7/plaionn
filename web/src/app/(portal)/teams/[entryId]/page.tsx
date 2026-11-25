@@ -5,6 +5,7 @@ import { getLeagueData } from "@/lib/league";
 import { getLeagueContext } from "@/lib/supabase/session";
 import { PlayerForm, RosterForm, EligibilityCard } from "@/components/roster-forms";
 import { RosterCsvImportModal } from "@/components/roster-csv-import";
+import { TeamCaptainManager } from "@/components/team-captain-manager";
 import { teamEligibilitySchema, type PlayerOption, type RosterRow } from "@/lib/roster-schema";
 import { sanitizeLeagueName, sanitizeSeasonName, sanitizePlayerName } from "@/lib/sanitize";
 
@@ -268,6 +269,17 @@ export default async function TeamRosterPage({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 2b. Captain Roster Management Hub (Pending Spots, Claim Links, Group Invite Link) */}
+      {canManage && (
+        <TeamCaptainManager
+          entryId={entryId}
+          teamName={teamName}
+          leagueId={league.id}
+          seasonName={seasonName}
+          canManage={canManage}
+        />
       )}
 
       {/* 3. Official Active Roster Table with Player Stats (theScore style) */}
