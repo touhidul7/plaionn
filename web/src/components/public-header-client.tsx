@@ -98,17 +98,19 @@ export function PublicHeaderClient({
                   <Link
                     href="/admin"
                     className="button primary"
-                    style={{ fontWeight: 800, fontSize: "13.5px", padding: "7px 18px", borderRadius: "8px" }}
+                    style={{ fontWeight: 800, fontSize: "13.5px", padding: "8px 20px", borderRadius: "8px" }}
                   >
-                    Admin Console
+                    Admin Console ↗
                   </Link>
-                  <Link
-                    href="/account"
-                    className="button button-outline"
-                    style={{ fontWeight: 700, fontSize: "13px", padding: "7px 14px", borderRadius: "8px" }}
-                  >
-                    Account
-                  </Link>
+                  <form action="/auth/signout" method="post" style={{ margin: 0 }}>
+                    <button
+                      type="submit"
+                      className="button button-outline"
+                      style={{ fontWeight: 600, fontSize: "13px", padding: "7px 14px", borderRadius: "8px", cursor: "pointer" }}
+                    >
+                      Sign Out
+                    </button>
+                  </form>
                 </div>
               ) : (
                 <Link

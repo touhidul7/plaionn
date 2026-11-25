@@ -8,6 +8,7 @@ import { sanitizeLeagueName, sanitizeSeasonName } from "@/lib/sanitize";
 export const DOMAIN_LEAGUE_MAP: Record<string, string> = {
   // Main Platform Root Domains
   "plaionn.brittosoft.online": "platform",
+  "www.plaionn.brittosoft.online": "platform",
   "plaionn.vercel.app": "platform",
   "plaionn.com": "platform",
   "www.plaionn.com": "platform",
@@ -113,13 +114,8 @@ export const getLeagueContext = cache(async () => {
       metadataRole !== "player"
   );
   const platformAdmin = isSuperAdmin ? { role: "super_admin" } : null;
-  const cookieLeagueId = (await cookies()).get("plaionn-league")?.value;
-  const selectedLeagueId = domainLeagueId && domainLeagueId !== "platform" ? domainLeagueId : cookieLeagueId;
-  if (platformAdmin && selectedLeagueId) {
-    const { data: league } = await supabase.from("leagues").select("id,name").eq("id", selectedLeagueId).maybeSingle();
-    if (league) return { supabase, user, league, leagueId: league.id, canManage: true, isGuest: false, publicData: null as PublicLeagueOverview | null };
-  }
-  if (domainLeagueId === "platform" && (!user || platformAdmin) && !selectedLeagueId) {
+
+  if (domainLeagueId === "platform") {
     return {
       supabase,
       user,
@@ -132,6 +128,13 @@ export const getLeagueContext = cache(async () => {
       isGuest: !user,
       publicData: null,
     };
+  }
+
+  const cookieLeagueId = (await cookies()).get("plaionn-league")?.value;
+  const selectedLeagueId = domainLeagueId && domainLeagueId !== "platform" ? domainLeagueId : cookieLeagueId;
+  if (platformAdmin && selectedLeagueId) {
+    const { data: league } = await supabase.from("leagues").select("id,name").eq("id", selectedLeagueId).maybeSingle();
+    if (league) return { supabase, user, league, leagueId: league.id, canManage: true, isGuest: false, publicData: null as PublicLeagueOverview | null };
   }
 
   if (user) {

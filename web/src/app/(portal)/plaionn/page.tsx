@@ -160,8 +160,8 @@ export default async function PlaionnPlatformPage() {
         </p>
 
         <div style={{ display: "flex", gap: "14px", marginTop: "8px", flexWrap: "wrap", justifyContent: "center" }}>
-          <Link href="/login" className="button primary" style={{ padding: "14px 40px", fontSize: "16px", fontWeight: 800 }}>
-            Login to Admin Console →
+          <Link href="/login" className="button primary" style={{ padding: "14px 44px", fontSize: "16px", fontWeight: 800 }}>
+            Login
           </Link>
         </div>
       </section>
@@ -305,11 +305,8 @@ export default async function PlaionnPlatformPage() {
           Create your league, configure your custom domain, and launch a branded public website in minutes.
         </p>
         <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
-          <Link href="/admin" className="button primary" style={{ padding: "12px 28px" }}>
-            Open Central Super Admin
-          </Link>
-          <Link href="/login" className="button button-outline" style={{ padding: "12px 28px" }}>
-            Administrator Login
+          <Link href="/login" className="button primary" style={{ padding: "12px 36px", fontSize: "15px", fontWeight: 800 }}>
+            Login
           </Link>
         </div>
       </section>

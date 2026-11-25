@@ -17,7 +17,9 @@ export default async function Home({
   const host = (headerList.get("x-forwarded-host") || headerList.get("host") || "").toLowerCase().split(":")[0];
   const isPlatformRoot =
     host === "plaionn.brittosoft.online" ||
+    host === "www.plaionn.brittosoft.online" ||
     host === "plaionn.vercel.app" ||
+    host.endsWith(".vercel.app") ||
     host === "plaionn.com" ||
     host === "www.plaionn.com";
 
