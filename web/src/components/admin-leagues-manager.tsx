@@ -188,7 +188,7 @@ export function AdminLeaguesManager({
         <table className="table" style={{ width: "100%", margin: 0 }}>
           <thead>
             <tr>
-              <th>League Name</th>
+              <th style={{ minWidth: "240px" }}>League Name</th>
               <th>Live Domain</th>
               <th>Current Season</th>
               <th>Active Teams</th>
@@ -204,13 +204,17 @@ export function AdminLeaguesManager({
                   <Link
                     href={`/admin/league/${lg.id}`}
                     style={{
-                      color: "var(--lime)",
-                      textDecoration: "underline",
-                      textUnderlineOffset: "4px",
+                      color: "var(--text)",
+                      textDecoration: "none",
+                      fontSize: "14px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
                     }}
                     title={`Manage ${lg.name} Backend`}
                   >
-                    {lg.name}
+                    <span style={{ color: "var(--lime)" }}>{lg.name}</span>
+                    <span style={{ fontSize: "11px", color: "var(--muted)" }}>→</span>
                   </Link>
                   {lg.isCustom && (
                     <span
@@ -254,20 +258,13 @@ export function AdminLeaguesManager({
                 </td>
                 <td style={{ textAlign: "right" }}>
                   <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end", alignItems: "center" }}>
-                    <Link
-                      href={`/admin/league/${lg.id}`}
-                      className="button button-sm primary"
-                      style={{ fontSize: "11px", padding: "4px 10px", fontWeight: 800 }}
-                    >
-                      Backend Hub →
-                    </Link>
                     <a
                       href={lg.domain ? `https://${lg.domain}` : `/api/switch-league?league=${lg.id}`}
                       target="_blank"
                       rel="noreferrer"
                       className="button button-sm button-outline"
-                      style={{ fontSize: "11px", padding: "4px 8px" }}
-                      title={`Launch ${lg.name}`}
+                      style={{ fontSize: "11px", padding: "4px 10px" }}
+                      title={`Launch ${lg.name} Public Site`}
                     >
                       Public ↗
                     </a>

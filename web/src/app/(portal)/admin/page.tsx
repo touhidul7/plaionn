@@ -3,6 +3,7 @@ import { getAdminAccess, listAdminLeagues } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { AdminUsersManager } from "@/components/admin-users-manager";
 import { AdminLeaguesManager } from "@/components/admin-leagues-manager";
+import { AdminSidebar } from "@/components/admin-sidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -61,196 +62,33 @@ export default async function AdminManagementPage() {
   return (
     <main id="main" className="public-portal-container" style={{ paddingBottom: "60px" }}>
       {/* 2-Column Admin Shell: Left Navigation Bar + Main Management Body */}
-      <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: "24px", alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: "24px", alignItems: "start" }}>
         
-        {/* Left Sidebar Menu */}
-        <aside
-          style={{
-            background: "#0c1822",
-            border: "1px solid var(--line)",
-            borderRadius: "14px",
-            padding: "20px 16px",
-            position: "sticky",
-            top: "20px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "6px",
-          }}
-        >
-          <div style={{ padding: "0 8px 12px 8px", borderBottom: "1px solid var(--line)", marginBottom: "8px" }}>
-            <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--lime)", letterSpacing: "1px", textTransform: "uppercase" }}>
-              ADMIN NAVIGATION
-            </span>
-          </div>
-
-          <a
-            href="#leagues"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "10px 12px",
-              borderRadius: "8px",
-              fontSize: "13.5px",
-              fontWeight: 700,
-              color: "var(--text)",
-              background: "rgba(199, 244, 80, 0.08)",
-              border: "1px solid rgba(199, 244, 80, 0.2)",
-              textDecoration: "none",
-            }}
-          >
-            <span>🏆</span>
-            <span>{isLeagueAdminOnly ? "My League" : "Leagues"}</span>
-          </a>
-
-          {showUserSettings && (
-            <a
-              href="#users"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                padding: "10px 12px",
-                borderRadius: "8px",
-                fontSize: "13.5px",
-                fontWeight: 600,
-                color: "var(--text)",
-                textDecoration: "none",
-              }}
-            >
-              <span>👥</span>
-              <span>Users</span>
-            </a>
-          )}
-
-          <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: "8px" }}>
-            <span style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase", paddingLeft: "8px" }}>
-              Quick Links
-            </span>
-            <Link
-              href="/account"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "8px 12px",
-                borderRadius: "6px",
-                fontSize: "12.5px",
-                color: "var(--muted)",
-                textDecoration: "none",
-              }}
-            >
-              <span>⚙️</span>
-              <span>Account Settings</span>
-            </Link>
-            <Link
-              href="/"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "8px 12px",
-                borderRadius: "6px",
-                fontSize: "12.5px",
-                color: "var(--muted)",
-                textDecoration: "none",
-              }}
-            >
-              <span>↗</span>
-              <span>Public Website</span>
-            </Link>
-          </div>
-        </aside>
+        {/* Left Sidebar with Bottom Gear Menu */}
+        <AdminSidebar isSuperAdmin={showUserSettings} isLeagueAdminOnly={isLeagueAdminOnly} />
 
         {/* Right Main Admin Area */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           
-          {/* Header Banner - Deleted the two crossed out buttons */}
+          {/* Clean Header per Client Video 1 */}
           <section
             style={{
               background: "#0c1921",
               border: "1px solid var(--line)",
               borderRadius: "14px",
-              padding: "24px 28px",
+              padding: "18px 24px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
               flexWrap: "wrap",
-              gap: "16px",
+              gap: "12px",
             }}
           >
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-                <span
-                  className="badge"
-                  style={{ background: "rgba(199, 244, 80, 0.15)", color: "var(--lime)", fontWeight: 800, letterSpacing: "1px" }}
-                >
-                  {isLeagueAdminOnly ? "LEAGUE COMMISSIONER CONSOLE" : "CENTRAL MANAGEMENT BACKEND"}
-                </span>
-                <span style={{ fontSize: "12px", color: "var(--muted)" }}>
-                  {isLeagueAdminOnly ? "Role: League Administrator" : "Access: Super Admin & Regular Admin"}
-                </span>
-              </div>
-              <h1 style={{ margin: 0, fontSize: "24px", color: "var(--text)" }}>
-                {isLeagueAdminOnly
-                  ? `${visibleLeagues[0]?.name ?? "League"} Management Hub`
-                  : "PLAIONN Multi-League Administrator Console"}
-              </h1>
-              <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: "13.5px", maxWidth: "800px" }}>
-                {isLeagueAdminOnly
-                  ? `Dedicated league backend for ${visibleLeagues[0]?.name ?? "your league"}. Manage registered teams, rosters, divisions, schedule generation, and billing.`
-                  : "Manage independent sports leagues, configure dedicated domain routing (e.g. bhl.com, chl.com), appoint commissioners, and enforce platform-wide role permissions."}
-              </p>
-            </div>
-          </section>
-
-          {/* KPI Metrics Grid */}
-          <section
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: "14px",
-            }}
-          >
-            <div className="panel" style={{ padding: "18px", marginBottom: 0 }}>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>
-                Active Leagues
-              </span>
-              <div style={{ fontSize: "30px", fontWeight: 900, color: "var(--lime)", marginTop: "4px" }}>
-                {visibleLeagues.length}
-              </div>
-              <small style={{ color: "var(--muted)" }}>{visibleLeagues.map(l => l.name).join(", ") || "No assigned leagues"}</small>
-            </div>
-
-            <div className="panel" style={{ padding: "18px", marginBottom: 0 }}>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>
-                Configured Domains
-              </span>
-              <div style={{ fontSize: "30px", fontWeight: 900, color: "#60a5fa", marginTop: "4px" }}>
-                {visibleLeagues.filter(l => l.domain).length}
-              </div>
-              <small style={{ color: "var(--muted)" }}>Unique branded websites</small>
-            </div>
-
-            <div className="panel" style={{ padding: "18px", marginBottom: 0 }}>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>
-                Registered Teams
-              </span>
-              <div style={{ fontSize: "30px", fontWeight: 900, color: "#f59e0b", marginTop: "4px" }}>
-                {visibleLeagues.reduce((total, l) => total + l.teams, 0)}
-              </div>
-              <small style={{ color: "var(--muted)" }}>Across all active divisions</small>
-            </div>
-
-            <div className="panel" style={{ padding: "18px", marginBottom: 0 }}>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>
-                Access Scope
-              </span>
-              <div style={{ fontSize: "30px", fontWeight: 900, color: "#a855f7", marginTop: "4px" }}>
-                {isLeagueAdminOnly ? "Assigned" : "Platform"}
-              </div>
-              <small style={{ color: "var(--muted)" }}>{isLeagueAdminOnly ? "Your leagues only" : "All leagues"}</small>
-            </div>
+            <h1 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "var(--text)" }}>
+              {isLeagueAdminOnly
+                ? `${visibleLeagues[0]?.name ?? "League"} Admin Console`
+                : "Admin Console"}
+            </h1>
           </section>
 
           {/* 1. Leagues & Branded Domains */}

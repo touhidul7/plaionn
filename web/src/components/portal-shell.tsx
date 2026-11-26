@@ -8,6 +8,7 @@ interface PortalShellProps {
   footer: React.ReactNode;
   sponsor: React.ReactNode;
   isPlatform: boolean;
+  themeColor?: string | null;
   children: React.ReactNode;
 }
 
@@ -16,6 +17,7 @@ export function PortalShell({
   footer,
   sponsor,
   isPlatform,
+  themeColor,
   children,
 }: PortalShellProps) {
   const pathname = usePathname();
@@ -37,7 +39,10 @@ export function PortalShell({
   }
 
   return (
-    <div className="public-portal-root">
+    <div
+      className="public-portal-root"
+      style={themeColor ? ({ "--lime": themeColor, "--brand": themeColor } as React.CSSProperties) : undefined}
+    >
       <a className="skip-link" href="#main">
         Skip to content
       </a>

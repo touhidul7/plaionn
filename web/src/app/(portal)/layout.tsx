@@ -9,12 +9,29 @@ export default async function PortalLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { league } = await getLeagueContext();
+  const { league, supabase } = await getLeagueContext();
   const isPlatform = league.id === "platform";
+
+  let themeColor: string | null = null;
+  if (!isPlatform && league.id) {
+    try {
+      const { data: settings } = await supabase
+        .from("season_settings")
+        .select("currency")
+        .eq("league_id", league.id)
+        .limit(1);
+      if (settings && settings[0]?.currency?.startsWith("#")) {
+        themeColor = settings[0].currency;
+      }
+    } catch {
+      // Fallback to default styling
+    }
+  }
 
   return (
     <PortalShell
       isPlatform={isPlatform}
+      themeColor={themeColor}
       header={<PublicHeader />}
       footer={<PublicFooter leagueName={league.name} />}
       sponsor={<SponsorBanner />}

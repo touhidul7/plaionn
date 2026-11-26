@@ -34,7 +34,7 @@ export default async function LeagueBackendPage({
     staffRes,
     settingsRes,
     regsRes,
-    rosterCountRes,
+    rosterMembersRes,
     overridesRes,
   ] = await Promise.all([
     supabase.from("seasons").select("id, name").eq("league_id", leagueId).order("name"),
@@ -46,7 +46,7 @@ export default async function LeagueBackendPage({
     supabase.rpc("get_league_staff_members", { target_league: leagueId }),
     supabase.from("season_settings").select("*").eq("league_id", leagueId).limit(1),
     supabase.from("player_registrations").select("id, status, position, user_id, player_id, created_at").eq("league_id", leagueId),
-    supabase.from("roster_memberships").select("*", { count: "exact", head: true }).eq("league_id", leagueId),
+    supabase.from("roster_memberships").select("id, player_id, team_entry_id, jersey_number, position, status, players(id, display_name)").eq("league_id", leagueId),
     supabase.from("player_eligibility_overrides").select("id, reason, granted_at").eq("league_id", leagueId).is("revoked_at", null),
   ]);
 
@@ -97,6 +97,18 @@ export default async function LeagueBackendPage({
     createdAt: new Date(r.created_at).toLocaleDateString(),
   }));
 
+  const rawRoster = rosterMembersRes.data || [];
+  const rosterPlayers = rawRoster.map((r: any) => ({
+    id: r.id,
+    playerId: r.player_id,
+    playerName: r.players?.display_name || "Roster Player",
+    teamEntryId: r.team_entry_id,
+    teamName: teamNameMap.get(r.team_entry_id) || "Assigned Team",
+    jerseyNumber: r.jersey_number,
+    position: r.position || "F",
+    status: r.status || "active",
+  }));
+
   const adminData: LeagueAdminData = {
     league: {
       id: league.id,
@@ -104,15 +116,17 @@ export default async function LeagueBackendPage({
       season: league.season,
       teams: teams.length,
     },
+    allLeagues: leagues.map((l) => ({ id: l.id, name: l.name })),
     seasons,
     divisions,
     teams,
+    rosterPlayers,
     games,
     venues: venuesRes.data || [],
     rinks: rinksRes.data || [],
     staff,
     registrations,
-    rosterCount: rosterCountRes.count ?? 0,
+    rosterCount: rosterPlayers.length,
     overridesCount: (overridesRes.data || []).length,
     settings,
   };

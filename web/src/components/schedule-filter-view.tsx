@@ -327,19 +327,47 @@ export function ScheduleFilterView({ games, leagueName, leagueId, canManage }: S
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontWeight: homeWon ? 800 : 500, color: homeWon ? "var(--text)" : "var(--muted)", fontSize: "14px" }}>
-                        {game.home_team_name}
-                      </span>
-                      <strong style={{ fontSize: "16px", color: homeWon ? "var(--lime)" : "var(--text)" }}>
+                      {game.home_entry_id ? (
+                        <Link
+                          href={`/teams/${game.home_entry_id}`}
+                          style={{
+                            fontWeight: homeWon ? 700 : 500,
+                            color: homeWon ? "var(--text)" : "var(--muted)",
+                            fontSize: "13.5px",
+                            textDecoration: "none",
+                          }}
+                        >
+                          {game.home_team_name}
+                        </Link>
+                      ) : (
+                        <span style={{ fontWeight: homeWon ? 700 : 500, color: homeWon ? "var(--text)" : "var(--muted)", fontSize: "13.5px" }}>
+                          {game.home_team_name}
+                        </span>
+                      )}
+                      <strong style={{ fontSize: "15px", color: homeWon ? "var(--lime)" : "var(--text)" }}>
                         {homeScore}
                       </strong>
                     </div>
 
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontWeight: awayWon ? 800 : 500, color: awayWon ? "var(--text)" : "var(--muted)", fontSize: "14px" }}>
-                        {game.away_team_name}
-                      </span>
-                      <strong style={{ fontSize: "16px", color: awayWon ? "var(--lime)" : "var(--text)" }}>
+                      {game.away_entry_id ? (
+                        <Link
+                          href={`/teams/${game.away_entry_id}`}
+                          style={{
+                            fontWeight: awayWon ? 700 : 500,
+                            color: awayWon ? "var(--text)" : "var(--muted)",
+                            fontSize: "13.5px",
+                            textDecoration: "none",
+                          }}
+                        >
+                          {game.away_team_name}
+                        </Link>
+                      ) : (
+                        <span style={{ fontWeight: awayWon ? 700 : 500, color: awayWon ? "var(--text)" : "var(--muted)", fontSize: "13.5px" }}>
+                          {game.away_team_name}
+                        </span>
+                      )}
+                      <strong style={{ fontSize: "15px", color: awayWon ? "var(--lime)" : "var(--text)" }}>
                         {awayScore}
                       </strong>
                     </div>
@@ -352,7 +380,7 @@ export function ScheduleFilterView({ games, leagueName, leagueId, canManage }: S
                     <Link
                       href={`/schedule/${game.game_id}/live`}
                       className="button button-sm button-outline"
-                      style={{ fontSize: "11px", padding: "3px 8px" }}
+                      style={{ fontSize: "11px", padding: "2px 8px" }}
                     >
                       Boxscore →
                     </Link>
@@ -425,15 +453,43 @@ export function ScheduleFilterView({ games, leagueName, leagueId, canManage }: S
                         <span style={{ fontSize: "11px", color: "var(--muted)" }}>{timeStr}</span>
                       </td>
                       <td>
-                        <strong style={{ fontSize: "13.5px", color: isFinal && (game.home_score ?? 0) > (game.away_score ?? 0) ? "var(--lime)" : "var(--text)" }}>
-                          {game.home_team_name}
-                        </strong>
+                        {game.home_entry_id ? (
+                          <Link
+                            href={`/teams/${game.home_entry_id}`}
+                            style={{
+                              fontSize: "13px",
+                              fontWeight: 700,
+                              color: isFinal && (game.home_score ?? 0) > (game.away_score ?? 0) ? "var(--lime)" : "var(--text)",
+                              textDecoration: "none",
+                            }}
+                          >
+                            {game.home_team_name}
+                          </Link>
+                        ) : (
+                          <span style={{ fontSize: "13px", fontWeight: 700, color: isFinal && (game.home_score ?? 0) > (game.away_score ?? 0) ? "var(--lime)" : "var(--text)" }}>
+                            {game.home_team_name}
+                          </span>
+                        )}
                       </td>
                       <td style={{ textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>vs</td>
                       <td>
-                        <strong style={{ fontSize: "13.5px", color: isFinal && (game.away_score ?? 0) > (game.home_score ?? 0) ? "var(--lime)" : "var(--text)" }}>
-                          {game.away_team_name}
-                        </strong>
+                        {game.away_entry_id ? (
+                          <Link
+                            href={`/teams/${game.away_entry_id}`}
+                            style={{
+                              fontSize: "13px",
+                              fontWeight: 700,
+                              color: isFinal && (game.away_score ?? 0) > (game.home_score ?? 0) ? "var(--lime)" : "var(--text)",
+                              textDecoration: "none",
+                            }}
+                          >
+                            {game.away_team_name}
+                          </Link>
+                        ) : (
+                          <span style={{ fontSize: "13px", fontWeight: 700, color: isFinal && (game.away_score ?? 0) > (game.home_score ?? 0) ? "var(--lime)" : "var(--text)" }}>
+                            {game.away_team_name}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <span>{sanitizeVenueName(game.venue_name)}</span>
@@ -447,7 +503,7 @@ export function ScheduleFilterView({ games, leagueName, leagueId, canManage }: S
                               background: "rgba(16, 185, 129, 0.15)",
                               color: "#34d399",
                               fontSize: "10px",
-                              fontWeight: 800,
+                              fontWeight: 700,
                             }}
                           >
                             FINAL
@@ -460,9 +516,13 @@ export function ScheduleFilterView({ games, leagueName, leagueId, canManage }: S
                       </td>
                       <td style={{ textAlign: "right" }}>
                         {isFinal ? (
-                          <span style={{ fontWeight: 800, fontSize: "14px", color: "var(--lime)" }}>
+                          <Link
+                            href={`/schedule/${game.game_id}/live`}
+                            style={{ fontWeight: 800, fontSize: "13.5px", color: "var(--lime)", textDecoration: "none" }}
+                            title="View boxscore game summary"
+                          >
                             {game.home_score} – {game.away_score}
-                          </span>
+                          </Link>
                         ) : (
                           <span style={{ color: "var(--muted)" }}>—</span>
                         )}

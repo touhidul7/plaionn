@@ -12,12 +12,38 @@ const credentials=z.object({
   fullName:z.string().max(100).optional(),
   email:z.string().email().max(254),
   password:z.string().min(8).max(128).optional(),
-  mode:z.enum(["login","signup","forgot"])
+  mode:z.enum(["login","signup","forgot","otp"])
 });
 export async function authenticate(_state:AuthState,form:FormData):Promise<AuthState> {
  const input=credentials.safeParse(Object.fromEntries(form));
  if(!input.success) return {error:true,message:"Enter a valid email address."};
  const {fullName,email,password,mode}=input.data;
+
+ if(mode==="otp") {
+  try {
+   const supabase=await createSupabaseServerClient();
+   const siteUrl=appOrigin(process.env.NEXT_PUBLIC_APP_URL,process.env.NODE_ENV==="production");
+   const redirectTo=new URL("/auth/callback",siteUrl).href;
+   const result=await supabase.auth.signInWithOtp({
+     email,
+     options:{emailRedirectTo:redirectTo}
+   });
+   if(result.error) {
+    return {
+     error:true,
+     message:result.error.status===429
+      ?"Too many requests. Please wait before trying again."
+      :result.error.message||"Could not send login link."
+    };
+   }
+   return {
+    error:false,
+    message:"✓ Sign-in link sent! Please check your email inbox to log in instantly."
+   };
+  } catch {
+   return {error:true,message:"The sign-in code service is unavailable. Please try again later."};
+  }
+ }
 
  if(mode==="forgot") {
   try {
