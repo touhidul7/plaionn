@@ -21,7 +21,13 @@ export default async function LeagueBackendPage({
   const league = leagues.find((l) => l.id === leagueId);
   if (!league) notFound();
 
-  const supabase = await createSupabaseServerClient(true);
+  // Use service client for all admin data fetching to bypass RLS restrictions
+  let supabase: ReturnType<typeof createServiceClient>;
+  try {
+    supabase = createServiceClient();
+  } catch {
+    supabase = await createSupabaseServerClient(true) as unknown as ReturnType<typeof createServiceClient>;
+  }
 
   // Fetch seasons, divisions, teams, games, venues, rinks, staff, registrations, overrides
   const [
@@ -127,14 +133,7 @@ export default async function LeagueBackendPage({
     status: r.status || "active",
   }));
 
-  let db: any;
-  try {
-    db = createServiceClient();
-  } catch {
-    db = supabase;
-  }
-
-  const { data: themeRes } = await db
+  const { data: themeRes } = await supabase
     .from("league_announcements")
     .select("message")
     .eq("league_id", leagueId)
