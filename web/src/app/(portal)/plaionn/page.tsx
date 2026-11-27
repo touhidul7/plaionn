@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlaionnPlatformPage() {
-  const supabase = await createSupabaseServerClient(false);
+  let supabase;
+  try {
+    supabase = createServiceClient();
+  } catch {
+    supabase = await createSupabaseServerClient(false);
+  }
   
   // Dynamically load all leagues from Supabase
   let showcaseLeagues: Array<{
@@ -20,15 +26,35 @@ export default async function PlaionnPlatformPage() {
     leagueId: string;
   }> = [];
 
-  const colors = ["#10b981", "#60a5fa", "#f59e0b", "#ec4899", "#8b5cf6", "#14b8a6"];
+  const colors = ["#ea580c", "#0284c7", "#10b981", "#60a5fa", "#f59e0b", "#ec4899", "#8b5cf6", "#14b8a6"];
 
   try {
     const { data: dbLeagues } = await supabase.from("leagues").select("id, name, created_at").order("created_at", { ascending: false });
     const { data: dbSeasons } = await supabase.from("seasons").select("league_id, name");
     const { data: dbTeams } = await supabase.from("teams").select("league_id, id");
+    const { data: dbThemes } = await supabase
+      .from("league_announcements")
+      .select("league_id, message")
+      .eq("title", "__LEAGUE_THEME__");
+
+    const themeMap = new Map<string, { color?: string; domain?: string }>();
+    if (dbThemes) {
+      for (const t of dbThemes) {
+        try {
+          const parsed = JSON.parse(t.message);
+          if (!themeMap.has(t.league_id)) {
+            themeMap.set(t.league_id, {
+              color: parsed.primaryColor,
+              domain: parsed.domain,
+            });
+          }
+        } catch {}
+      }
+    }
 
     if (dbLeagues && dbLeagues.length > 0) {
       showcaseLeagues = dbLeagues.map((lg, index) => {
+        const customTheme = themeMap.get(lg.id);
         const slug = lg.name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10);
         const acr = lg.name
           .split(" ")
@@ -38,12 +64,13 @@ export default async function PlaionnPlatformPage() {
           .slice(0, 4) || "LGE";
         const seasonName = dbSeasons?.find(s => s.league_id === lg.id)?.name || "Winter 2026";
         const teamCount = dbTeams?.filter(t => t.league_id === lg.id).length || 0;
-        const color = colors[index % colors.length];
+        const color = customTheme?.color || colors[index % colors.length];
+        const domain = customTheme?.domain || `${slug}.plaionn.brittosoft.online`;
 
         return {
           name: lg.name,
           acronym: acr,
-          domain: `${slug}.plaionn.brittosoft.online`,
+          domain,
           url: `/api/switch-league?league=${lg.id}&redirect=/`,
           description: `Dedicated multi-tenant league portal for ${lg.name} featuring real-time scoreboard, rosters, and schedules.`,
           teams: teamCount,
@@ -61,16 +88,40 @@ export default async function PlaionnPlatformPage() {
   if (showcaseLeagues.length === 0) {
     showcaseLeagues = [
       {
-        name: "Bangladesh Hockey League (BHL)",
-        acronym: "BHL",
-        domain: "league1.plaionn.brittosoft.online",
-        url: "/api/switch-league?league=60000000-0000-4000-8000-000000000001&redirect=/",
-        description: "Official National Hockey Championship network with player registration and digital liability waivers.",
-        teams: 8,
-        seasons: "Winter 2026, Summer 2025",
+        name: "Alaska League",
+        acronym: "AL",
+        domain: "alaskaleag.plaionn.brittosoft.online",
+        url: "/api/switch-league?league=6bb050e8-23c1-4761-bc22-acbf3b43d9a7&redirect=/",
+        description: "Official Alaska League portal featuring real-time scoreboard, rosters, and schedules.",
+        teams: 2,
+        seasons: "Winter 2026",
         featured: true,
+        color: "#ea580c",
+        leagueId: "6bb050e8-23c1-4761-bc22-acbf3b43d9a7",
+      },
+      {
+        name: "Canada Hockey League (CHL)",
+        acronym: "CHL",
+        domain: "canadahock.plaionn.brittosoft.online",
+        url: "/api/switch-league?league=81240403-fd42-43f7-8a44-8ff0fea8728b&redirect=/",
+        description: "Official CHL portal featuring real-time scoreboard, rosters, and schedules.",
+        teams: 0,
+        seasons: "Winter 2026",
+        featured: true,
+        color: "#0284c7",
+        leagueId: "81240403-fd42-43f7-8a44-8ff0fea8728b",
+      },
+      {
+        name: "Toronto Metro League",
+        acronym: "TML",
+        domain: "torontomet.plaionn.brittosoft.online",
+        url: "/api/switch-league?league=3fccda71-0263-479d-be59-27ab40fe51fd&redirect=/",
+        description: "Official Toronto Metro League portal featuring real-time scoreboard, rosters, and schedules.",
+        teams: 0,
+        seasons: "Winter 2026",
+        featured: false,
         color: "#10b981",
-        leagueId: "60000000-0000-4000-8000-000000000001",
+        leagueId: "3fccda71-0263-479d-be59-27ab40fe51fd",
       },
     ];
   }
