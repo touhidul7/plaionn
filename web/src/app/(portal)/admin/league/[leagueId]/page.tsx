@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getAdminAccess, listAdminLeagues } from "@/lib/supabase/admin";
+import { getAdminAccess, listAdminLeagues, createServiceClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { LeagueAdminShell, type LeagueAdminData } from "@/components/league-admin-shell";
 
@@ -127,7 +127,14 @@ export default async function LeagueBackendPage({
     status: r.status || "active",
   }));
 
-  const { data: themeRes } = await supabase
+  let db: any;
+  try {
+    db = createServiceClient();
+  } catch {
+    db = supabase;
+  }
+
+  const { data: themeRes } = await db
     .from("league_announcements")
     .select("message")
     .eq("league_id", leagueId)

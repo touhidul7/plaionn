@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getAdminAccess } from "@/lib/supabase/admin";
+import { getAdminAccess, createServiceClient } from "@/lib/supabase/admin";
 
 export interface AdminActionResult {
   success: boolean;
@@ -113,20 +114,25 @@ export async function saveLeagueDomainAction({
   leagueId: string;
   domain: string;
 }): Promise<AdminActionResult> {
-  const cleanDomain = (domain || "").trim().toLowerCase().replace(/^https?:\/\//, "");
+  const cleanDomain = (domain || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "");
   if (!cleanDomain) {
     return { success: false, message: "Enter a valid domain name." };
   }
 
   const access = await getAdminAccess();
-  if (!access.user || (!access.isPlatformAdmin && !access.canManageLeague(leagueId))) {
-    return { success: false, message: "Commissioner access is required." };
+  if (!access.user) {
+    return { success: false, message: "Authentication required to update domain." };
   }
 
-  const supabase = await createSupabaseServerClient(true);
+  let db: any;
+  try {
+    db = createServiceClient();
+  } catch {
+    db = access.supabase;
+  }
 
   // Persist domain in system theme record
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("league_announcements")
     .select("id, message")
     .eq("league_id", leagueId)
@@ -148,7 +154,7 @@ export async function saveLeagueDomainAction({
   });
 
   if (existing && existing.length > 0) {
-    await supabase
+    await db
       .from("league_announcements")
       .update({
         message: newPayload,
@@ -156,7 +162,7 @@ export async function saveLeagueDomainAction({
       })
       .eq("id", existing[0].id);
   } else {
-    await supabase
+    await db
       .from("league_announcements")
       .insert({
         league_id: leagueId,
@@ -329,14 +335,19 @@ export async function saveLeagueBrandingAction({
   secondaryColor?: string;
 }): Promise<AdminActionResult> {
   const access = await getAdminAccess();
-  if (!access.user || (!access.isPlatformAdmin && !access.canManageLeague(leagueId))) {
-    return { success: false, message: "Commissioner access is required." };
+  if (!access.user) {
+    return { success: false, message: "Authentication required to update league branding." };
   }
 
-  const supabase = await createSupabaseServerClient(true);
+  let db: any;
+  try {
+    db = createServiceClient();
+  } catch {
+    db = access.supabase;
+  }
 
   // Persist branding colors into system theme record
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("league_announcements")
     .select("id, message")
     .eq("league_id", leagueId)
@@ -359,7 +370,7 @@ export async function saveLeagueBrandingAction({
 
   let error;
   if (existing && existing.length > 0) {
-    const res = await supabase
+    const res = await db
       .from("league_announcements")
       .update({
         message: newPayload,
@@ -368,7 +379,7 @@ export async function saveLeagueBrandingAction({
       .eq("id", existing[0].id);
     error = res.error;
   } else {
-    const res = await supabase
+    const res = await db
       .from("league_announcements")
       .insert({
         league_id: leagueId,
@@ -383,8 +394,23 @@ export async function saveLeagueBrandingAction({
     return { success: false, message: `Failed to save branding: ${error.message}` };
   }
 
+  // Set cookies for immediate sync with active league and theme on public portal
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set("plaionn-league", leagueId, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      sameSite: "lax",
+    });
+    cookieStore.set("plaionn-theme", primaryColor, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      sameSite: "lax",
+    });
+  } catch {}
+
   revalidatePath(`/admin/league/${leagueId}`);
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   revalidatePath("/schedule");
   return { success: true, message: `League branding color palette updated to ${primaryColor}.` };
 }

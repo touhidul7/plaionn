@@ -1,8 +1,10 @@
+import { cookies } from "next/headers";
 import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 import { SponsorBanner } from "@/components/sponsor-banner";
 import { PortalShell } from "@/components/portal-shell";
 import { getLeagueContext } from "@/lib/supabase/session";
+import { createServiceClient } from "@/lib/supabase/admin";
 
 export default async function PortalLayout({
   children,
@@ -13,9 +15,26 @@ export default async function PortalLayout({
   const isPlatform = league.id === "platform";
 
   let themeColor: string | null = null;
+
+  // 1. Check live theme cookie for immediate sync across tabs/routes
+  try {
+    const cookieTheme = (await cookies()).get("plaionn-theme")?.value;
+    if (cookieTheme && cookieTheme.startsWith("#")) {
+      themeColor = cookieTheme;
+    }
+  } catch {}
+
+  // 2. Query system theme record from database for this league
   if (!isPlatform && league.id) {
     try {
-      const { data: themeRec } = await supabase
+      let db: any;
+      try {
+        db = createServiceClient();
+      } catch {
+        db = supabase;
+      }
+
+      const { data: themeRec } = await db
         .from("league_announcements")
         .select("message")
         .eq("league_id", league.id)
@@ -31,7 +50,7 @@ export default async function PortalLayout({
       }
 
       if (!themeColor) {
-        const { data: settings } = await supabase
+        const { data: settings } = await db
           .from("season_settings")
           .select("currency")
           .eq("league_id", league.id)

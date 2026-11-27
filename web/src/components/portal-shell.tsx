@@ -51,9 +51,16 @@ export function PortalShell({
             --accent: ${themeColor} !important;
             --primary: ${themeColor} !important;
           }
-          .primary, button.primary {
-            background: ${themeColor} !important;
+          .primary, button.primary, a.primary, .button.primary, .plaionn-brand-logo {
+            background-color: ${themeColor} !important;
             border-color: ${themeColor} !important;
+          }
+          .plaionn-nav-item a.active {
+            color: ${themeColor} !important;
+            box-shadow: inset 0 -3px 0 ${themeColor} !important;
+          }
+          .plaionn-brand-name span {
+            color: ${themeColor} !important;
           }
         `}} />
       )}

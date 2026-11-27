@@ -230,10 +230,14 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
       setPrimaryColor(data.initialThemeColor);
       if (typeof window !== "undefined") {
         localStorage.setItem(`plaionn_theme_${league.id}`, data.initialThemeColor);
+        document.documentElement.style.setProperty("--lime", data.initialThemeColor);
       }
     } else if (typeof window !== "undefined") {
       const cached = localStorage.getItem(`plaionn_theme_${league.id}`);
-      if (cached) setPrimaryColor(cached);
+      if (cached) {
+        setPrimaryColor(cached);
+        document.documentElement.style.setProperty("--lime", cached);
+      }
     }
   }, [data.initialThemeColor, league.id]);
 
@@ -300,13 +304,16 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
     setPrimaryColor(colorHex);
     if (typeof window !== "undefined") {
       localStorage.setItem(`plaionn_theme_${league.id}`, colorHex);
+      document.documentElement.style.setProperty("--lime", colorHex);
     }
     setIsBrandingPending(true);
     setBrandingMsg(null);
     const res = await saveLeagueBrandingAction({ leagueId: league.id, primaryColor: colorHex });
     setIsBrandingPending(false);
     setBrandingMsg(res.message);
-    router.refresh();
+    if (res.success) {
+      router.refresh();
+    }
   };
 
   const handleCreateSeason = async (e: React.FormEvent) => {
@@ -595,19 +602,29 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
         width: "100%",
       }}
     >
-      {/* Top Header Row with Left-Aligned Title + League Switcher & Top-Right Tools */}
-      <header
+      {/* Top Header & Horizontal Nav Bar: Sticky to top per Client Requirements */}
+      <div
         style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 40,
           background: "#081017",
-          borderBottom: "1px solid #162634",
-          padding: "14px 24px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "16px",
-          flexWrap: "nowrap",
+          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.4)",
         }}
       >
+        {/* Top Header Row with Left-Aligned Title + League Switcher & Top-Right Tools */}
+        <header
+          style={{
+            background: "#081017",
+            borderBottom: "1px solid #162634",
+            padding: "14px 24px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "16px",
+            flexWrap: "nowrap",
+          }}
+        >
         {/* Left: League Crest + League Selector */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
           <Link
@@ -809,6 +826,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
           );
         })}
       </nav>
+      </div>
 
       {/* Main Content Area - Full width with clean padding */}
       <main style={{ padding: "24px 28px", maxWidth: "1440px", margin: "0 auto" }}>

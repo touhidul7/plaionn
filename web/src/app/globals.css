@@ -328,9 +328,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .plaionn-navbar {
   background: #0c1921;
   width: 100%;
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 40;
   border-top: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
 }
 
 .plaionn-navbar-inner {

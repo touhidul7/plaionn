@@ -57,19 +57,29 @@ export function CentralAdminShell({
         width: "100%",
       }}
     >
-      {/* 1. Top Header Row (Logo, Title, Tools & Settings) */}
-      <header
+      {/* Top Header & Horizontal Nav Bar: Sticky to top per Client Requirements */}
+      <div
         style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 40,
           background: "#081017",
-          borderBottom: "1px solid #162634",
-          padding: "14px 24px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "16px",
-          flexWrap: "nowrap",
+          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.4)",
         }}
       >
+        {/* 1. Top Header Row (Logo, Title, Tools & Settings) */}
+        <header
+          style={{
+            background: "#081017",
+            borderBottom: "1px solid #162634",
+            padding: "14px 24px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "16px",
+            flexWrap: "nowrap",
+          }}
+        >
         {/* Left: Brand Crest & Admin Console Title */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
           <div
@@ -218,6 +228,7 @@ export function CentralAdminShell({
           );
         })}
       </nav>
+      </div>
 
       {/* 3. Main Content Body: Standardized Full-Width Layout */}
       <main style={{ padding: "24px 28px", maxWidth: "1440px", margin: "0 auto" }}>
