@@ -160,14 +160,17 @@ export default async function PlaionnPlatformPage() {
         </p>
 
         <div style={{ display: "flex", gap: "14px", marginTop: "8px", flexWrap: "wrap", justifyContent: "center" }}>
-          <Link href="/login" className="button primary" style={{ padding: "14px 44px", fontSize: "16px", fontWeight: 800 }}>
-            Login
+          <a href="#leagues" className="button primary" style={{ padding: "14px 36px", fontSize: "15px", fontWeight: 800, textDecoration: "none" }}>
+            Explore League Portals ↓
+          </a>
+          <Link href="/schedule" className="button button-outline" style={{ padding: "14px 28px", fontSize: "15px", fontWeight: 700, textDecoration: "none" }}>
+            Live Schedules &amp; Scores ↗
           </Link>
         </div>
       </section>
 
       {/* 3. Multi-Tenant League Network Showcase (Unique Domains) */}
-      <section>
+      <section id="leagues">
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <span style={{ fontSize: "12px", fontWeight: 800, letterSpacing: "1.5px", color: "var(--lime)", textTransform: "uppercase" }}>
             MULTI-TENANT ECOSYSTEM
@@ -304,10 +307,13 @@ export default async function PlaionnPlatformPage() {
         <p style={{ margin: 0, color: "var(--muted)", fontSize: "15px", maxWidth: "600px" }}>
           Create your league, configure your custom domain, and launch a branded public website in minutes.
         </p>
-        <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
-          <Link href="/login" className="button primary" style={{ padding: "12px 36px", fontSize: "15px", fontWeight: 800 }}>
-            Login
+        <div style={{ display: "flex", gap: "12px", marginTop: "8px", flexWrap: "wrap", justifyContent: "center" }}>
+          <Link href="/admin" className="button primary" style={{ padding: "12px 28px", fontSize: "14px", fontWeight: 800 }}>
+            Open Central Admin ↗
           </Link>
+          <a href="#leagues" className="button button-outline" style={{ padding: "12px 28px", fontSize: "14px", fontWeight: 700, textDecoration: "none" }}>
+            Browse Leagues
+          </a>
         </div>
       </section>
     </div>

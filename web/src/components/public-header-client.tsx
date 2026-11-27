@@ -61,75 +61,150 @@ export function PublicHeaderClient({
 
   if (leagueName === "PLAIONN Sports Platform" || pathname === "/plaionn" || leagueId === "platform") {
     return (
-      <header className="plaionn-header-wrap" style={{ borderBottom: "1px solid var(--line)" }}>
-        <div className="plaionn-header-top" style={{ padding: "16px 0", background: "#081017" }}>
-          <div
-            className="plaionn-header-top-inner"
-            style={{
-              maxWidth: "1260px",
-              margin: "0 auto",
-              padding: "0 24px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Link href="/" className="plaionn-brand-wedge" title="PLAIONN Sports Platform">
-              <div
-                className="plaionn-brand-logo"
-                aria-hidden="true"
-                style={{ background: "var(--lime)", color: "#000", fontWeight: 900 }}
-              >
-                P
-              </div>
-              <div className="plaionn-brand-text">
-                <span className="plaionn-brand-name" style={{ color: "var(--text)", letterSpacing: "0.5px" }}>
-                  PLAIONN <span style={{ color: "var(--lime)" }}>SPORTS</span>
-                </span>
-                <span className="plaionn-brand-sub" style={{ color: "var(--muted)" }}>
-                  Multi-Tenant Sports League Management
-                </span>
-              </div>
-            </Link>
-
-            <div>
-              {user ? (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Link
-                    href="/admin"
-                    className="button primary"
-                    style={{ fontWeight: 800, fontSize: "13.5px", padding: "8px 20px", borderRadius: "8px" }}
-                  >
-                    Admin Console ↗
-                  </Link>
-                  <form action="/auth/signout" method="post" style={{ margin: 0 }}>
-                    <button
-                      type="submit"
-                      className="button button-outline"
-                      style={{ fontWeight: 600, fontSize: "13px", padding: "7px 14px", borderRadius: "8px", cursor: "pointer" }}
-                    >
-                      Sign Out
-                    </button>
-                  </form>
+      <>
+        <header className="plaionn-header-wrap" style={{ borderBottom: "1px solid var(--line)" }}>
+          <div className="plaionn-header-top" style={{ padding: "16px 0", background: "#081017" }}>
+            <div
+              className="plaionn-header-top-inner"
+              style={{
+                maxWidth: "1260px",
+                margin: "0 auto",
+                padding: "0 24px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Link href="/" className="plaionn-brand-wedge" title="PLAIONN Sports Platform">
+                <div
+                  className="plaionn-brand-logo"
+                  aria-hidden="true"
+                  style={{ background: "var(--lime)", color: "#000", fontWeight: 900 }}
+                >
+                  P
                 </div>
+                <div className="plaionn-brand-text">
+                  <span className="plaionn-brand-name" style={{ color: "var(--text)", letterSpacing: "0.5px" }}>
+                    PLAIONN <span style={{ color: "var(--lime)" }}>SPORTS</span>
+                  </span>
+                  <span className="plaionn-brand-sub" style={{ color: "var(--muted)" }}>
+                    Multi-Tenant Sports League Management
+                  </span>
+                </div>
+              </Link>
+
+              <div>
+                {user ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Link
+                      href="/admin"
+                      className="button primary"
+                      style={{ fontWeight: 800, fontSize: "13.5px", padding: "8px 20px", borderRadius: "8px" }}
+                    >
+                      Admin Console ↗
+                    </Link>
+                    <form action="/auth/signout" method="post" style={{ margin: 0 }}>
+                      <button
+                        type="submit"
+                        className="button button-outline"
+                        style={{ fontWeight: 600, fontSize: "13px", padding: "7px 14px", borderRadius: "8px", cursor: "pointer" }}
+                      >
+                        Sign Out
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="button button-outline"
+                    style={{
+                      fontWeight: 700,
+                      fontSize: "13px",
+                      padding: "7px 20px",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    Login
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* 2. HORIZONTAL NAVIGATION BAR (Sticky to Top of Viewport) */}
+        <nav className="plaionn-navbar" aria-label="Main Platform Navigation">
+          <div className="plaionn-navbar-inner">
+            <button
+              type="button"
+              className="plaionn-mobile-menu-btn"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle Navigation Menu"
+            >
+              {mobileOpen ? "✕" : "☰"}
+            </button>
+
+            <ul className={`plaionn-nav-menu ${mobileOpen ? "open" : ""}`}>
+              {navLinks.map((link) => {
+                const isScores = link.href.includes("view=scores");
+                const isSchedule = link.href === "/schedule";
+                let isActive = false;
+                if (link.href === "/") {
+                  isActive = pathname === "/" || pathname === "/plaionn";
+                } else if (isScores) {
+                  isActive =
+                    pathname === "/schedule" &&
+                    typeof window !== "undefined" &&
+                    window.location.search.includes("view=scores");
+                } else if (isSchedule) {
+                  isActive =
+                    pathname.startsWith("/schedule") &&
+                    (typeof window === "undefined" ||
+                      !window.location.search.includes("view=scores"));
+                } else {
+                  isActive = pathname.startsWith(link.href.split("?")[0]);
+                }
+
+                return (
+                  <li key={link.href} className="plaionn-nav-item">
+                    <Link
+                      href={link.href}
+                      className={isActive ? "active" : ""}
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="plaionn-nav-right">
+              {user ? (
+                <Link
+                  href="/admin"
+                  className="button button-sm primary"
+                  style={{ fontSize: "12px", padding: "6px 14px", fontWeight: 800 }}
+                >
+                  Admin Console ↗
+                </Link>
               ) : (
                 <Link
-                  href="/login"
-                  className="button primary"
+                  href="/registration"
+                  className="button button-sm primary"
                   style={{
+                    fontSize: "12px",
+                    padding: "6px 16px",
                     fontWeight: 800,
-                    fontSize: "14px",
-                    padding: "8px 24px",
-                    borderRadius: "8px",
                   }}
                 >
-                  Login
+                  Join League
                 </Link>
               )}
             </div>
           </div>
-        </div>
-      </header>
+        </nav>
+      </>
     );
   }
 
