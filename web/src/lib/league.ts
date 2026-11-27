@@ -23,14 +23,14 @@ export async function getLeagueData() {
     };
   }
 
-  if (isGuest && context.publicData) {
+  if (context.publicData) {
     const { seasons, divisions, teams } = context.publicData;
     const seasonMap = new Map((seasons || []).map((s) => [s.id, s]));
     const divisionRows: Division[] = (divisions || []).map((d) => ({
       id: d.id,
       name: d.name,
       season_id: d.season_id,
-      season_name: seasonMap.get(d.season_id)?.name ?? "Unavailable season",
+      season_name: seasonMap.get(d.season_id)?.name ?? "Winter 2026",
     }));
 
     const teamRows: TeamEntry[] = (teams || []).map((t) => ({
@@ -46,9 +46,9 @@ export async function getLeagueData() {
       divisions: divisionRows,
       teams: teamRows,
       league,
-      canManage: false,
-      isGuest: true,
-      user: null,
+      canManage,
+      isGuest,
+      user,
     };
   }
 

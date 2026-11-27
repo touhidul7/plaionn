@@ -88,11 +88,12 @@ export const getLeagueContext = cache(async () => {
       } else {
         const sub = host.split(".")[0]?.toLowerCase().replace(/[^a-z0-9]/g, "");
         if (sub && sub !== "www" && sub !== "plaionn" && sub !== "localhost") {
-          // Look up matching real league in Supabase
+          // Look up matching real league in Supabase with flexible slug matching
           const { data: allDbLeagues } = await supabase.from("leagues").select("id, name");
-          const matched = allDbLeagues?.find(
-            (l) => l.name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10) === sub
-          );
+          const matched = allDbLeagues?.find((l) => {
+            const clean = l.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+            return clean === sub || clean.slice(0, 10) === sub || sub.startsWith(clean) || clean.startsWith(sub);
+          });
           if (matched) domainLeagueId = matched.id;
         }
 
@@ -175,7 +176,7 @@ export const getLeagueContext = cache(async () => {
       }
 
       let publicData: PublicLeagueOverview | null = null;
-      if (!user) {
+      try {
         const { data: overviewRows } = await supabase.rpc("get_public_league_overview", {
           target_league: league.id,
         });
@@ -189,7 +190,7 @@ export const getLeagueContext = cache(async () => {
             teams: (overview.teams || []).map((t) => ({ ...t, season_name: sanitizeSeasonName(t.season_name) })),
           };
         }
-      }
+      } catch {}
 
       return {
         supabase,
