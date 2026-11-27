@@ -113,11 +113,11 @@ export function ScheduleFilterView({ games, leagueName, leagueId, canManage }: S
           display: "flex",
           flexWrap: "wrap",
           gap: "14px",
-          alignItems: "center",
+          alignItems: "flex-end",
           justifyContent: "space-between",
         }}
       >
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "flex-end" }}>
           {/* Division Filter */}
           <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
             <label style={{ fontSize: "11px", fontWeight: 800, color: "var(--muted)", textTransform: "uppercase" }}>
@@ -222,7 +222,7 @@ export function ScheduleFilterView({ games, leagueName, leagueId, canManage }: S
         </div>
 
         {/* View Toggle Buttons */}
-        <div style={{ display: "flex", gap: "4px", background: "#081017", padding: "4px", borderRadius: "10px", border: "1px solid #1f394d" }}>
+        <div style={{ display: "flex", gap: "4px", background: "#081017", padding: "4px", borderRadius: "10px", border: "1px solid #1f394d", alignSelf: "flex-end" }}>
           <button
             type="button"
             onClick={() => setFilterView("all")}

@@ -59,16 +59,28 @@ export default async function SchedulePage({
 
   // Fetch public schedule which includes scores
   let publicGames: PublicGame[] = [];
-  if (!isPlatform) {
+  if (isPlatform) {
+    // On the main platform homepage, aggregate games from ALL leagues using service client
+    try {
+      const { createServiceClient } = await import("@/lib/supabase/admin");
+      const db = createServiceClient();
+      const { data: allLeagues } = await db.from("leagues").select("id");
+      if (allLeagues && allLeagues.length > 0) {
+        const results = await Promise.all(
+          allLeagues.map((lg: { id: string }) =>
+            db.rpc("get_public_schedule", { target_league: lg.id })
+          )
+        );
+        publicGames = results.flatMap((r) => (r.data || []) as PublicGame[]);
+      }
+    } catch {
+      // fallback to empty
+    }
+  } else {
     const { data: publicGamesData } = await supabase.rpc("get_public_schedule", {
       target_league: league.id,
     });
     publicGames = (publicGamesData || []) as PublicGame[];
-  }
-
-  if (publicGames.length === 0) {
-    const unified = getUnifiedLeagueGames(league.id, league.name);
-    publicGames = unified as PublicGame[];
   }
 
   const completedGames = publicGames.filter(

@@ -10,8 +10,64 @@ export async function getLeagueData() {
   const context = await getLeagueContext();
   const { supabase, league, canManage, user, isGuest } = context;
 
-  // Platform root has no league-specific data
+  // Platform root: aggregate data from ALL leagues using service client to bypass RLS
   if (league.id === "platform") {
+    try {
+      const { createServiceClient } = await import("./supabase/admin");
+      const db = createServiceClient();
+      const [seasonsRes, divisionsRes, teamsRes, entriesRes] = await Promise.all([
+        db.from("seasons").select("id,name,league_id").order("name"),
+        db.from("divisions").select("id,name,season_id,league_id").order("name"),
+        db.from("teams").select("id,name,league_id").order("name"),
+        db.from("team_entries").select("id,team_id,division_id,league_id"),
+      ]);
+
+      const rawSeasons = seasonsRes.data || [];
+      const rawDivisions = divisionsRes.data || [];
+      const rawTeams = teamsRes.data || [];
+      const rawEntries = entriesRes.data || [];
+
+      const seasonMap = new Map(rawSeasons.map((s: any) => [s.id, s]));
+      const divisionMap = new Map(rawDivisions.map((d: any) => [d.id, d]));
+      const teamMap = new Map(rawTeams.map((t: any) => [t.id, t]));
+
+      const sanitizedSeasons: NamedRecord[] = rawSeasons.map((s: any) => ({
+        id: s.id,
+        name: sanitizeSeasonName(s.name),
+      }));
+
+      const divisionRows: Division[] = rawDivisions.map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        season_id: d.season_id,
+        season_name: sanitizeSeasonName((seasonMap.get(d.season_id) as any)?.name ?? "Winter 2026"),
+      }));
+
+      const teamRows: TeamEntry[] = rawEntries.map((entry: any) => {
+        const team = teamMap.get(entry.team_id) as any;
+        const division = divisionMap.get(entry.division_id) as any;
+        const season = division ? seasonMap.get(division.season_id) as any : null;
+        return {
+          id: team?.id ?? entry.team_id,
+          name: team?.name ?? "Team",
+          entry_id: entry.id,
+          division_name: division?.name ?? "Division",
+          season_name: sanitizeSeasonName(season?.name ?? "Winter 2026"),
+        };
+      }).sort((a: TeamEntry, b: TeamEntry) => a.name.localeCompare(b.name));
+
+      return {
+        seasons: sanitizedSeasons,
+        divisions: divisionRows,
+        teams: teamRows,
+        league,
+        canManage,
+        isGuest: !user,
+        user,
+      };
+    } catch {
+      // Fallback to empty on error
+    }
     return {
       seasons: [] as NamedRecord[],
       divisions: [] as Division[],
