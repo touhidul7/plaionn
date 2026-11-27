@@ -582,42 +582,102 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               <h3 style={{ margin: "0 0 14px", fontSize: "15px", color: "#f0f4f8" }}>
                 Commissioner Navigation Shortcuts
               </h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "12px" }}>
                 <button
                   type="button"
                   onClick={() => setTab("schedule")}
-                  className="button button-outline"
-                  style={{ textAlign: "left", padding: "10px 14px", height: "auto" }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "14px 16px",
+                    minHeight: "72px",
+                    background: "#10202c",
+                    border: "1px solid #1c3344",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    whiteSpace: "normal",
+                    width: "100%",
+                    transition: "all 0.15s ease",
+                  }}
                 >
-                  <strong style={{ display: "block", color: primaryColor, fontSize: "13px" }}>📅 Match Schedule</strong>
-                  <span style={{ fontSize: "11.5px", color: "var(--muted)" }}>Add fixtures &amp; bulk import</span>
+                  <strong style={{ color: primaryColor, fontSize: "13.5px", fontWeight: 700 }}>📅 Match Schedule</strong>
+                  <span style={{ fontSize: "11.5px", color: "var(--muted)", lineHeight: 1.3 }}>Add fixtures &amp; bulk import</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setTab("teams")}
-                  className="button button-outline"
-                  style={{ textAlign: "left", padding: "10px 14px", height: "auto" }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "14px 16px",
+                    minHeight: "72px",
+                    background: "#10202c",
+                    border: "1px solid #1c3344",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    whiteSpace: "normal",
+                    width: "100%",
+                    transition: "all 0.15s ease",
+                  }}
                 >
-                  <strong style={{ display: "block", color: primaryColor, fontSize: "13px" }}>🏒 Teams Directory</strong>
-                  <span style={{ fontSize: "11.5px", color: "var(--muted)" }}>Add &amp; manage club entries</span>
+                  <strong style={{ color: primaryColor, fontSize: "13.5px", fontWeight: 700 }}>🏒 Teams Directory</strong>
+                  <span style={{ fontSize: "11.5px", color: "var(--muted)", lineHeight: 1.3 }}>Add &amp; manage club entries</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setTab("rosters")}
-                  className="button button-outline"
-                  style={{ textAlign: "left", padding: "10px 14px", height: "auto" }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "14px 16px",
+                    minHeight: "72px",
+                    background: "#10202c",
+                    border: "1px solid #1c3344",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    whiteSpace: "normal",
+                    width: "100%",
+                    transition: "all 0.15s ease",
+                  }}
                 >
-                  <strong style={{ display: "block", color: primaryColor, fontSize: "13px" }}>👥 Player Rosters</strong>
-                  <span style={{ fontSize: "11.5px", color: "var(--muted)" }}>Clearance statuses &amp; waivers</span>
+                  <strong style={{ color: primaryColor, fontSize: "13.5px", fontWeight: 700 }}>👥 Player Rosters</strong>
+                  <span style={{ fontSize: "11.5px", color: "var(--muted)", lineHeight: 1.3 }}>Clearance statuses &amp; waivers</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setTab("settings")}
-                  className="button button-outline"
-                  style={{ textAlign: "left", padding: "10px 14px", height: "auto" }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "14px 16px",
+                    minHeight: "72px",
+                    background: "#10202c",
+                    border: "1px solid #1c3344",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    whiteSpace: "normal",
+                    width: "100%",
+                    transition: "all 0.15s ease",
+                  }}
                 >
-                  <strong style={{ display: "block", color: primaryColor, fontSize: "13px" }}>⚙️ Branding &amp; Rules</strong>
-                  <span style={{ fontSize: "11.5px", color: "var(--muted)" }}>Color palette &amp; tiebreakers</span>
+                  <strong style={{ color: primaryColor, fontSize: "13.5px", fontWeight: 700 }}>⚙️ Branding &amp; Rules</strong>
+                  <span style={{ fontSize: "11.5px", color: "var(--muted)", lineHeight: 1.3 }}>Color palette &amp; tiebreakers</span>
                 </button>
               </div>
             </div>

@@ -46,7 +46,7 @@ export default async function LeagueBackendPage({
     supabase.rpc("get_league_staff_members", { target_league: leagueId }),
     supabase.from("season_settings").select("*").eq("league_id", leagueId).limit(1),
     supabase.from("player_registrations").select("id, status, position, user_id, player_id, created_at").eq("league_id", leagueId),
-    supabase.from("roster_memberships").select("id, player_id, team_entry_id, jersey_number, position, status, players(id, display_name)").eq("league_id", leagueId),
+    supabase.from("roster_memberships").select("id, player_id, team_entry_id, jersey_number, position, status").eq("league_id", leagueId),
     supabase.from("player_eligibility_overrides").select("id, reason, granted_at").eq("league_id", leagueId).is("revoked_at", null),
   ]);
 
@@ -81,27 +81,33 @@ export default async function LeagueBackendPage({
   const staff = (!staffRes.error && Array.isArray(staffRes.data)) ? staffRes.data : [];
   const settings = settingsRes.data?.[0] || null;
 
-  // Resolve player profiles for registrations
+  // Resolve player profiles for registrations and rosters
   const rawRegs = regsRes.data || [];
-  const regPlayerIds = rawRegs.map((r: any) => r.player_id);
-  const { data: regPlayers } = regPlayerIds.length > 0
-    ? await supabase.from("players").select("id, display_name").in("id", regPlayerIds)
+  const rawRoster = rosterMembersRes.data || [];
+  const allPlayerIds = Array.from(
+    new Set([
+      ...rawRegs.map((r: any) => r.player_id),
+      ...rawRoster.map((r: any) => r.player_id),
+    ])
+  ).filter(Boolean);
+
+  const { data: resolvedPlayers } = allPlayerIds.length > 0
+    ? await supabase.from("players").select("id, display_name").in("id", allPlayerIds)
     : { data: [] };
-  const regPlayerMap = new Map((regPlayers || []).map((p: any) => [p.id, p.display_name]));
+  const playerNameMap = new Map((resolvedPlayers || []).map((p: any) => [p.id, p.display_name]));
 
   const registrations = rawRegs.map((r: any) => ({
     id: r.id,
-    playerName: regPlayerMap.get(r.player_id) || "Registered Player",
+    playerName: playerNameMap.get(r.player_id) || "Registered Player",
     position: r.position,
     status: r.status,
     createdAt: new Date(r.created_at).toLocaleDateString(),
   }));
 
-  const rawRoster = rosterMembersRes.data || [];
   const rosterPlayers = rawRoster.map((r: any) => ({
     id: r.id,
     playerId: r.player_id,
-    playerName: r.players?.display_name || "Roster Player",
+    playerName: playerNameMap.get(r.player_id) || "Roster Player",
     teamEntryId: r.team_entry_id,
     teamName: teamNameMap.get(r.team_entry_id) || "Assigned Team",
     jerseyNumber: r.jersey_number,
