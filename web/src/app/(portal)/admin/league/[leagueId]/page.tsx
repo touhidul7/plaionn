@@ -127,6 +127,24 @@ export default async function LeagueBackendPage({
     status: r.status || "active",
   }));
 
+  const { data: themeRes } = await supabase
+    .from("league_announcements")
+    .select("message")
+    .eq("league_id", leagueId)
+    .eq("title", "__LEAGUE_THEME__")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  let initialThemeColor: string | null = null;
+  let initialCustomDomain: string | null = null;
+  if (themeRes && themeRes[0]?.message) {
+    try {
+      const parsed = JSON.parse(themeRes[0].message);
+      if (parsed.primaryColor) initialThemeColor = parsed.primaryColor;
+      if (parsed.domain) initialCustomDomain = parsed.domain;
+    } catch {}
+  }
+
   const adminData: LeagueAdminData = {
     league: {
       id: league.id,
@@ -148,6 +166,8 @@ export default async function LeagueBackendPage({
     rosterCount: rosterPlayers.length,
     overridesCount: (overridesRes.data || []).length,
     settings,
+    initialThemeColor,
+    initialCustomDomain,
   };
 
   return <LeagueAdminShell data={adminData} initialTab={tab || "overview"} />;

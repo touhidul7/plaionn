@@ -65,6 +65,8 @@ export interface LeagueAdminData {
   rosterCount: number;
   overridesCount: number;
   settings?: any;
+  initialThemeColor?: string | null;
+  initialCustomDomain?: string | null;
 }
 
 interface LeagueAdminShellProps {
@@ -212,16 +214,28 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
 
   // Domain form state
   const [domainInput, setDomainInput] = useState(
-    `${league.name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`
+    data.initialCustomDomain || `${league.name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`
   );
   const [isDomainPending, setIsDomainPending] = useState(false);
   const [domainMsg, setDomainMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Branding color state
-  const initialColor = settings?.currency?.startsWith("#") ? settings.currency : "#c7f450";
+  // Branding color state (persisted in DB and cached in localStorage)
+  const initialColor = data.initialThemeColor || (settings?.currency?.startsWith("#") ? settings.currency : null) || "#c7f450";
   const [primaryColor, setPrimaryColor] = useState(initialColor);
   const [isBrandingPending, setIsBrandingPending] = useState(false);
   const [brandingMsg, setBrandingMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (data.initialThemeColor) {
+      setPrimaryColor(data.initialThemeColor);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`plaionn_theme_${league.id}`, data.initialThemeColor);
+      }
+    } else if (typeof window !== "undefined") {
+      const cached = localStorage.getItem(`plaionn_theme_${league.id}`);
+      if (cached) setPrimaryColor(cached);
+    }
+  }, [data.initialThemeColor, league.id]);
 
   const entriesForSchedule = teams.map((t) => ({
     id: t.entry_id,
@@ -284,11 +298,15 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
 
   const handleSaveBranding = async (colorHex: string) => {
     setPrimaryColor(colorHex);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`plaionn_theme_${league.id}`, colorHex);
+    }
     setIsBrandingPending(true);
     setBrandingMsg(null);
     const res = await saveLeagueBrandingAction({ leagueId: league.id, primaryColor: colorHex });
     setIsBrandingPending(false);
     setBrandingMsg(res.message);
+    router.refresh();
   };
 
   const handleCreateSeason = async (e: React.FormEvent) => {
@@ -566,7 +584,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
   const awayTeamGoalies = awayTeamPlayers.filter((p) => p.position === "G");
 
   const leagueSlug = league.name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10);
-  const publicScheduleUrl = `https://${leagueSlug || "league"}.plaionn.brittosoft.online/schedule`;
+  const publicScheduleUrl = `/api/switch-league?league=${league.id}&redirect=/schedule`;
 
   return (
     <div

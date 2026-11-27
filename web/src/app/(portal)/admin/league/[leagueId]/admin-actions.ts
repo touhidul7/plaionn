@@ -124,12 +124,47 @@ export async function saveLeagueDomainAction({
   }
 
   const supabase = await createSupabaseServerClient(true);
-  
-  // Persist domain in season_settings
-  await supabase
-    .from("season_settings")
-    .update({ clock_mode: cleanDomain.includes(".") ? "stop" : "running" })
-    .eq("league_id", leagueId);
+
+  // Persist domain in system theme record
+  const { data: existing } = await supabase
+    .from("league_announcements")
+    .select("id, message")
+    .eq("league_id", leagueId)
+    .eq("title", "__LEAGUE_THEME__")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  let existingData: Record<string, any> = {};
+  if (existing && existing[0]?.message) {
+    try {
+      existingData = JSON.parse(existing[0].message);
+    } catch {}
+  }
+
+  const newPayload = JSON.stringify({
+    ...existingData,
+    domain: cleanDomain,
+    updatedAt: new Date().toISOString(),
+  });
+
+  if (existing && existing.length > 0) {
+    await supabase
+      .from("league_announcements")
+      .update({
+        message: newPayload,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing[0].id);
+  } else {
+    await supabase
+      .from("league_announcements")
+      .insert({
+        league_id: leagueId,
+        title: "__LEAGUE_THEME__",
+        message: newPayload,
+        priority: "standard",
+      });
+  }
 
   revalidatePath(`/admin/league/${leagueId}`);
   return {
@@ -299,15 +334,58 @@ export async function saveLeagueBrandingAction({
   }
 
   const supabase = await createSupabaseServerClient(true);
-  // Save branding colors into season_settings or custom metadata
-  const { error } = await supabase
-    .from("season_settings")
-    .update({
-      currency: primaryColor, // store color token or update custom metadata
-    })
-    .eq("league_id", leagueId);
+
+  // Persist branding colors into system theme record
+  const { data: existing } = await supabase
+    .from("league_announcements")
+    .select("id, message")
+    .eq("league_id", leagueId)
+    .eq("title", "__LEAGUE_THEME__")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  let existingData: Record<string, any> = {};
+  if (existing && existing[0]?.message) {
+    try {
+      existingData = JSON.parse(existing[0].message);
+    } catch {}
+  }
+
+  const newPayload = JSON.stringify({
+    ...existingData,
+    primaryColor,
+    updatedAt: new Date().toISOString(),
+  });
+
+  let error;
+  if (existing && existing.length > 0) {
+    const res = await supabase
+      .from("league_announcements")
+      .update({
+        message: newPayload,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing[0].id);
+    error = res.error;
+  } else {
+    const res = await supabase
+      .from("league_announcements")
+      .insert({
+        league_id: leagueId,
+        title: "__LEAGUE_THEME__",
+        message: newPayload,
+        priority: "standard",
+      });
+    error = res.error;
+  }
+
+  if (error) {
+    return { success: false, message: `Failed to save branding: ${error.message}` };
+  }
 
   revalidatePath(`/admin/league/${leagueId}`);
+  revalidatePath("/");
+  revalidatePath("/schedule");
   return { success: true, message: `League branding color palette updated to ${primaryColor}.` };
 }
 

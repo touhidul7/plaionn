@@ -15,13 +15,30 @@ export default async function PortalLayout({
   let themeColor: string | null = null;
   if (!isPlatform && league.id) {
     try {
-      const { data: settings } = await supabase
-        .from("season_settings")
-        .select("currency")
+      const { data: themeRec } = await supabase
+        .from("league_announcements")
+        .select("message")
         .eq("league_id", league.id)
+        .eq("title", "__LEAGUE_THEME__")
+        .order("created_at", { ascending: false })
         .limit(1);
-      if (settings && settings[0]?.currency?.startsWith("#")) {
-        themeColor = settings[0].currency;
+
+      if (themeRec && themeRec[0]?.message) {
+        const parsed = JSON.parse(themeRec[0].message);
+        if (parsed.primaryColor && parsed.primaryColor.startsWith("#")) {
+          themeColor = parsed.primaryColor;
+        }
+      }
+
+      if (!themeColor) {
+        const { data: settings } = await supabase
+          .from("season_settings")
+          .select("currency")
+          .eq("league_id", league.id)
+          .limit(1);
+        if (settings && settings[0]?.currency?.startsWith("#")) {
+          themeColor = settings[0].currency;
+        }
       }
     } catch {
       // Fallback to default styling

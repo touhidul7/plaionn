@@ -9,7 +9,18 @@ export async function GET(request: NextRequest) {
   if (!z.uuid().safeParse(leagueId).success) return NextResponse.json({ error: "Invalid league" }, { status: 400 });
   const destination = new URL(redirectPath, request.url);
   if (destination.origin !== request.nextUrl.origin) return NextResponse.json({ error: "Invalid redirect" }, { status: 400 });
-  if (destination.pathname !== "/") {
+  const isPublicPath = [
+    "/",
+    "/schedule",
+    "/standings",
+    "/leaders",
+    "/teams",
+    "/playoffs",
+    "/registration",
+    "/announcements",
+  ].includes(destination.pathname) || destination.pathname.startsWith("/schedule/");
+
+  if (!isPublicPath) {
     const access = await getAdminAccess();
     if (!access.user) return NextResponse.redirect(new URL("/login", request.url));
     if (!access.canManageLeague(leagueId)) return NextResponse.json({ error: "League access denied" }, { status: 403 });

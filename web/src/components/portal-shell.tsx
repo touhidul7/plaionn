@@ -43,6 +43,20 @@ export function PortalShell({
       className="public-portal-root"
       style={themeColor ? ({ "--lime": themeColor, "--brand": themeColor, "--accent": themeColor, "--primary": themeColor } as React.CSSProperties) : undefined}
     >
+      {themeColor && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          :root, .public-portal-root {
+            --lime: ${themeColor} !important;
+            --brand: ${themeColor} !important;
+            --accent: ${themeColor} !important;
+            --primary: ${themeColor} !important;
+          }
+          .primary, button.primary {
+            background: ${themeColor} !important;
+            border-color: ${themeColor} !important;
+          }
+        `}} />
+      )}
       <a className="skip-link" href="#main">
         Skip to content
       </a>
