@@ -168,7 +168,8 @@ export function PublicHeaderClient({
   }
 
   return (
-    <header className="plaionn-header-wrap">
+    <>
+      <header className="plaionn-header-wrap">
       {/* 1. TOP TICKER ROW (Centered, Framed, No Empty Void) */}
       <div className="plaionn-header-top">
         <div className="plaionn-header-top-inner">
@@ -276,9 +277,10 @@ export function PublicHeaderClient({
           </div>
         </div>
       </div>
+    </header>
 
-      {/* 2. HORIZONTAL NAVIGATION BAR (Centered & Framed) */}
-      <nav className="plaionn-navbar" aria-label="League Navigation">
+    {/* 2. HORIZONTAL NAVIGATION BAR (Sticky to Top of Viewport) */}
+    <nav className="plaionn-navbar" aria-label="League Navigation">
         <div className="plaionn-navbar-inner">
           <button
             type="button"
@@ -355,6 +357,6 @@ export function PublicHeaderClient({
           </div>
         </div>
       </nav>
-    </header>
+    </>
   );
 }

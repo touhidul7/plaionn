@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getLeagueData } from "@/lib/league";
 import { SetupForm } from "@/components/setup-form";
 
@@ -6,6 +7,10 @@ export const dynamic = "force-dynamic";
 
 export default async function LeaguePage() {
   const data = await getLeagueData();
+
+  if (data?.league?.id && data.league.id !== "platform") {
+    redirect(`/admin/league/${data.league.id}`);
+  }
 
   return (
     <>

@@ -287,7 +287,7 @@ export default async function Home({
               SEASON SELECTOR
             </span>
             {canManage && (
-              <Link href="/league" className="text-link" style={{ fontSize: "12px", fontWeight: 700 }}>
+              <Link href={`/admin/league/${data.league.id}`} className="text-link" style={{ fontSize: "12px", fontWeight: 700 }}>
                 Commissioner HQ ⚙️
               </Link>
             )}
