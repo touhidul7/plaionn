@@ -59,9 +59,19 @@ export function PortalShell({
           .public-portal-root button.primary,
           .public-portal-root a.primary,
           .public-portal-root .button.primary,
-          .public-portal-root .plaionn-brand-logo {
+          .public-portal-root .plaionn-brand-logo,
+          .public-portal-root .plaionn-hero-btn {
             background-color: ${themeColor} !important;
             border-color: ${themeColor} !important;
+            color: #081017 !important;
+          }
+          .public-portal-root .plaionn-hero-badge span.dot {
+            background-color: ${themeColor} !important;
+            box-shadow: 0 0 8px ${themeColor} !important;
+          }
+          .public-portal-root .plaionn-hero-badge {
+            border-color: ${themeColor}4d !important;
+            color: ${themeColor} !important;
           }
           .public-portal-root .plaionn-nav-item a.active {
             color: ${themeColor} !important;

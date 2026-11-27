@@ -153,11 +153,60 @@ export const getLeagueContext = cache(async () => {
 
   const cookieLeagueId = (await cookies()).get("plaionn-league")?.value;
   const selectedLeagueId = domainLeagueId && domainLeagueId !== "platform" ? domainLeagueId : cookieLeagueId;
-  if (platformAdmin && selectedLeagueId) {
-    const { data: league } = await supabase.from("leagues").select("id,name").eq("id", selectedLeagueId).maybeSingle();
-    if (league) return { supabase, user, league, leagueId: league.id, canManage: true, isGuest: false, publicData: null as PublicLeagueOverview | null };
+
+  // 1. If a specific league is designated by domain or cookie, prioritize it strictly
+  if (selectedLeagueId) {
+    const { data: league } = await supabase
+      .from("leagues")
+      .select("id,name")
+      .eq("id", selectedLeagueId)
+      .maybeSingle();
+
+    if (league) {
+      let canManage = Boolean(platformAdmin);
+      if (!canManage && user) {
+        const { data: userMem } = await supabase
+          .from("league_memberships")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("league_id", league.id)
+          .maybeSingle();
+        canManage = userMem?.role === "commissioner" || userMem?.role === "admin";
+      }
+
+      let publicData: PublicLeagueOverview | null = null;
+      if (!user) {
+        const { data: overviewRows } = await supabase.rpc("get_public_league_overview", {
+          target_league: league.id,
+        });
+        const overview = overviewRows?.[0] as PublicLeagueOverview | undefined;
+        if (overview) {
+          publicData = {
+            ...overview,
+            league_name: sanitizeLeagueName(overview.league_name),
+            seasons: (overview.seasons || []).map((s) => ({ ...s, name: sanitizeSeasonName(s.name) })),
+            divisions: overview.divisions || [],
+            teams: (overview.teams || []).map((t) => ({ ...t, season_name: sanitizeSeasonName(t.season_name) })),
+          };
+        }
+      }
+
+      return {
+        supabase,
+        user,
+        league: {
+          id: league.id,
+          name: sanitizeLeagueName(league.name),
+        },
+        leagueId: league.id,
+        canManage,
+        isGuest: !user,
+        publicData,
+      };
+    }
   }
 
+  // 2. Fallback: authenticated user's assigned membership if no specific league designated
   if (user) {
     const { data: memberships, error } = await supabase
       .from("league_memberships")
@@ -165,10 +214,7 @@ export const getLeagueContext = cache(async () => {
       .eq("user_id", user.id);
 
     if (!error && memberships && memberships.length > 0) {
-      const selected = selectedLeagueId;
-      const membership =
-        memberships.find((m) => m.league_id === selected) ??
-        [...memberships].sort((a, b) => a.league_id.localeCompare(b.league_id))[0];
+      const membership = [...memberships].sort((a, b) => a.league_id.localeCompare(b.league_id))[0];
 
       const { data: league, error: leagueError } = await supabase
         .from("leagues")
