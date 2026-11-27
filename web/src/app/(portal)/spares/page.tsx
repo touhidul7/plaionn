@@ -11,13 +11,29 @@ export default async function SparesPage() {
   const { supabase, leagueId, canManage, user } = context;
 
   // 1. Fetch available spares
-  const { data: sparesRows, error: sErr } = await supabase.rpc("list_available_spares", {
-    target_league: leagueId,
-    target_position: "all",
-  });
-
-  const spares: SparePoolItem[] =
-    !sErr && Array.isArray(sparesRows) ? (sparesRows as SparePoolItem[]) : [];
+  let spares: SparePoolItem[] = [];
+  let dbClient: any = supabase;
+  if (leagueId === "platform") {
+    try {
+      const { createServiceClient } = await import("@/lib/supabase/admin");
+      dbClient = createServiceClient();
+      const { data: allLeagues } = await dbClient.from("leagues").select("id");
+      if (allLeagues && allLeagues.length > 0) {
+        const sResults = await Promise.all(
+          allLeagues.map((lg: { id: string }) =>
+            dbClient.rpc("list_available_spares", { target_league: lg.id, target_position: "all" })
+          )
+        );
+        spares = sResults.flatMap((r) => (!r.error && Array.isArray(r.data) ? (r.data as SparePoolItem[]) : []));
+      }
+    } catch {}
+  } else {
+    const { data: sparesRows, error: sErr } = await supabase.rpc("list_available_spares", {
+      target_league: leagueId,
+      target_position: "all",
+    });
+    spares = !sErr && Array.isArray(sparesRows) ? (sparesRows as SparePoolItem[]) : [];
+  }
 
   // 2. Fetch user-owned players for registration
   let userPlayers: { id: string; name: string }[] = [];
@@ -33,17 +49,17 @@ export default async function SparesPage() {
   }
 
   // 3. Fetch upcoming games for call-ups
-  const { data: gamesRows } = await supabase
+  const gamesQuery = dbClient
     .from("games")
     .select("id, home_entry_id, away_entry_id, starts_at")
-    .eq("league_id", leagueId)
     .eq("status", "scheduled")
     .order("starts_at")
     .limit(10);
+  const { data: gamesRows } = leagueId === "platform" ? await gamesQuery : await gamesQuery.eq("league_id", leagueId);
 
   const teamNameMap = new Map((data.teams || []).map((t) => [t.entry_id, t.name]));
 
-  const formattedGames = (gamesRows || []).map((g) => {
+  const formattedGames = (gamesRows || []).map((g: any) => {
     const homeName = teamNameMap.get(g.home_entry_id) || "Home";
     const awayName = teamNameMap.get(g.away_entry_id) || "Away";
     const dateStr = new Date(g.starts_at).toLocaleDateString("en-US", {
@@ -62,7 +78,7 @@ export default async function SparesPage() {
   });
 
   // 4. Fetch recent call-ups
-  const { data: callupRows } = await supabase
+  const callupQuery = dbClient
     .from("game_spare_callups")
     .select(`
       id,
@@ -75,17 +91,17 @@ export default async function SparesPage() {
       responded_at,
       created_at
     `)
-    .eq("league_id", leagueId)
     .order("created_at", { ascending: false })
     .limit(15);
+  const { data: callupRows } = leagueId === "platform" ? await callupQuery : await callupQuery.eq("league_id", leagueId);
 
-  const playerIds = Array.from(new Set((callupRows || []).map((c) => c.player_id)));
+  const playerIds = Array.from(new Set((callupRows || []).map((c: any) => c.player_id)));
   const { data: playerRows } = playerIds.length > 0
-    ? await supabase.from("players").select("id, display_name").in("id", playerIds)
+    ? await dbClient.from("players").select("id, display_name").in("id", playerIds)
     : { data: [] };
-  const playerNameMap = new Map((playerRows || []).map((p) => [p.id, p.display_name]));
+  const playerNameMap = new Map((playerRows || []).map((p: any) => [p.id, p.display_name]));
 
-  const callups: GameCallupItem[] = (callupRows || []).map((c) => ({
+  const callups: GameCallupItem[] = (callupRows || []).map((c: any) => ({
     callup_id: c.id,
     game_id: c.game_id,
     team_entry_id: c.team_entry_id,

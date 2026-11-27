@@ -30,14 +30,19 @@ interface ScheduleFilterViewProps {
   leagueName: string;
   leagueId: string;
   canManage?: boolean;
+  initialView?: "all" | "final" | "upcoming";
 }
 
-export function ScheduleFilterView({ games, leagueName, leagueId, canManage }: ScheduleFilterViewProps) {
+export function ScheduleFilterView({ games, leagueName, leagueId, canManage, initialView = "all" }: ScheduleFilterViewProps) {
   const [selectedDivision, setSelectedDivision] = useState<string>("all");
   const [selectedTeam, setSelectedTeam] = useState<string>("all");
   const [selectedVenue, setSelectedVenue] = useState<string>("all");
-  const [filterView, setFilterView] = useState<"all" | "final" | "upcoming">("all");
+  const [filterView, setFilterView] = useState<"all" | "final" | "upcoming">(initialView);
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  React.useEffect(() => {
+    setFilterView(initialView);
+  }, [initialView]);
 
   // Extract unique filter options
   const divisions = useMemo(() => {

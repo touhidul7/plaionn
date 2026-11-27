@@ -11,7 +11,26 @@ export default async function AnnouncementsPage() {
   const { supabase, leagueId, canManage } = context;
 
   let announcements: AnnouncementItem[] = [];
-  if (leagueId !== "platform") {
+  if (leagueId === "platform") {
+    // Aggregate announcements from all leagues using service client to bypass RLS
+    try {
+      const { createServiceClient } = await import("@/lib/supabase/admin");
+      const db = createServiceClient();
+      const { data: allLeagues } = await db.from("leagues").select("id");
+      if (allLeagues && allLeagues.length > 0) {
+        const results = await Promise.all(
+          allLeagues.map((lg: { id: string }) =>
+            db.rpc("list_active_announcements", { target_league: lg.id })
+          )
+        );
+        announcements = results.flatMap((r) =>
+          !r.error && Array.isArray(r.data) ? (r.data as AnnouncementItem[]) : []
+        );
+      }
+    } catch {
+      // fallback empty
+    }
+  } else {
     const { data: rows, error } = await supabase.rpc("list_active_announcements", {
       target_league: leagueId,
     });

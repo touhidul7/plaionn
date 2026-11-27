@@ -10,21 +10,32 @@ export default async function FreeAgentsPage() {
   const [data, context] = await Promise.all([getLeagueData(), getLeagueContext()]);
   const { supabase, leagueId, canManage, user } = context;
 
-  // 1. Fetch free agent profiles
-  const { data: freeAgentsRows, error: faErr } = await supabase.rpc("list_free_agents", {
-    target_league: leagueId,
-  });
+  // 1. Fetch free agent profiles & 2. team vacancies
+  let freeAgents: FreeAgentProfileItem[] = [];
+  let vacancies: TeamVacancyItem[] = [];
 
-  const freeAgents: FreeAgentProfileItem[] =
-    !faErr && Array.isArray(freeAgentsRows) ? (freeAgentsRows as FreeAgentProfileItem[]) : [];
-
-  // 2. Fetch team vacancies
-  const { data: vacancyRows, error: vacErr } = await supabase.rpc("list_team_vacancies", {
-    target_league: leagueId,
-  });
-
-  const vacancies: TeamVacancyItem[] =
-    !vacErr && Array.isArray(vacancyRows) ? (vacancyRows as TeamVacancyItem[]) : [];
+  if (leagueId === "platform") {
+    try {
+      const { createServiceClient } = await import("@/lib/supabase/admin");
+      const db = createServiceClient();
+      const { data: allLeagues } = await db.from("leagues").select("id");
+      if (allLeagues && allLeagues.length > 0) {
+        const [faResults, vacResults] = await Promise.all([
+          Promise.all(allLeagues.map((lg: { id: string }) => db.rpc("list_free_agents", { target_league: lg.id }))),
+          Promise.all(allLeagues.map((lg: { id: string }) => db.rpc("list_team_vacancies", { target_league: lg.id }))),
+        ]);
+        freeAgents = faResults.flatMap((r) => (!r.error && Array.isArray(r.data) ? (r.data as FreeAgentProfileItem[]) : []));
+        vacancies = vacResults.flatMap((r) => (!r.error && Array.isArray(r.data) ? (r.data as TeamVacancyItem[]) : []));
+      }
+    } catch {}
+  } else {
+    const [faRes, vacRes] = await Promise.all([
+      supabase.rpc("list_free_agents", { target_league: leagueId }),
+      supabase.rpc("list_team_vacancies", { target_league: leagueId }),
+    ]);
+    freeAgents = !faRes.error && Array.isArray(faRes.data) ? (faRes.data as FreeAgentProfileItem[]) : [];
+    vacancies = !vacRes.error && Array.isArray(vacRes.data) ? (vacRes.data as TeamVacancyItem[]) : [];
+  }
 
   // 3. Fetch user-owned players for registration & application
   let userPlayers: { id: string; name: string }[] = [];

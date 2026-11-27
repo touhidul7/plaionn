@@ -39,16 +39,33 @@ export default async function TournamentsPage() {
   const { supabase, league, canManage } = await getLeagueContext();
 
   // Fetch active tournaments
-  const { data: tournamentsList } = await supabase
-    .from("tournaments")
-    .select("id")
-    .eq("league_id", league.id)
-    .order("created_at", { ascending: false });
+  let tournamentsList: { id: string }[] | null = null;
+  let dbClient: any = supabase;
+  if (league.id === "platform") {
+    try {
+      const { createServiceClient } = await import("@/lib/supabase/admin");
+      dbClient = createServiceClient();
+      const { data } = await dbClient
+        .from("tournaments")
+        .select("id")
+        .order("created_at", { ascending: false });
+      tournamentsList = data;
+    } catch {
+      tournamentsList = [];
+    }
+  } else {
+    const { data } = await supabase
+      .from("tournaments")
+      .select("id")
+      .eq("league_id", league.id)
+      .order("created_at", { ascending: false });
+    tournamentsList = data;
+  }
 
   const tournaments: TournamentOverview[] = [];
   if (tournamentsList && tournamentsList.length > 0) {
     for (const t of tournamentsList) {
-      const res = await supabase.rpc("get_tournament_overview", {
+      const res = await dbClient.rpc("get_tournament_overview", {
         target_tournament: t.id,
       });
       if (res.data) {

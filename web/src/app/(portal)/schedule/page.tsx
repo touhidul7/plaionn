@@ -50,9 +50,10 @@ interface PublicGame {
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string }>;
+  searchParams: Promise<{ edit?: string; view?: string }>;
 }) {
-  const { edit } = await searchParams;
+  const { edit, view } = await searchParams;
+  const initialView = view === "scores" ? "final" : "all";
   const { supabase, league, user, canManage } = await getLeagueContext();
   const isPlatform = league.id === "platform";
   const base = await getLeagueData();
@@ -117,6 +118,7 @@ export default async function SchedulePage({
           leagueName={league.name}
           leagueId={league.id}
           canManage={canManage}
+          initialView={initialView}
         />
       </main>
     );
