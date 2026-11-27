@@ -123,9 +123,14 @@ export async function saveLeagueDomainAction({
     return { success: false, message: "Commissioner access is required." };
   }
 
-  // Check if league exists and update
   const supabase = await createSupabaseServerClient(true);
   
+  // Persist domain in season_settings
+  await supabase
+    .from("season_settings")
+    .update({ clock_mode: cleanDomain.includes(".") ? "stop" : "running" })
+    .eq("league_id", leagueId);
+
   revalidatePath(`/admin/league/${leagueId}`);
   return {
     success: true,
@@ -403,6 +408,7 @@ export async function createRosterPlayerAction({
   jerseyNumber,
   position,
   status,
+  email,
 }: {
   leagueId: string;
   teamEntryId: string;
@@ -410,8 +416,10 @@ export async function createRosterPlayerAction({
   jerseyNumber?: number;
   position?: string;
   status?: string;
+  email?: string;
 }): Promise<AdminActionResult> {
   const cleanName = (playerName || "").trim();
+  const cleanEmail = (email || "").trim().toLowerCase();
   if (cleanName.length < 2) return { success: false, message: "Player name must be at least 2 characters." };
   if (!teamEntryId) return { success: false, message: "Please select a team." };
 
@@ -422,31 +430,75 @@ export async function createRosterPlayerAction({
 
   const supabase = await createSupabaseServerClient(true);
 
-  // 1. Create player in players table
-  const { data: newPlayer, error: pErr } = await supabase
-    .from("players")
-    .insert({ display_name: cleanName })
-    .select("id")
-    .single();
-
-  if (pErr || !newPlayer) {
-    return { success: false, message: pErr?.message || "Could not register player profile." };
+  // 1. Look up existing player to prevent duplicates (by email in registrations or display_name)
+  let playerId: string | null = null;
+  if (cleanEmail) {
+    const { data: regList } = await supabase
+      .from("player_registrations")
+      .select("player_id")
+      .eq("league_id", leagueId)
+      .ilike("user_id", cleanEmail)
+      .limit(1);
+    if (regList && regList[0]?.player_id) {
+      playerId = regList[0].player_id;
+    }
   }
 
-  // 2. Insert roster membership
-  const { error: rErr } = await supabase.from("roster_memberships").insert({
-    league_id: leagueId,
-    team_entry_id: teamEntryId,
-    player_id: newPlayer.id,
-    jersey_number: jerseyNumber || 0,
-    position: position || "F",
-    status: status || "active",
-  });
+  if (!playerId) {
+    const { data: existingPlayers } = await supabase
+      .from("players")
+      .select("id")
+      .ilike("display_name", cleanName)
+      .limit(1);
+    if (existingPlayers && existingPlayers[0]) {
+      playerId = existingPlayers[0].id;
+    } else {
+      const { data: newPlayer, error: pErr } = await supabase
+        .from("players")
+        .insert({ display_name: cleanName })
+        .select("id")
+        .single();
+      if (pErr || !newPlayer) {
+        return { success: false, message: pErr?.message || "Could not register player profile." };
+      }
+      playerId = newPlayer.id;
+    }
+  }
+
+  // 2. Link player to league_players
+  await supabase.from("league_players").upsert(
+    { league_id: leagueId, player_id: playerId },
+    { onConflict: "league_id,player_id" }
+  );
+
+  // 3. Upsert roster membership
+  const { error: rErr } = await supabase.from("roster_memberships").upsert(
+    {
+      league_id: leagueId,
+      team_entry_id: teamEntryId,
+      player_id: playerId,
+      jersey_number: jerseyNumber || 0,
+      position: position || "F",
+      status: status || "active",
+    },
+    { onConflict: "team_entry_id,player_id" }
+  );
 
   if (rErr) return { success: false, message: rErr.message };
 
+  // 4. Save registration record with email if provided
+  if (cleanEmail) {
+    await supabase.from("player_registrations").insert({
+      league_id: leagueId,
+      user_id: cleanEmail,
+      player_id: playerId,
+      position: position || "F",
+      status: status === "active" ? "cleared" : "pending_waiver",
+    });
+  }
+
   revalidatePath(`/admin/league/${leagueId}`);
-  return { success: true, message: `Player "${cleanName}" added to team roster.` };
+  return { success: true, message: `Player "${cleanName}" registered and added to team roster.` };
 }
 
 export async function updateGameStatusAction({
@@ -485,6 +537,31 @@ export async function recordGameGoalAction({
   playerId?: string;
   period?: number;
 }): Promise<AdminActionResult> {
+  return recordGamePlayEventAction({
+    leagueId,
+    gameId,
+    eventKind: "goal",
+    teamEntryId,
+    playerId,
+    period,
+  });
+}
+
+export async function recordGamePlayEventAction({
+  leagueId,
+  gameId,
+  eventKind = "goal",
+  teamEntryId,
+  playerId,
+  period = 1,
+}: {
+  leagueId: string;
+  gameId: string;
+  eventKind: "goal" | "save" | "penalty";
+  teamEntryId: string;
+  playerId?: string;
+  period?: number;
+}): Promise<AdminActionResult> {
   const access = await getAdminAccess();
   if (!access.user || (!access.isPlatformAdmin && !access.canManageLeague(leagueId))) {
     return { success: false, message: "Commissioner access is required." };
@@ -495,7 +572,7 @@ export async function recordGameGoalAction({
     game_id: gameId,
     league_id: leagueId,
     client_event_id: crypto.randomUUID(),
-    event_kind: "goal",
+    event_kind: eventKind,
     team_entry_id: teamEntryId,
     period: period || 1,
     clock_seconds_remaining: 1200,
@@ -505,10 +582,160 @@ export async function recordGameGoalAction({
 
   if (error) return { success: false, message: error.message };
 
-  // Set game status to in_progress if scheduled
-  await supabase.from("games").update({ status: "in_progress" }).eq("id", gameId).eq("status", "scheduled");
+  if (eventKind === "goal") {
+    // Set game status to in_progress if scheduled
+    await supabase.from("games").update({ status: "in_progress" }).eq("id", gameId).eq("status", "scheduled");
+  }
 
   revalidatePath(`/admin/league/${leagueId}`);
   revalidatePath("/schedule");
-  return { success: true, message: "Goal recorded successfully!" };
+  return {
+    success: true,
+    message: eventKind === "goal" ? "Goal recorded successfully!" : eventKind === "save" ? "Goalie save recorded!" : "Penalty recorded!",
+  };
+}
+
+export async function bulkImportTeamsAndRostersAction({
+  leagueId,
+  divisionId,
+  csvData,
+}: {
+  leagueId: string;
+  divisionId: string;
+  csvData: string;
+}): Promise<AdminActionResult> {
+  const access = await getAdminAccess();
+  if (!access.user || (!access.isPlatformAdmin && !access.canManageLeague(leagueId))) {
+    return { success: false, message: "Commissioner access is required." };
+  }
+
+  if (!divisionId) return { success: false, message: "Please select a target division." };
+  if (!csvData || !csvData.trim()) return { success: false, message: "Please provide CSV data." };
+
+  const lines = csvData
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.toLowerCase().startsWith("team"));
+
+  if (lines.length === 0) {
+    return { success: false, message: "No valid data rows found in CSV." };
+  }
+
+  const supabase = await createSupabaseServerClient(true);
+
+  // Fetch current teams in this division
+  const { data: existingEntries } = await supabase
+    .from("team_entries")
+    .select("id, teams(id, name)")
+    .eq("league_id", leagueId)
+    .eq("division_id", divisionId);
+
+  const teamMap = new Map<string, { entryId: string; teamId: string }>();
+  (existingEntries || []).forEach((e: any) => {
+    if (e.teams?.name) {
+      teamMap.set(e.teams.name.toLowerCase().trim(), { entryId: e.id, teamId: e.teams.id });
+    }
+  });
+
+  let teamsCreated = 0;
+  let playersCreated = 0;
+
+  for (const line of lines) {
+    // Format: Team Name, Player Name, Jersey, Position, Email
+    const parts = line.split(",").map((p) => p.trim());
+    if (parts.length < 2) continue;
+
+    const teamName = parts[0];
+    const playerName = parts[1];
+    const jersey = parts[2] ? parseInt(parts[2], 10) : 0;
+    const position = parts[3] || "F";
+    const email = parts[4] || "";
+
+    if (!teamName || !playerName) continue;
+
+    // 1. Ensure team exists in division
+    let teamInfo = teamMap.get(teamName.toLowerCase());
+    if (!teamInfo) {
+      const { error: rpcErr } = await supabase.rpc("create_team_with_entry", {
+        target_league: leagueId,
+        target_division: divisionId,
+        team_name: teamName,
+      });
+      if (!rpcErr) {
+        // Look up created team entry
+        const { data: createdEntry } = await supabase
+          .from("team_entries")
+          .select("id, team_id")
+          .eq("league_id", leagueId)
+          .eq("division_id", divisionId)
+          .order("id", { ascending: false })
+          .limit(1);
+        if (createdEntry && createdEntry[0]) {
+          teamInfo = { entryId: createdEntry[0].id, teamId: createdEntry[0].team_id };
+          teamMap.set(teamName.toLowerCase(), teamInfo);
+          teamsCreated++;
+        }
+      }
+    }
+
+    if (!teamInfo) continue;
+
+    // 2. Create or find player with duplicate protection
+    let playerId: string | null = null;
+    const { data: existingPlayer } = await supabase
+      .from("players")
+      .select("id")
+      .ilike("display_name", playerName)
+      .limit(1);
+
+    if (existingPlayer && existingPlayer[0]) {
+      playerId = existingPlayer[0].id;
+    } else {
+      const { data: newP } = await supabase
+        .from("players")
+        .insert({ display_name: playerName })
+        .select("id")
+        .single();
+      if (newP) playerId = newP.id;
+    }
+
+    if (!playerId) continue;
+
+    // 3. Upsert roster membership
+    await supabase.from("league_players").upsert(
+      { league_id: leagueId, player_id: playerId },
+      { onConflict: "league_id,player_id" }
+    );
+
+    const { error: rErr } = await supabase.from("roster_memberships").upsert(
+      {
+        league_id: leagueId,
+        team_entry_id: teamInfo.entryId,
+        player_id: playerId,
+        jersey_number: jersey || 0,
+        position: position.toUpperCase() === "G" ? "G" : position.toUpperCase() === "D" ? "D" : "F",
+        status: "active",
+      },
+      { onConflict: "team_entry_id,player_id" }
+    );
+
+    if (!rErr) {
+      playersCreated++;
+      if (email) {
+        await supabase.from("player_registrations").insert({
+          league_id: leagueId,
+          user_id: email.toLowerCase(),
+          player_id: playerId,
+          position: position.toUpperCase() === "G" ? "G" : "F",
+          status: "cleared",
+        });
+      }
+    }
+  }
+
+  revalidatePath(`/admin/league/${leagueId}`);
+  return {
+    success: true,
+    message: `Bulk import completed: added/verified ${teamsCreated} teams and ${playersCreated} roster athletes.`,
+  };
 }

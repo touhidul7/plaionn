@@ -18,6 +18,8 @@ import {
   createRosterPlayerAction,
   updateGameStatusAction,
   recordGameGoalAction,
+  recordGamePlayEventAction,
+  bulkImportTeamsAndRostersAction,
   saveLeagueBrandingAction,
   createGameAction,
 } from "@/app/(portal)/admin/league/[leagueId]/admin-actions";
@@ -123,6 +125,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
 
   // Filter states
   const [selectedDivisionFilter, setSelectedDivisionFilter] = useState<string>("all");
+  const [divisionSeasonFilter, setDivisionSeasonFilter] = useState<string>("all");
   const [rosterSeasonFilter, setRosterSeasonFilter] = useState<string>("all");
   const [rosterDivisionFilter, setRosterDivisionFilter] = useState<string>("all");
   const [rosterTeamFilter, setRosterTeamFilter] = useState<string>("all");
@@ -162,12 +165,20 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
 
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState("");
+  const [newPlayerEmail, setNewPlayerEmail] = useState("");
   const [newPlayerTeamEntryId, setNewPlayerTeamEntryId] = useState(teams[0]?.entry_id || "");
   const [newPlayerJersey, setNewPlayerJersey] = useState<string>("");
   const [newPlayerPosition, setNewPlayerPosition] = useState<string>("F");
   const [newPlayerStatus, setNewPlayerStatus] = useState<string>("active");
   const [playerActionPending, setPlayerActionPending] = useState(false);
   const [playerActionMsg, setPlayerActionMsg] = useState<string | null>(null);
+
+  // Bulk Team & Roster Importer Modal State per Mark meeting
+  const [showBulkRosterModal, setShowBulkRosterModal] = useState(false);
+  const [bulkRosterDivisionId, setBulkRosterDivisionId] = useState(divisions[0]?.id || "");
+  const [bulkRosterCsv, setBulkRosterCsv] = useState("");
+  const [bulkRosterPending, setBulkRosterPending] = useState(false);
+  const [bulkRosterMsg, setBulkRosterMsg] = useState<{ success: boolean; text: string } | null>(null);
 
   const [showAddGameModal, setShowAddGameModal] = useState(false);
   const [gameHomeEntry, setGameHomeEntry] = useState(teams[0]?.entry_id || "");
@@ -181,11 +192,14 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
   const [selectedGameId, setSelectedGameId] = useState<string>(games[0]?.id || "");
   const [gameStatusPending, setGameStatusPending] = useState(false);
   const [gameStatusMsg, setGameStatusMsg] = useState<string | null>(null);
+  const [convenorEditUnlocked, setConvenorEditUnlocked] = useState(false);
 
-  // Popup Modal for Recording Events/Plays per Video 2
+  // Popup Modal for Recording Events/Plays per Video 2 & Mark Meeting (Isolated Goalie & Skater data)
   const [showRecordPlayModal, setShowRecordPlayModal] = useState(false);
+  const [recordEventType, setRecordEventType] = useState<"goal" | "save" | "penalty">("goal");
   const [recordEventTeamEntryId, setRecordEventTeamEntryId] = useState<string>("");
   const [recordEventPlayerId, setRecordEventPlayerId] = useState<string>("");
+  const [recordGoalieId, setRecordGoalieId] = useState<string>("");
   const [recordEventPeriod, setRecordEventPeriod] = useState<number>(1);
   const [recordEventPending, setRecordEventPending] = useState(false);
   const [recordEventMsg, setRecordEventMsg] = useState<string | null>(null);
@@ -405,15 +419,41 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
       jerseyNumber: newPlayerJersey ? parseInt(newPlayerJersey, 10) : undefined,
       position: newPlayerPosition,
       status: newPlayerStatus,
+      email: newPlayerEmail.trim() || undefined,
     });
     setPlayerActionPending(false);
     if (res.success) {
       setNewPlayerName("");
+      setNewPlayerEmail("");
       setNewPlayerJersey("");
       setShowAddPlayerModal(false);
       router.refresh();
     } else {
       setPlayerActionMsg(res.message);
+    }
+  };
+
+  const handleBulkImport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bulkRosterDivisionId || !bulkRosterCsv.trim()) return;
+    setBulkRosterPending(true);
+    setBulkRosterMsg(null);
+    const res = await bulkImportTeamsAndRostersAction({
+      leagueId: league.id,
+      divisionId: bulkRosterDivisionId,
+      csvData: bulkRosterCsv.trim(),
+    });
+    setBulkRosterPending(false);
+    if (res.success) {
+      setBulkRosterMsg({ success: true, text: res.message });
+      setBulkRosterCsv("");
+      setTimeout(() => {
+        setShowBulkRosterModal(false);
+        setBulkRosterMsg(null);
+      }, 1500);
+      router.refresh();
+    } else {
+      setBulkRosterMsg({ success: false, text: res.message });
     }
   };
 
@@ -460,17 +500,20 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
     if (!activeSelectedGame || !recordEventTeamEntryId) return;
     setRecordEventPending(true);
     setRecordEventMsg(null);
-    const res = await recordGameGoalAction({
+    const selectedPlayer = recordEventType === "save" ? recordGoalieId : recordEventPlayerId;
+    const res = await recordGamePlayEventAction({
       leagueId: league.id,
       gameId: activeSelectedGame.id,
+      eventKind: recordEventType,
       teamEntryId: recordEventTeamEntryId,
-      playerId: recordEventPlayerId || undefined,
+      playerId: selectedPlayer || undefined,
       period: recordEventPeriod,
     });
     setRecordEventPending(false);
     if (res.success) {
       setShowRecordPlayModal(false);
       setRecordEventPlayerId("");
+      setRecordGoalieId("");
       router.refresh();
     } else {
       setRecordEventMsg(res.message);
@@ -478,6 +521,10 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
   };
 
   // Filtered lists
+  const filteredDivisions = divisionSeasonFilter === "all"
+    ? divisions
+    : divisions.filter((d) => d.season_id === divisionSeasonFilter);
+
   const filteredTeams = selectedDivisionFilter === "all"
     ? teams
     : teams.filter((t) => t.division_name === selectedDivisionFilter);
@@ -514,6 +561,12 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
   const awayTeamPlayers = activeSelectedGame?.away_entry_id
     ? rosterPlayers.filter((p) => p.teamEntryId === activeSelectedGame.away_entry_id)
     : [];
+
+  const homeTeamGoalies = homeTeamPlayers.filter((p) => p.position === "G");
+  const awayTeamGoalies = awayTeamPlayers.filter((p) => p.position === "G");
+
+  const leagueSlug = league.name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10);
+  const publicScheduleUrl = `https://${leagueSlug || "league"}.plaionn.brittosoft.online/schedule`;
 
   return (
     <div
@@ -630,10 +683,25 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
           </div>
         </div>
 
-        {/* Right Tools: Public Schedule & Settings per Video 1 */}
+        {/* Right Tools: Game Centre Quick Access, Public Schedule & Settings per Mark Meeting */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setTab("schedule");
+              setTimeout(() => {
+                document.getElementById("game-centre-console")?.scrollIntoView({ behavior: "smooth" });
+              }, 100);
+            }}
+            className="button button-sm button-outline"
+            style={{ fontSize: "12px", padding: "7px 14px", whiteSpace: "nowrap" }}
+            title="Open Live Game Centre Console"
+          >
+            ⏱️ Game Centre
+          </button>
+
           <a
-            href={`/api/switch-league?league=${league.id}&redirect=%2Fschedule`}
+            href={publicScheduleUrl}
             target="_blank"
             rel="noreferrer"
             className="button button-sm button-outline"
@@ -929,10 +997,10 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
           </div>
         )}
 
-        {/* Tab 2: Seasons & Divisions (Clickable drill-downs per Video 1) */}
+        {/* Tab 2: Seasons & Divisions (Clickable drill-downs per Video 1 & Mark Meeting) */}
         {activeTab === "seasons" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#0c1822", padding: "16px 20px", borderRadius: "12px", border: "1px solid #162634" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#0c1822", padding: "16px 20px", borderRadius: "12px", border: "1px solid #162634", flexWrap: "wrap", gap: "10px" }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: "15.5px" }}>Competition Seasons &amp; Divisions</h3>
                 <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--muted)" }}>
@@ -960,13 +1028,38 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               </div>
             </div>
 
-            {/* Grid directory of divisions with click-to-edit drill-down */}
-            <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "12px", overflow: "hidden" }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid #162634" }}>
-                <h4 style={{ margin: 0, fontSize: "13.5px" }}>Configured Divisions ({divisions.length})</h4>
+            {/* Standardized Layout: Filter Dropdown directly below action bar per Mark meeting */}
+            <div style={{ display: "flex", gap: "12px", alignItems: "center", background: "#091219", padding: "12px 18px", borderRadius: "10px", border: "1px solid #162634" }}>
+              <label style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>Filter by Season:</label>
+              <select
+                value={divisionSeasonFilter}
+                onChange={(e) => setDivisionSeasonFilter(e.target.value)}
+                style={{
+                  background: "#0c1822",
+                  color: "#f0f4f8",
+                  border: "1px solid #1e3347",
+                  borderRadius: "6px",
+                  padding: "6px 12px",
+                  fontSize: "12.5px",
+                  minWidth: "180px",
+                }}
+              >
+                <option value="all">All Seasons ({divisions.length} divisions)</option>
+                {seasons.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({divisions.filter((d) => d.season_id === s.id).length})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Grid directory of divisions with sticky header and click-to-edit drill-down */}
+            <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "12px", overflowY: "auto", maxHeight: "550px" }}>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #162634", position: "sticky", top: 0, background: "#0c1822", zIndex: 10 }}>
+                <h4 style={{ margin: 0, fontSize: "13.5px" }}>Configured Divisions ({filteredDivisions.length})</h4>
               </div>
               <table className="table" style={{ width: "100%", margin: 0, fontSize: "12.5px" }}>
-                <thead>
+                <thead style={{ position: "sticky", top: "45px", zIndex: 9, background: "#091219" }}>
                   <tr>
                     <th>DIVISION (CLICK TO EDIT)</th>
                     <th>PARENT SEASON</th>
@@ -975,7 +1068,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                   </tr>
                 </thead>
                 <tbody>
-                  {divisions.map((div) => {
+                  {filteredDivisions.map((div) => {
                     const divTeams = teams.filter((t) => t.division_name === div.name);
                     return (
                       <tr key={div.id}>
@@ -1039,10 +1132,10 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                       </tr>
                     );
                   })}
-                  {divisions.length === 0 && (
+                  {filteredDivisions.length === 0 && (
                     <tr>
                       <td colSpan={4} style={{ textAlign: "center", padding: "30px", color: "var(--muted)" }}>
-                        No divisions created yet. Click "+ Add Division" above to set up competition flights.
+                        No divisions found for current season. Click "+ Add Division" above to set up competition flights.
                       </td>
                     </tr>
                   )}
@@ -1050,13 +1143,13 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               </table>
             </div>
 
-            {/* Seasons Directory Table */}
-            <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "12px", overflow: "hidden" }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid #162634" }}>
+            {/* Seasons Directory Table with sticky header */}
+            <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "12px", overflowY: "auto", maxHeight: "400px" }}>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #162634", position: "sticky", top: 0, background: "#0c1822", zIndex: 10 }}>
                 <h4 style={{ margin: 0, fontSize: "13.5px" }}>All Seasons ({seasons.length})</h4>
               </div>
               <table className="table" style={{ width: "100%", margin: 0, fontSize: "12.5px" }}>
-                <thead>
+                <thead style={{ position: "sticky", top: "45px", zIndex: 9, background: "#091219" }}>
                   <tr>
                     <th>SEASON NAME (CLICK TO EDIT)</th>
                     <th>DIVISIONS COUNT</th>
@@ -1111,37 +1204,18 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
           </div>
         )}
 
-        {/* Tab 3: Teams */}
+        {/* Tab 3: Teams (Clean Standardized Layout per Mark Meeting) */}
         {activeTab === "teams" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            {/* Top Bar: Title on left, Action Buttons on right */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#0c1822", padding: "16px 20px", borderRadius: "12px", border: "1px solid #162634", flexWrap: "wrap", gap: "10px" }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: "15.5px" }}>Team Registrations</h3>
+                <h3 style={{ margin: 0, fontSize: "16px" }}>Teams Directory</h3>
                 <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--muted)" }}>
-                  Click any team name to edit details or reassign divisions.
+                  Click any team name to edit details or reassign flights.
                 </p>
               </div>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                <select
-                  value={selectedDivisionFilter}
-                  onChange={(e) => setSelectedDivisionFilter(e.target.value)}
-                  style={{
-                    background: "#081017",
-                    color: "var(--text)",
-                    border: "1px solid #1e3347",
-                    borderRadius: "8px",
-                    padding: "6px 12px",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                  }}
-                >
-                  <option value="all">All Divisions ({teams.length})</option>
-                  {divisions.map((d) => (
-                    <option key={d.id} value={d.name}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <button
                   type="button"
                   onClick={() => setShowAddTeamModal(true)}
@@ -1151,12 +1225,48 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                 >
                   + Add Team
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setShowBulkRosterModal(true)}
+                  className="button button-sm button-outline"
+                  style={{ fontSize: "12px", padding: "6px 14px" }}
+                  disabled={divisions.length === 0}
+                >
+                  ⚡ Bulk Import Teams &amp; Rosters
+                </button>
               </div>
             </div>
 
-            <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "12px", overflow: "hidden" }}>
+            {/* Filter Section: Dropdown aligned to left */}
+            <div style={{ display: "flex", gap: "12px", alignItems: "center", background: "#091219", padding: "12px 18px", borderRadius: "10px", border: "1px solid #162634" }}>
+              <label style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>Filter by Division:</label>
+              <select
+                value={selectedDivisionFilter}
+                onChange={(e) => setSelectedDivisionFilter(e.target.value)}
+                style={{
+                  background: "#0c1822",
+                  color: "var(--text)",
+                  border: "1px solid #1e3347",
+                  borderRadius: "6px",
+                  padding: "6px 12px",
+                  fontSize: "12.5px",
+                  fontWeight: 600,
+                  minWidth: "180px",
+                }}
+              >
+                <option value="all">All Divisions ({teams.length} teams)</option>
+                {divisions.map((d) => (
+                  <option key={d.id} value={d.name}>
+                    {d.name} ({teams.filter((t) => t.division_name === d.name).length})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Teams Table with Sticky Header */}
+            <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "12px", overflowY: "auto", maxHeight: "600px" }}>
               <table className="table" style={{ width: "100%", margin: 0, fontSize: "12.5px" }}>
-                <thead>
+                <thead style={{ position: "sticky", top: 0, zIndex: 10, background: "#0c1822" }}>
                   <tr>
                     <th>TEAM NAME (CLICK TO EDIT)</th>
                     <th>DIVISION</th>
@@ -1210,17 +1320,10 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                               setTab("rosters");
                             }}
                             className="button button-sm button-outline"
-                            style={{ fontSize: "11px", padding: "3px 8px" }}
+                            style={{ fontSize: "11px", padding: "4px 10px" }}
                           >
                             Roster →
                           </button>
-                          <Link
-                            href={`/teams/${t.entry_id}`}
-                            className="button button-sm button-outline"
-                            style={{ fontSize: "11px", padding: "3px 8px" }}
-                          >
-                            Public Page ↗
-                          </Link>
                         </div>
                       </td>
                     </tr>
@@ -1238,18 +1341,18 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
           </div>
         )}
 
-        {/* Tab 4: Rosters (Filters, + Add Player Modal, Clean Table per Video 1 & 2) */}
+        {/* Tab 4: Rosters (Single-Row Filters, Bulk Import, Email Field, Sticky Table per Mark Meeting) */}
         {activeTab === "rosters" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-            {/* Header + Add Player Action */}
+            {/* Header + Add Player Action + Bulk Import */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#0c1822", padding: "16px 20px", borderRadius: "12px", border: "1px solid #162634", flexWrap: "wrap", gap: "12px" }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: "15.5px" }}>Player Rosters &amp; Clearance Pipeline</h3>
+                <h3 style={{ margin: 0, fontSize: "16px" }}>Player Rosters &amp; Clearance Pipeline</h3>
                 <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--muted)" }}>
                   Monitor player clearance, jersey numbers, and waiver compliance.
                 </p>
               </div>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
                 <span className="badge" style={{ fontSize: "11px", background: "rgba(16, 185, 129, 0.15)", color: "#10b981", padding: "4px 10px" }}>
                   {filteredRoster.filter((p) => p.status === "active").length} Cleared
                 </span>
@@ -1265,15 +1368,24 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                 >
                   + Add Player
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setShowBulkRosterModal(true)}
+                  className="button button-sm button-outline"
+                  style={{ fontSize: "12px", padding: "6px 14px" }}
+                  disabled={divisions.length === 0}
+                >
+                  ⚡ Bulk Import
+                </button>
               </div>
             </div>
 
-            {/* Filter Bar: Season, Division, Team, Clearance Status per Video 1 & 2 */}
-            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", background: "#091219", padding: "12px 16px", borderRadius: "10px", border: "1px solid #162634" }}>
+            {/* Filter Bar: Single-Row Horizontal Filters (Season, Division, Team, Clearance Status per Mark Meeting) */}
+            <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "10px", flexWrap: "wrap", background: "#091219", padding: "12px 16px", borderRadius: "10px", border: "1px solid #162634" }}>
               <select
                 value={rosterSeasonFilter}
                 onChange={(e) => setRosterSeasonFilter(e.target.value)}
-                style={{ background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
+                style={{ flex: "1 1 160px", maxWidth: "240px", background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
               >
                 <option value="all">All Seasons</option>
                 {seasons.map((s) => (
@@ -1286,7 +1398,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               <select
                 value={rosterDivisionFilter}
                 onChange={(e) => setRosterDivisionFilter(e.target.value)}
-                style={{ background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
+                style={{ flex: "1 1 160px", maxWidth: "240px", background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
               >
                 <option value="all">All Divisions</option>
                 {divisions.map((d) => (
@@ -1299,7 +1411,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               <select
                 value={rosterTeamFilter}
                 onChange={(e) => setRosterTeamFilter(e.target.value)}
-                style={{ background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
+                style={{ flex: "1 1 160px", maxWidth: "240px", background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
               >
                 <option value="all">All Teams</option>
                 {teams.map((t) => (
@@ -1312,7 +1424,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               <select
                 value={rosterStatusFilter}
                 onChange={(e) => setRosterStatusFilter(e.target.value)}
-                style={{ background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
+                style={{ flex: "1 1 160px", maxWidth: "240px", background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
               >
                 <option value="all">All Statuses</option>
                 <option value="cleared">🟢 Cleared to Play</option>
@@ -1320,10 +1432,10 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               </select>
             </div>
 
-            {/* Rosters Table */}
-            <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "12px", overflow: "hidden" }}>
+            {/* Rosters Table with Sticky Header */}
+            <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "12px", overflowY: "auto", maxHeight: "650px" }}>
               <table className="table" style={{ width: "100%", margin: 0, fontSize: "12.5px" }}>
-                <thead>
+                <thead style={{ position: "sticky", top: 0, zIndex: 10, background: "#0c1822" }}>
                   <tr>
                     <th>PLAYER NAME</th>
                     <th>TEAM</th>
@@ -1403,12 +1515,12 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               </div>
             </div>
 
-            {/* Schedule Filters: Season, Division, Team per Video 2 */}
-            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", background: "#091219", padding: "12px 16px", borderRadius: "10px", border: "1px solid #162634" }}>
+            {/* Schedule Filters: Single-Row Horizontal Filters (Season, Division, Team per Video 2 & Mark Meeting) */}
+            <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "10px", flexWrap: "wrap", background: "#091219", padding: "12px 16px", borderRadius: "10px", border: "1px solid #162634" }}>
               <select
                 value={scheduleSeasonFilter}
                 onChange={(e) => setScheduleSeasonFilter(e.target.value)}
-                style={{ background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
+                style={{ flex: "1 1 180px", maxWidth: "260px", background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
               >
                 <option value="all">All Seasons</option>
                 {seasons.map((s) => (
@@ -1421,7 +1533,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               <select
                 value={scheduleDivisionFilter}
                 onChange={(e) => setScheduleDivisionFilter(e.target.value)}
-                style={{ background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
+                style={{ flex: "1 1 180px", maxWidth: "260px", background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
               >
                 <option value="all">All Divisions</option>
                 {divisions.map((d) => (
@@ -1434,7 +1546,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               <select
                 value={scheduleTeamFilter}
                 onChange={(e) => setScheduleTeamFilter(e.target.value)}
-                style={{ background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
+                style={{ flex: "1 1 180px", maxWidth: "260px", background: "#0c1822", color: "#f0f4f8", border: "1px solid #1e3347", borderRadius: "6px", padding: "6px 10px", fontSize: "12px" }}
               >
                 <option value="all">All Teams</option>
                 {teams.map((t) => (
@@ -1445,13 +1557,13 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               </select>
             </div>
 
-            {/* Scheduled Matches Table */}
-            <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "12px", overflow: "hidden" }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid #162634" }}>
+            {/* Scheduled Matches Table with Sticky Header */}
+            <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "12px", overflowY: "auto", maxHeight: "550px" }}>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #162634", position: "sticky", top: 0, background: "#0c1822", zIndex: 10 }}>
                 <h4 style={{ margin: 0, fontSize: "13.5px" }}>Scheduled Fixtures ({filteredGames.length})</h4>
               </div>
               <table className="table" style={{ width: "100%", margin: 0, fontSize: "12px" }}>
-                <thead>
+                <thead style={{ position: "sticky", top: "45px", zIndex: 9, background: "#091219" }}>
                   <tr>
                     <th style={{ width: "140px" }}>DATE &amp; TIME</th>
                     <th>HOME TEAM</th>
@@ -1520,176 +1632,284 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               </table>
             </div>
 
-            {/* Embedded Game Centre Console per Video 2 */}
-            {activeSelectedGame && (
-              <div
-                id="game-centre-console"
-                style={{
-                  background: "#0c1822",
-                  border: `2px solid ${primaryColor}`,
-                  borderRadius: "14px",
-                  padding: "22px",
-                  scrollMarginTop: "24px",
-                }}
-              >
-                {/* Header Controls & Game Selector Dropdown per Video 2 */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
-                  <div>
-                    <span style={{ fontSize: "11px", fontWeight: 800, color: primaryColor, textTransform: "uppercase", letterSpacing: "1px" }}>
-                      ⏱️ EMBEDDED GAME CENTRE &amp; LIVE CONSOLE
-                    </span>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px" }}>
-                      <select
-                        value={activeSelectedGame.id}
-                        onChange={(e) => setSelectedGameId(e.target.value)}
-                        style={{
-                          background: "#081017",
-                          color: "#ffffff",
-                          border: "1px solid #1e3347",
-                          borderRadius: "8px",
-                          padding: "6px 12px",
-                          fontSize: "15px",
-                          fontWeight: 800,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {games.map((g) => (
-                          <option key={g.id} value={g.id}>
-                            {g.away_name} @ {g.home_name} ({new Date(g.starts_at).toLocaleDateString()})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+            {/* Embedded Game Centre Console with Goalie/Skater Separation & Convenor Match Lock per Mark Meeting */}
+            {activeSelectedGame && (() => {
+              const isMatchFinal = activeSelectedGame.status === "final";
+              const isLocked = isMatchFinal && !convenorEditUnlocked;
+              const goalEvents = selectedGameEvents.filter((e) => e.event_kind === "goal");
+              const saveEvents = selectedGameEvents.filter((e) => e.event_kind === "save");
 
-                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <label style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>Match Status:</label>
-                      <select
-                        value={activeSelectedGame.status}
-                        disabled={gameStatusPending}
-                        onChange={(e) => handleUpdateGameStatus(activeSelectedGame.id, e.target.value as any)}
-                        style={{
-                          background: "#081017",
-                          color: activeSelectedGame.status === "final" ? "#10b981" : activeSelectedGame.status === "in_progress" ? "#f87171" : "#f0f4f8",
-                          border: "1px solid #1e3347",
-                          borderRadius: "8px",
-                          padding: "6px 12px",
-                          fontSize: "12.5px",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                        }}
-                      >
-                        <option value="scheduled">Scheduled</option>
-                        <option value="in_progress">Live / In Progress</option>
-                        <option value="final">Played (Locked)</option>
-                      </select>
-                    </div>
+              // Compute goalie stats
+              const homeSaves = saveEvents.filter((e) => e.team_entry_id === activeSelectedGame.home_entry_id).length;
+              const awaySaves = saveEvents.filter((e) => e.team_entry_id === activeSelectedGame.away_entry_id).length;
+              const homeGA = activeSelectedGame.away_score ?? 0;
+              const awayGA = activeSelectedGame.home_score ?? 0;
+              const homeShots = homeSaves + homeGA;
+              const awayShots = awaySaves + awayGA;
+              const homeSvPct = homeShots > 0 ? ((homeSaves / homeShots) * 100).toFixed(1) + "%" : "1.000";
+              const awaySvPct = awayShots > 0 ? ((awaySaves / awayShots) * 100).toFixed(1) + "%" : "1.000";
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRecordEventTeamEntryId(activeSelectedGame.home_entry_id || teams[0]?.entry_id || "");
-                        setShowRecordPlayModal(true);
+              return (
+                <div
+                  id="game-centre-console"
+                  style={{
+                    background: "#0c1822",
+                    border: `2px solid ${primaryColor}`,
+                    borderRadius: "14px",
+                    padding: "22px",
+                    scrollMarginTop: "24px",
+                  }}
+                >
+                  {/* Convenor Match Lock Banner */}
+                  {isMatchFinal && (
+                    <div
+                      style={{
+                        background: isLocked ? "rgba(245, 158, 11, 0.12)" : "rgba(16, 185, 129, 0.12)",
+                        border: isLocked ? "1px solid #f59e0b" : "1px solid #10b981",
+                        borderRadius: "10px",
+                        padding: "12px 18px",
+                        marginBottom: "16px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: "10px",
                       }}
-                      className="button button-sm primary"
-                      style={{ fontSize: "12px", padding: "7px 14px", fontWeight: 700 }}
                     >
-                      + Record Play / Event
-                    </button>
-
-                    <Link
-                      href={`/schedule/${activeSelectedGame.id}/scorekeeping`}
-                      className="button button-sm button-outline"
-                      style={{ fontSize: "12px", padding: "7px 14px", textDecoration: "none" }}
-                    >
-                      Launch Live Scorekeeper ↗
-                    </Link>
-                  </div>
-                </div>
-
-                {gameStatusMsg && (
-                  <p style={{ fontSize: "12.5px", color: gameStatusMsg.startsWith("✓") ? "#10b981" : "#f87171", margin: "0 0 14px", fontWeight: 600 }}>
-                    {gameStatusMsg}
-                  </p>
-                )}
-
-                {/* Scoreboard Display */}
-                <div style={{ background: "#081017", padding: "18px 24px", borderRadius: "10px", border: "1px solid #162634", marginBottom: "16px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-                    <div style={{ flex: 1, minWidth: "180px" }}>
-                      <span style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase" }}>AWAY TEAM</span>
-                      <h4 style={{ margin: "2px 0 0", fontSize: "20px", fontWeight: 900 }}>{activeSelectedGame.away_name}</h4>
-                    </div>
-
-                    <div style={{ textAlign: "center", padding: "0 20px" }}>
-                      <div style={{ fontSize: "32px", fontWeight: 900, color: primaryColor, letterSpacing: "2px" }}>
-                        {activeSelectedGame.away_score ?? 0} — {activeSelectedGame.home_score ?? 0}
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ fontSize: "18px" }}>{isLocked ? "🔒" : "🔓"}</span>
+                        <div>
+                          <strong style={{ color: isLocked ? "#f59e0b" : "#10b981", fontSize: "13px" }}>
+                            {isLocked ? "Official Match Final · Locked" : "Convenor Edit Mode Active"}
+                          </strong>
+                          <p style={{ margin: "2px 0 0", fontSize: "11.5px", color: "var(--muted)" }}>
+                            {isLocked
+                              ? "Match events and status are locked to protect final records. Convenor override required to amend."
+                              : "Override enabled: You may edit match status, skater scoring, or goalie save records."}
+                          </p>
+                        </div>
                       </div>
-                      <span
-                        className="badge"
-                        style={{
-                          fontSize: "10.5px",
-                          marginTop: "4px",
-                          background: activeSelectedGame.status === "final" ? "rgba(16, 185, 129, 0.2)" : activeSelectedGame.status === "in_progress" ? "rgba(239, 68, 68, 0.2)" : "rgba(255,255,255,0.08)",
-                          color: activeSelectedGame.status === "final" ? "#10b981" : activeSelectedGame.status === "in_progress" ? "#f87171" : "var(--muted)",
-                        }}
+                      <button
+                        type="button"
+                        onClick={() => setConvenorEditUnlocked(!convenorEditUnlocked)}
+                        className="button button-sm button-outline"
+                        style={{ fontSize: "11.5px", padding: "5px 12px", color: isLocked ? "#f59e0b" : "#10b981", borderColor: isLocked ? "#f59e0b" : "#10b981" }}
                       >
-                        {activeSelectedGame.status === "final" ? "FINAL · LOCKED" : activeSelectedGame.status === "in_progress" ? "LIVE · IN PROGRESS" : "SCHEDULED"}
+                        {isLocked ? "🔓 Convenor Edit Mode" : "🔒 Relock Match"}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Header Controls & Game Selector Dropdown */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 800, color: primaryColor, textTransform: "uppercase", letterSpacing: "1px" }}>
+                        ⏱️ EMBEDDED GAME CENTRE &amp; LIVE CONSOLE
                       </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px" }}>
+                        <select
+                          value={activeSelectedGame.id}
+                          onChange={(e) => setSelectedGameId(e.target.value)}
+                          style={{
+                            background: "#081017",
+                            color: "#ffffff",
+                            border: "1px solid #1e3347",
+                            borderRadius: "8px",
+                            padding: "6px 12px",
+                            fontSize: "15px",
+                            fontWeight: 800,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {games.map((g) => (
+                            <option key={g.id} value={g.id}>
+                              {g.away_name} @ {g.home_name} ({new Date(g.starts_at).toLocaleDateString()})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
-                    <div style={{ flex: 1, minWidth: "180px", textAlign: "right" }}>
-                      <span style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase" }}>HOME TEAM</span>
-                      <h4 style={{ margin: "2px 0 0", fontSize: "20px", fontWeight: 900 }}>{activeSelectedGame.home_name}</h4>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <label style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>Match Status:</label>
+                        <select
+                          value={activeSelectedGame.status}
+                          disabled={gameStatusPending || isLocked}
+                          onChange={(e) => handleUpdateGameStatus(activeSelectedGame.id, e.target.value as any)}
+                          style={{
+                            background: "#081017",
+                            color: activeSelectedGame.status === "final" ? "#10b981" : activeSelectedGame.status === "in_progress" ? "#f87171" : "#f0f4f8",
+                            border: "1px solid #1e3347",
+                            borderRadius: "8px",
+                            padding: "6px 12px",
+                            fontSize: "12.5px",
+                            fontWeight: 700,
+                            cursor: isLocked ? "not-allowed" : "pointer",
+                            opacity: isLocked ? 0.7 : 1,
+                          }}
+                        >
+                          <option value="scheduled">Scheduled</option>
+                          <option value="in_progress">Live / In Progress</option>
+                          <option value="final">Final (Locked)</option>
+                        </select>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRecordEventTeamEntryId(activeSelectedGame.home_entry_id || teams[0]?.entry_id || "");
+                          setRecordEventType("goal");
+                          setShowRecordPlayModal(true);
+                        }}
+                        disabled={isLocked}
+                        className="button button-sm primary"
+                        style={{ fontSize: "12px", padding: "7px 14px", fontWeight: 700, opacity: isLocked ? 0.6 : 1, cursor: isLocked ? "not-allowed" : "pointer" }}
+                      >
+                        + Record Play / Event
+                      </button>
+
+                      <Link
+                        href={`/schedule/${activeSelectedGame.id}/scorekeeping`}
+                        className="button button-sm button-outline"
+                        style={{ fontSize: "12px", padding: "7px 14px", textDecoration: "none" }}
+                      >
+                        Launch Live Scorekeeper ↗
+                      </Link>
                     </div>
                   </div>
-                </div>
 
-                {/* Recorded Plays / Events Feed */}
-                <div style={{ background: "#081017", borderRadius: "10px", border: "1px solid #162634", padding: "14px 18px" }}>
-                  <h5 style={{ margin: "0 0 10px", fontSize: "13px", color: "#f0f4f8" }}>
-                    Recorded Game Events ({selectedGameEvents.length})
-                  </h5>
-                  {selectedGameEvents.length > 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      {selectedGameEvents.map((evt, idx) => {
-                        const evtTeam = teams.find((t) => t.entry_id === evt.team_entry_id);
-                        const evtPlayer = rosterPlayers.find((p) => p.playerId === evt.player_id);
-                        return (
-                          <div
-                            key={evt.id || idx}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              padding: "8px 12px",
-                              background: "#0c1822",
-                              borderRadius: "6px",
-                              fontSize: "12px",
-                            }}
-                          >
-                            <div>
-                              <strong style={{ color: primaryColor }}>P{evt.period} GOAL</strong>
-                              <span style={{ marginLeft: "8px" }}>
-                                {evtPlayer?.playerName || "Player"} ({evtTeam?.name || "Team"})
-                              </span>
-                            </div>
-                            <span style={{ color: "var(--muted)", fontSize: "11px" }}>
-                              {new Date(evt.recorded_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p style={{ margin: 0, fontSize: "12px", color: "var(--muted)" }}>
-                      No events recorded for this match yet. Click &quot;+ Record Play / Event&quot; to log goals.
+                  {gameStatusMsg && (
+                    <p style={{ fontSize: "12.5px", color: gameStatusMsg.startsWith("✓") ? "#10b981" : "#f87171", margin: "0 0 14px", fontWeight: 600 }}>
+                      {gameStatusMsg}
                     </p>
                   )}
+
+                  {/* Scoreboard Display */}
+                  <div style={{ background: "#081017", padding: "18px 24px", borderRadius: "10px", border: "1px solid #162634", marginBottom: "16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+                      <div style={{ flex: 1, minWidth: "180px" }}>
+                        <span style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase" }}>AWAY TEAM</span>
+                        <h4 style={{ margin: "2px 0 0", fontSize: "20px", fontWeight: 900 }}>{activeSelectedGame.away_name}</h4>
+                        <span style={{ fontSize: "11px", color: "var(--muted)" }}>Saves: {awaySaves} · GA: {awayGA} ({awaySvPct})</span>
+                      </div>
+
+                      <div style={{ textAlign: "center", padding: "0 20px" }}>
+                        <div style={{ fontSize: "32px", fontWeight: 900, color: primaryColor, letterSpacing: "2px" }}>
+                          {activeSelectedGame.away_score ?? 0} — {activeSelectedGame.home_score ?? 0}
+                        </div>
+                        <span
+                          className="badge"
+                          style={{
+                            fontSize: "10.5px",
+                            marginTop: "4px",
+                            background: activeSelectedGame.status === "final" ? "rgba(16, 185, 129, 0.2)" : activeSelectedGame.status === "in_progress" ? "rgba(239, 68, 68, 0.2)" : "rgba(255,255,255,0.08)",
+                            color: activeSelectedGame.status === "final" ? "#10b981" : activeSelectedGame.status === "in_progress" ? "#f87171" : "var(--muted)",
+                          }}
+                        >
+                          {activeSelectedGame.status === "final" ? "FINAL · LOCKED" : activeSelectedGame.status === "in_progress" ? "LIVE · IN PROGRESS" : "SCHEDULED"}
+                        </span>
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: "180px", textAlign: "right" }}>
+                        <span style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase" }}>HOME TEAM</span>
+                        <h4 style={{ margin: "2px 0 0", fontSize: "20px", fontWeight: 900 }}>{activeSelectedGame.home_name}</h4>
+                        <span style={{ fontSize: "11px", color: "var(--muted)" }}>Saves: {homeSaves} · GA: {homeGA} ({homeSvPct})</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Skaters vs Goalies Isolated Performance Panels per Mark Meeting */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "14px" }}>
+                    {/* Panel 1: Skater Goal Timeline */}
+                    <div style={{ background: "#081017", borderRadius: "10px", border: "1px solid #162634", padding: "14px 18px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                        <h5 style={{ margin: 0, fontSize: "13px", color: "#f0f4f8" }}>
+                          🏒 Skater Goal Timeline ({goalEvents.length})
+                        </h5>
+                        <span style={{ fontSize: "11px", color: "var(--muted)" }}>Goals &amp; Assists</span>
+                      </div>
+                      {goalEvents.length > 0 ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                          {goalEvents.map((evt, idx) => {
+                            const evtTeam = teams.find((t) => t.entry_id === evt.team_entry_id);
+                            const evtPlayer = rosterPlayers.find((p) => p.playerId === evt.player_id);
+                            return (
+                              <div
+                                key={evt.id || idx}
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  padding: "8px 12px",
+                                  background: "#0c1822",
+                                  borderRadius: "6px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                <div>
+                                  <strong style={{ color: primaryColor }}>P{evt.period} GOAL</strong>
+                                  <span style={{ marginLeft: "8px", color: "#f0f4f8" }}>
+                                    {evtPlayer?.playerName || "Unassisted"}
+                                  </span>
+                                  <span style={{ marginLeft: "6px", color: "var(--muted)", fontSize: "11px" }}>
+                                    ({evtTeam?.name || "Team"})
+                                  </span>
+                                </div>
+                                <span style={{ color: "var(--muted)", fontSize: "11px" }}>
+                                  {new Date(evt.recorded_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p style={{ margin: 0, fontSize: "12px", color: "var(--muted)" }}>
+                          No skater goals logged. Click "+ Record Play / Event" to log scoring.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Panel 2: Goalie Save Performance */}
+                    <div style={{ background: "#081017", borderRadius: "10px", border: "1px solid #162634", padding: "14px 18px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                        <h5 style={{ margin: 0, fontSize: "13px", color: "#f0f4f8" }}>
+                          🥅 Goalie Performance &amp; Saves ({saveEvents.length})
+                        </h5>
+                        <span style={{ fontSize: "11px", color: "var(--muted)" }}>SV% &amp; Shots Faced</span>
+                      </div>
+                      <table className="table" style={{ width: "100%", margin: 0, fontSize: "11.5px" }}>
+                        <thead>
+                          <tr>
+                            <th>TEAM</th>
+                            <th style={{ textAlign: "center" }}>SAVES</th>
+                            <th style={{ textAlign: "center" }}>GA</th>
+                            <th style={{ textAlign: "center" }}>SHOTS</th>
+                            <th style={{ textAlign: "right" }}>SV%</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>{activeSelectedGame.away_name}</strong> (Away)</td>
+                            <td style={{ textAlign: "center", color: primaryColor, fontWeight: 700 }}>{awaySaves}</td>
+                            <td style={{ textAlign: "center" }}>{awayGA}</td>
+                            <td style={{ textAlign: "center" }}>{awayShots}</td>
+                            <td style={{ textAlign: "right", fontWeight: 700, color: "#10b981" }}>{awaySvPct}</td>
+                          </tr>
+                          <tr>
+                            <td><strong>{activeSelectedGame.home_name}</strong> (Home)</td>
+                            <td style={{ textAlign: "center", color: primaryColor, fontWeight: 700 }}>{homeSaves}</td>
+                            <td style={{ textAlign: "center" }}>{homeGA}</td>
+                            <td style={{ textAlign: "center" }}>{homeShots}</td>
+                            <td style={{ textAlign: "right", fontWeight: 700, color: "#10b981" }}>{homeSvPct}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
@@ -2185,6 +2405,17 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                 </select>
               </label>
 
+              <label style={{ display: "block", marginBottom: "12px" }}>
+                <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>Player Email Address (Optional / Account Linking)</span>
+                <input
+                  type="email"
+                  value={newPlayerEmail}
+                  onChange={(e) => setNewPlayerEmail(e.target.value)}
+                  placeholder="athlete@example.com"
+                  style={{ width: "100%", background: "#081017", border: "1px solid #1e3347", borderRadius: "8px", padding: "8px 12px", color: "#f0f4f8", fontSize: "13px" }}
+                />
+              </label>
+
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "12px" }}>
                 <label>
                   <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>Jersey #</span>
@@ -2321,26 +2552,67 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
         </div>
       )}
 
-      {/* MODAL 9: Record Play / Event Modal per Video 2 */}
+      {/* MODAL 9: Record Play / Event Modal per Video 2 & Mark Meeting */}
       {showRecordPlayModal && activeSelectedGame && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "20px" }}>
-          <div style={{ background: "#0c1822", border: `2px solid ${primaryColor}`, borderRadius: "14px", padding: "24px", maxWidth: "460px", width: "100%" }}>
+          <div style={{ background: "#0c1822", border: `2px solid ${primaryColor}`, borderRadius: "14px", padding: "24px", maxWidth: "480px", width: "100%" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-              <h3 style={{ margin: 0, fontSize: "17px" }}>+ Record Goal / Play</h3>
+              <h3 style={{ margin: 0, fontSize: "17px" }}>+ Record Match Event</h3>
               <span className="badge" style={{ fontSize: "11px", background: primaryColor, color: "#081017", fontWeight: 800 }}>LIVE</span>
             </div>
             <p style={{ margin: "0 0 16px", fontSize: "12.5px", color: "var(--muted)" }}>
               {activeSelectedGame.away_name} @ {activeSelectedGame.home_name}
             </p>
 
+            {/* Event Category Selector: Skater Goal vs Goalie Save */}
+            <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+              <button
+                type="button"
+                onClick={() => setRecordEventType("goal")}
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: recordEventType === "goal" ? primaryColor : "#081017",
+                  color: recordEventType === "goal" ? "#081017" : "#f0f4f8",
+                  fontWeight: 700,
+                  fontSize: "12.5px",
+                  cursor: "pointer",
+                }}
+              >
+                🏒 Skater Goal
+              </button>
+              <button
+                type="button"
+                onClick={() => setRecordEventType("save")}
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: recordEventType === "save" ? primaryColor : "#081017",
+                  color: recordEventType === "save" ? "#081017" : "#f0f4f8",
+                  fontWeight: 700,
+                  fontSize: "12.5px",
+                  cursor: "pointer",
+                }}
+              >
+                🥅 Goalie Save / Shot
+              </button>
+            </div>
+
             <form onSubmit={handleRecordPlay}>
               <label style={{ display: "block", marginBottom: "12px" }}>
-                <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>Scoring Team</span>
+                <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>
+                  {recordEventType === "goal" ? "Scoring Team" : "Defending Team (Goalie)"}
+                </span>
                 <select
                   value={recordEventTeamEntryId}
                   onChange={(e) => {
                     setRecordEventTeamEntryId(e.target.value);
                     setRecordEventPlayerId("");
+                    setRecordGoalieId("");
                   }}
                   required
                   style={{ width: "100%", background: "#081017", border: "1px solid #1e3347", borderRadius: "8px", padding: "8px 12px", color: "#f0f4f8", fontSize: "13px" }}
@@ -2350,21 +2622,39 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                 </select>
               </label>
 
-              <label style={{ display: "block", marginBottom: "12px" }}>
-                <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>Goal Scorer (Player)</span>
-                <select
-                  value={recordEventPlayerId}
-                  onChange={(e) => setRecordEventPlayerId(e.target.value)}
-                  style={{ width: "100%", background: "#081017", border: "1px solid #1e3347", borderRadius: "8px", padding: "8px 12px", color: "#f0f4f8", fontSize: "13px" }}
-                >
-                  <option value="">Unassisted / Unknown Player</option>
-                  {(recordEventTeamEntryId === activeSelectedGame.home_entry_id ? homeTeamPlayers : awayTeamPlayers).map((p) => (
-                    <option key={p.playerId} value={p.playerId}>
-                      #{p.jerseyNumber || "0"} {p.playerName} ({p.position})
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {recordEventType === "goal" ? (
+                <label style={{ display: "block", marginBottom: "12px" }}>
+                  <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>Goal Scorer (Player)</span>
+                  <select
+                    value={recordEventPlayerId}
+                    onChange={(e) => setRecordEventPlayerId(e.target.value)}
+                    style={{ width: "100%", background: "#081017", border: "1px solid #1e3347", borderRadius: "8px", padding: "8px 12px", color: "#f0f4f8", fontSize: "13px" }}
+                  >
+                    <option value="">Unassisted / Unknown Player</option>
+                    {(recordEventTeamEntryId === activeSelectedGame.home_entry_id ? homeTeamPlayers : awayTeamPlayers).map((p) => (
+                      <option key={p.playerId} value={p.playerId}>
+                        #{p.jerseyNumber || "0"} {p.playerName} ({p.position})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <label style={{ display: "block", marginBottom: "12px" }}>
+                  <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>Goalie Credited with Save</span>
+                  <select
+                    value={recordGoalieId}
+                    onChange={(e) => setRecordGoalieId(e.target.value)}
+                    style={{ width: "100%", background: "#081017", border: "1px solid #1e3347", borderRadius: "8px", padding: "8px 12px", color: "#f0f4f8", fontSize: "13px" }}
+                  >
+                    <option value="">Default Starting Goalie</option>
+                    {(recordEventTeamEntryId === activeSelectedGame.home_entry_id ? (homeTeamGoalies.length ? homeTeamGoalies : homeTeamPlayers) : (awayTeamGoalies.length ? awayTeamGoalies : awayTeamPlayers)).map((p) => (
+                      <option key={p.playerId} value={p.playerId}>
+                        #{p.jerseyNumber || "0"} {p.playerName} ({p.position})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "14px" }}>
                 <label>
@@ -2383,11 +2673,11 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                 </label>
 
                 <label>
-                  <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>Event Type</span>
+                  <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>Recorded Action</span>
                   <input
                     type="text"
                     disabled
-                    value="GOAL (Even Strength)"
+                    value={recordEventType === "goal" ? "GOAL (+1 Score)" : "SAVE (+1 Shot Stopped)"}
                     style={{ width: "100%", background: "#081017", border: "1px solid #1e3347", borderRadius: "8px", padding: "8px 12px", color: "var(--muted)", fontSize: "12px" }}
                   />
                 </label>
@@ -2402,7 +2692,81 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                   Cancel
                 </button>
                 <button type="submit" disabled={recordEventPending} className="button primary" style={{ fontSize: "12px", fontWeight: 700 }}>
-                  {recordEventPending ? "Recording…" : "Save Goal Event"}
+                  {recordEventPending ? "Recording…" : recordEventType === "goal" ? "Save Goal Event" : "Save Goalie Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 10: Bulk Team & Roster Importer Modal per Mark Meeting */}
+      {showBulkRosterModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "20px" }}>
+          <div style={{ background: "#0c1822", border: `2px solid ${primaryColor}`, borderRadius: "14px", padding: "24px", maxWidth: "620px", width: "100%", maxHeight: "90vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <h3 style={{ margin: 0, fontSize: "17px" }}>⚡ Bulk Import Teams &amp; Player Rosters</h3>
+              <button type="button" onClick={() => setShowBulkRosterModal(false)} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "16px" }}>✕</button>
+            </div>
+            <p style={{ margin: "0 0 16px", fontSize: "12px", color: "var(--muted)" }}>
+              Upload or paste CSV entries to quickly register clubs and assign athlete rosters in one operation.
+              Expected format: <code>Team Name, Player Name, Jersey, Position, Email</code>
+            </p>
+
+            <form onSubmit={handleBulkImport}>
+              <label style={{ display: "block", marginBottom: "14px" }}>
+                <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>Target Division</span>
+                <select
+                  value={bulkRosterDivisionId}
+                  onChange={(e) => setBulkRosterDivisionId(e.target.value)}
+                  required
+                  style={{ width: "100%", background: "#081017", border: "1px solid #1e3347", borderRadius: "8px", padding: "8px 12px", color: "#f0f4f8", fontSize: "13px" }}
+                >
+                  {divisions.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name} ({d.season_name})</option>
+                  ))}
+                </select>
+              </label>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                <span style={{ fontSize: "12px", color: "var(--muted)" }}>CSV Data (Paste Rows)</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBulkRosterCsv(`Northline HC, Alex Ovechkin, 8, F, ovechkin@example.com
+Northline HC, John Carlson, 74, D, carlson@example.com
+Northline HC, Charlie Lindgren, 79, G, lindgren@example.com
+Harbour Wolves, Sidney Crosby, 87, F, crosby@example.com
+Harbour Wolves, Kris Letang, 58, D, letang@example.com
+Harbour Wolves, Tristan Jarry, 35, G, jarry@example.com`);
+                  }}
+                  style={{ background: "none", border: "none", color: primaryColor, cursor: "pointer", fontSize: "11.5px", textDecoration: "underline" }}
+                >
+                  Load Sample Template
+                </button>
+              </div>
+
+              <textarea
+                value={bulkRosterCsv}
+                onChange={(e) => setBulkRosterCsv(e.target.value)}
+                placeholder="Team Name, Player Name, Jersey, Position, Email&#10;e.g. Northline HC, Connor McDavid, 97, F, mcdavid@example.com"
+                rows={8}
+                required
+                style={{ width: "100%", background: "#081017", border: "1px solid #1e3347", borderRadius: "8px", padding: "10px 12px", color: "#f0f4f8", fontSize: "12.5px", fontFamily: "monospace", resize: "vertical", boxSizing: "border-box" }}
+              />
+
+              {bulkRosterMsg && (
+                <p style={{ fontSize: "12.5px", color: bulkRosterMsg.success ? "#10b981" : "#f87171", margin: "10px 0", fontWeight: 600 }}>
+                  {bulkRosterMsg.text}
+                </p>
+              )}
+
+              <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "14px" }}>
+                <button type="button" onClick={() => setShowBulkRosterModal(false)} className="button button-outline" style={{ fontSize: "12px" }}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={bulkRosterPending} className="button primary" style={{ fontSize: "12px", fontWeight: 700 }}>
+                  {bulkRosterPending ? "Importing Roster Data…" : "Start Bulk Import"}
                 </button>
               </div>
             </form>
