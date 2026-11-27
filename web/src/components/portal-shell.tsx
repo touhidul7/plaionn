@@ -41,7 +41,7 @@ export function PortalShell({
   return (
     <div
       className="public-portal-root"
-      style={themeColor ? ({ "--lime": themeColor, "--brand": themeColor } as React.CSSProperties) : undefined}
+      style={themeColor ? ({ "--lime": themeColor, "--brand": themeColor, "--accent": themeColor, "--primary": themeColor } as React.CSSProperties) : undefined}
     >
       <a className="skip-link" href="#main">
         Skip to content

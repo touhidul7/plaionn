@@ -340,3 +340,134 @@ export async function createGameAction({
   revalidatePath("/schedule");
   return { success: true, message: "Match fixture created successfully." };
 }
+
+export async function updateSeasonAction({
+  leagueId,
+  seasonId,
+  name,
+}: {
+  leagueId: string;
+  seasonId: string;
+  name: string;
+}): Promise<AdminActionResult> {
+  const cleanName = (name || "").trim();
+  if (cleanName.length < 2) return { success: false, message: "Season name must be at least 2 characters." };
+
+  const access = await getAdminAccess();
+  if (!access.user || (!access.isPlatformAdmin && !access.canManageLeague(leagueId))) {
+    return { success: false, message: "Commissioner access is required." };
+  }
+
+  const supabase = await createSupabaseServerClient(true);
+  const { error } = await supabase.from("seasons").update({ name: cleanName }).eq("id", seasonId).eq("league_id", leagueId);
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath(`/admin/league/${leagueId}`);
+  return { success: true, message: `Season updated to "${cleanName}".` };
+}
+
+export async function updateDivisionAction({
+  leagueId,
+  divisionId,
+  seasonId,
+  name,
+}: {
+  leagueId: string;
+  divisionId: string;
+  seasonId?: string;
+  name: string;
+}): Promise<AdminActionResult> {
+  const cleanName = (name || "").trim();
+  if (cleanName.length < 2) return { success: false, message: "Division name must be at least 2 characters." };
+
+  const access = await getAdminAccess();
+  if (!access.user || (!access.isPlatformAdmin && !access.canManageLeague(leagueId))) {
+    return { success: false, message: "Commissioner access is required." };
+  }
+
+  const supabase = await createSupabaseServerClient(true);
+  const updates: Record<string, any> = { name: cleanName };
+  if (seasonId) updates.season_id = seasonId;
+
+  const { error } = await supabase.from("divisions").update(updates).eq("id", divisionId).eq("league_id", leagueId);
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath(`/admin/league/${leagueId}`);
+  return { success: true, message: `Division updated to "${cleanName}".` };
+}
+
+export async function createRosterPlayerAction({
+  leagueId,
+  teamEntryId,
+  playerName,
+  jerseyNumber,
+  position,
+  status,
+}: {
+  leagueId: string;
+  teamEntryId: string;
+  playerName: string;
+  jerseyNumber?: number;
+  position?: string;
+  status?: string;
+}): Promise<AdminActionResult> {
+  const cleanName = (playerName || "").trim();
+  if (cleanName.length < 2) return { success: false, message: "Player name must be at least 2 characters." };
+  if (!teamEntryId) return { success: false, message: "Please select a team." };
+
+  const access = await getAdminAccess();
+  if (!access.user || (!access.isPlatformAdmin && !access.canManageLeague(leagueId))) {
+    return { success: false, message: "Commissioner access is required." };
+  }
+
+  const supabase = await createSupabaseServerClient(true);
+
+  // 1. Create player in players table
+  const { data: newPlayer, error: pErr } = await supabase
+    .from("players")
+    .insert({ display_name: cleanName })
+    .select("id")
+    .single();
+
+  if (pErr || !newPlayer) {
+    return { success: false, message: pErr?.message || "Could not register player profile." };
+  }
+
+  // 2. Insert roster membership
+  const { error: rErr } = await supabase.from("roster_memberships").insert({
+    league_id: leagueId,
+    team_entry_id: teamEntryId,
+    player_id: newPlayer.id,
+    jersey_number: jerseyNumber || 0,
+    position: position || "F",
+    status: status || "active",
+  });
+
+  if (rErr) return { success: false, message: rErr.message };
+
+  revalidatePath(`/admin/league/${leagueId}`);
+  return { success: true, message: `Player "${cleanName}" added to team roster.` };
+}
+
+export async function updateGameStatusAction({
+  leagueId,
+  gameId,
+  status,
+}: {
+  leagueId: string;
+  gameId: string;
+  status: "scheduled" | "in_progress" | "final";
+}): Promise<AdminActionResult> {
+  const access = await getAdminAccess();
+  if (!access.user || (!access.isPlatformAdmin && !access.canManageLeague(leagueId))) {
+    return { success: false, message: "Commissioner access is required." };
+  }
+
+  const supabase = await createSupabaseServerClient(true);
+  const { error } = await supabase.from("games").update({ status }).eq("id", gameId).eq("league_id", leagueId);
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath(`/admin/league/${leagueId}`);
+  revalidatePath("/schedule");
+  return { success: true, message: `Game status updated to ${status}.` };
+}
