@@ -3,6 +3,7 @@ import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "./server";
+import { createServiceClient } from "./admin";
 import { sanitizeLeagueName, sanitizeSeasonName } from "@/lib/sanitize";
 
 export const DOMAIN_LEAGUE_MAP: Record<string, string> = {
@@ -69,6 +70,13 @@ export const getOptionalSession = cache(async () => {
 export const getLeagueContext = cache(async () => {
   const { supabase, user } = await getOptionalSession();
 
+  let db: any;
+  try {
+    db = createServiceClient();
+  } catch {
+    db = supabase;
+  }
+
   let domainLeagueId: string | undefined;
   try {
     const headerList = await headers();
@@ -88,9 +96,9 @@ export const getLeagueContext = cache(async () => {
       } else {
         const sub = host.split(".")[0]?.toLowerCase().replace(/[^a-z0-9]/g, "");
         if (sub && sub !== "www" && sub !== "plaionn" && sub !== "localhost") {
-          // Look up matching real league in Supabase with flexible slug matching
-          const { data: allDbLeagues } = await supabase.from("leagues").select("id, name");
-          const matched = allDbLeagues?.find((l) => {
+          // Look up matching real league in Supabase using service client to bypass anonymous RLS restrictions
+          const { data: allDbLeagues } = await db.from("leagues").select("id, name");
+          const matched = allDbLeagues?.find((l: { id: string; name: string }) => {
             const clean = l.name.toLowerCase().replace(/[^a-z0-9]/g, "");
             return clean === sub || clean.slice(0, 10) === sub || sub.startsWith(clean) || clean.startsWith(sub);
           });
@@ -100,7 +108,7 @@ export const getLeagueContext = cache(async () => {
         // Custom domain lookup from league theme settings
         if (!domainLeagueId && host && host !== "localhost" && !host.endsWith(".vercel.app")) {
           try {
-            const { data: themeDomains } = await supabase
+            const { data: themeDomains } = await db
               .from("league_announcements")
               .select("league_id, message")
               .eq("title", "__LEAGUE_THEME__");
@@ -157,7 +165,7 @@ export const getLeagueContext = cache(async () => {
 
   // 1. If a specific league is designated by domain or cookie, prioritize it strictly
   if (selectedLeagueId) {
-    const { data: league } = await supabase
+    const { data: league } = await db
       .from("leagues")
       .select("id,name")
       .eq("id", selectedLeagueId)
@@ -166,7 +174,7 @@ export const getLeagueContext = cache(async () => {
     if (league) {
       let canManage = Boolean(platformAdmin);
       if (!canManage && user) {
-        const { data: userMem } = await supabase
+        const { data: userMem } = await db
           .from("league_memberships")
           .select("role")
           .eq("user_id", user.id)
@@ -177,7 +185,7 @@ export const getLeagueContext = cache(async () => {
 
       let publicData: PublicLeagueOverview | null = null;
       try {
-        const { data: overviewRows } = await supabase.rpc("get_public_league_overview", {
+        const { data: overviewRows } = await db.rpc("get_public_league_overview", {
           target_league: league.id,
         });
         const overview = overviewRows?.[0] as PublicLeagueOverview | undefined;
@@ -185,12 +193,22 @@ export const getLeagueContext = cache(async () => {
           publicData = {
             ...overview,
             league_name: sanitizeLeagueName(overview.league_name),
-            seasons: (overview.seasons || []).map((s) => ({ ...s, name: sanitizeSeasonName(s.name) })),
+            seasons: (overview.seasons || []).map((s: { id: string; name: string }) => ({ ...s, name: sanitizeSeasonName(s.name) })),
             divisions: overview.divisions || [],
-            teams: (overview.teams || []).map((t) => ({ ...t, season_name: sanitizeSeasonName(t.season_name) })),
+            teams: (overview.teams || []).map((t: { id: string; name: string; entry_id: string; division_id: string; division_name: string; season_name: string }) => ({ ...t, season_name: sanitizeSeasonName(t.season_name) })),
           };
         }
       } catch {}
+
+      if (!publicData) {
+        publicData = {
+          league_id: league.id,
+          league_name: sanitizeLeagueName(league.name),
+          seasons: [],
+          divisions: [],
+          teams: [],
+        };
+      }
 
       return {
         supabase,
@@ -209,15 +227,15 @@ export const getLeagueContext = cache(async () => {
 
   // 2. Fallback: authenticated user's assigned membership if no specific league designated
   if (user) {
-    const { data: memberships, error } = await supabase
+    const { data: memberships, error } = await db
       .from("league_memberships")
       .select("league_id,role")
       .eq("user_id", user.id);
 
     if (!error && memberships && memberships.length > 0) {
-      const membership = [...memberships].sort((a, b) => a.league_id.localeCompare(b.league_id))[0];
+      const membership = [...memberships].sort((a: { league_id: string }, b: { league_id: string }) => a.league_id.localeCompare(b.league_id))[0];
 
-      const { data: league, error: leagueError } = await supabase
+      const { data: league, error: leagueError } = await db
         .from("leagues")
         .select("id,name")
         .eq("id", membership.league_id)
@@ -233,7 +251,7 @@ export const getLeagueContext = cache(async () => {
           },
           leagueId: league.id,
           canManage: memberships.some(
-            (m) => m.league_id === league.id && m.role === "commissioner"
+            (m: { league_id: string; role: string }) => m.league_id === league.id && m.role === "commissioner"
           ),
           isGuest: false,
           publicData: null as PublicLeagueOverview | null,
@@ -244,7 +262,7 @@ export const getLeagueContext = cache(async () => {
 
   // Guest or unauthenticated visitor:
   const selected = selectedLeagueId;
-  const { data: overviewRows } = await supabase.rpc("get_public_league_overview", {
+  const { data: overviewRows } = await db.rpc("get_public_league_overview", {
     target_league: selected || "60000000-0000-4000-8000-000000000001",
   });
 

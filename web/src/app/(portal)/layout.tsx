@@ -31,6 +31,7 @@ export default async function PortalLayout({
         .select("message")
         .eq("league_id", league.id)
         .eq("title", "__LEAGUE_THEME__")
+        .order("updated_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
         .limit(1);
 

@@ -77,6 +77,17 @@ export function PortalShell({
             color: ${themeColor} !important;
             box-shadow: inset 0 -3px 0 ${themeColor} !important;
           }
+          .public-portal-root .plaionn-hero-btn:hover,
+          .public-portal-root .button.primary:hover {
+            opacity: 0.9 !important;
+            box-shadow: 0 4px 20px ${themeColor}40 !important;
+          }
+          .public-portal-root .badge.primary,
+          .public-portal-root .badge-primary {
+            background-color: ${themeColor}26 !important;
+            color: ${themeColor} !important;
+            border-color: ${themeColor}4d !important;
+          }
           .public-portal-root .plaionn-brand-name span {
             color: ${themeColor} !important;
           }
