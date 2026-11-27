@@ -95,6 +95,27 @@ export const getLeagueContext = cache(async () => {
           );
           if (matched) domainLeagueId = matched.id;
         }
+
+        // Custom domain lookup from league theme settings
+        if (!domainLeagueId && host && host !== "localhost" && !host.endsWith(".vercel.app")) {
+          try {
+            const { data: themeDomains } = await supabase
+              .from("league_announcements")
+              .select("league_id, message")
+              .eq("title", "__LEAGUE_THEME__");
+            if (themeDomains) {
+              for (const row of themeDomains) {
+                try {
+                  const parsed = JSON.parse(row.message);
+                  if (parsed.domain && (parsed.domain.toLowerCase() === host || parsed.domain.toLowerCase() === host.replace(/^www\./, ""))) {
+                    domainLeagueId = row.league_id;
+                    break;
+                  }
+                } catch {}
+              }
+            }
+          } catch {}
+        }
       }
     }
   } catch {

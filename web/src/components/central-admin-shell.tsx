@@ -87,7 +87,7 @@ export function CentralAdminShell({
               width: "38px",
               height: "38px",
               borderRadius: "8px",
-              background: "var(--lime, #c7f450)",
+              background: "#c7f450",
               color: "#081017",
               display: "flex",
               alignItems: "center",
@@ -109,7 +109,7 @@ export function CentralAdminShell({
                 style={{
                   fontSize: "10px",
                   fontWeight: 800,
-                  color: "var(--lime, #c7f450)",
+                  color: "#c7f450",
                   letterSpacing: "0.5px",
                   background: "rgba(255, 255, 255, 0.06)",
                   padding: "3px 8px",
@@ -156,7 +156,7 @@ export function CentralAdminShell({
               alignItems: "center",
               gap: "6px",
               padding: "7px 14px",
-              background: activeTab === "settings" ? "var(--lime, #c7f450)" : "#101d27",
+              background: activeTab === "settings" ? "#c7f450" : "#101d27",
               color: activeTab === "settings" ? "#081017" : "#f0f4f8",
               border: "1px solid #1e3347",
               borderRadius: "8px",
@@ -198,7 +198,7 @@ export function CentralAdminShell({
                 gap: "8px",
                 padding: "12px 18px",
                 border: "none",
-                borderBottom: isActive ? "3px solid var(--lime, #c7f450)" : "3px solid transparent",
+                borderBottom: isActive ? "3px solid #c7f450" : "3px solid transparent",
                 background: "transparent",
                 color: isActive ? "#ffffff" : "#94a3b8",
                 fontSize: "13px",
@@ -217,7 +217,7 @@ export function CentralAdminShell({
                     padding: "1px 6px",
                     borderRadius: "10px",
                     fontWeight: 700,
-                    background: isActive ? "var(--lime, #c7f450)" : "rgba(255,255,255,0.08)",
+                    background: isActive ? "#c7f450" : "rgba(255,255,255,0.08)",
                     color: isActive ? "#081017" : "var(--muted)",
                   }}
                 >
@@ -304,7 +304,7 @@ export function CentralAdminShell({
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "24px" }}>
                 <div style={{ background: "#081017", border: "1px solid #162634", borderRadius: "10px", padding: "16px" }}>
                   <span style={{ fontSize: "12px", color: "var(--muted)" }}>Platform Mode</span>
-                  <div style={{ fontSize: "18px", fontWeight: 800, color: "var(--lime, #c7f450)", marginTop: "4px" }}>
+                  <div style={{ fontSize: "18px", fontWeight: 800, color: "#c7f450", marginTop: "4px" }}>
                     Multi-Tenant SaaS
                   </div>
                   <span style={{ fontSize: "11px", color: "var(--muted)" }}>Independent subdomains and custom domains supported</span>

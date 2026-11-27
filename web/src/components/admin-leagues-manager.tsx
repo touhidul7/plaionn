@@ -259,7 +259,7 @@ export function AdminLeaguesManager({
                 <td style={{ textAlign: "right" }}>
                   <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end", alignItems: "center" }}>
                     <a
-                      href={lg.domain ? `https://${lg.domain}` : `/api/switch-league?league=${lg.id}`}
+                      href={`/api/switch-league?league=${lg.id}&redirect=/`}
                       target="_blank"
                       rel="noreferrer"
                       className="button button-sm button-outline"

@@ -394,21 +394,6 @@ export async function saveLeagueBrandingAction({
     return { success: false, message: `Failed to save branding: ${error.message}` };
   }
 
-  // Set cookies for immediate sync with active league and theme on public portal
-  try {
-    const cookieStore = await cookies();
-    cookieStore.set("plaionn-league", leagueId, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-      sameSite: "lax",
-    });
-    cookieStore.set("plaionn-theme", primaryColor, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-      sameSite: "lax",
-    });
-  } catch {}
-
   revalidatePath(`/admin/league/${leagueId}`);
   revalidatePath("/", "layout");
   revalidatePath("/schedule");

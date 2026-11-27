@@ -16,16 +16,8 @@ export default async function PortalLayout({
 
   let themeColor: string | null = null;
 
-  // 1. Check live theme cookie for immediate sync across tabs/routes
-  try {
-    const cookieTheme = (await cookies()).get("plaionn-theme")?.value;
-    if (cookieTheme && cookieTheme.startsWith("#")) {
-      themeColor = cookieTheme;
-    }
-  } catch {}
-
-  // 2. Query system theme record from database for this league
-  if (!isPlatform && league.id) {
+  // Query league-specific theme record strictly for this active league (never platform)
+  if (!isPlatform && league.id && league.id !== "platform") {
     try {
       let db: any;
       try {

@@ -31,7 +31,11 @@ export function PortalShell({
           minHeight: "100vh",
           background: "#060d13",
           color: "var(--text, #f0f4f8)",
-        }}
+          "--lime": "#c7f450",
+          "--brand": "#c7f450",
+          "--accent": "#c7f450",
+          "--primary": "#c7f450",
+        } as React.CSSProperties}
       >
         {children}
       </div>
@@ -45,21 +49,25 @@ export function PortalShell({
     >
       {themeColor && (
         <style dangerouslySetInnerHTML={{ __html: `
-          :root, .public-portal-root {
+          .public-portal-root {
             --lime: ${themeColor} !important;
             --brand: ${themeColor} !important;
             --accent: ${themeColor} !important;
             --primary: ${themeColor} !important;
           }
-          .primary, button.primary, a.primary, .button.primary, .plaionn-brand-logo {
+          .public-portal-root .primary,
+          .public-portal-root button.primary,
+          .public-portal-root a.primary,
+          .public-portal-root .button.primary,
+          .public-portal-root .plaionn-brand-logo {
             background-color: ${themeColor} !important;
             border-color: ${themeColor} !important;
           }
-          .plaionn-nav-item a.active {
+          .public-portal-root .plaionn-nav-item a.active {
             color: ${themeColor} !important;
             box-shadow: inset 0 -3px 0 ${themeColor} !important;
           }
-          .plaionn-brand-name span {
+          .public-portal-root .plaionn-brand-name span {
             color: ${themeColor} !important;
           }
         `}} />
