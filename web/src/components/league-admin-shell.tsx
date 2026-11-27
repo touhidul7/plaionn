@@ -466,37 +466,39 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
       {/* Top Header Row with Left-Aligned Title + League Switcher & Top-Right Tools */}
       <header
         style={{
-          background: "#091219",
+          background: "#081017",
           borderBottom: "1px solid #162634",
-          padding: "14px 24px",
+          padding: "12px 24px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          flexWrap: "wrap",
-          gap: "14px",
+          gap: "16px",
         }}
       >
-        {/* Left: League Brand Crest + Switcher */}
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+        {/* Left: League Crest + League Selector */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <Link
             href="/admin"
             title="Return to Central Leagues Console"
             style={{
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
               gap: "6px",
               color: "var(--muted)",
               textDecoration: "none",
               fontSize: "12px",
               fontWeight: 700,
-              padding: "5px 10px",
+              padding: "6px 12px",
               background: "#101d27",
               border: "1px solid #1e3347",
               borderRadius: "6px",
+              whiteSpace: "nowrap",
             }}
           >
             ← Leagues
           </Link>
+
+          <div style={{ width: "1px", height: "24px", background: "#162634" }} />
 
           <div
             style={{
@@ -516,59 +518,51 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
             {league.name.charAt(0).toUpperCase()}
           </div>
 
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "15px", fontWeight: 800, color: "#f0f4f8" }}>
-                {league.name}
-              </span>
-              <span
-                style={{
-                  fontSize: "10px",
-                  fontWeight: 800,
-                  color: primaryColor,
-                  letterSpacing: "0.5px",
-                  background: "rgba(255, 255, 255, 0.06)",
-                  padding: "2px 6px",
-                  borderRadius: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
-                HUB
-              </span>
-            </div>
-            <span style={{ fontSize: "11px", color: "var(--muted)" }}>
-              Multi-Tenant League Management Console
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {/* Interactive League Selector Dropdown */}
+            <select
+              value={league.id}
+              onChange={(e) => router.push(`/admin/league/${e.target.value}`)}
+              style={{
+                background: "#0d1b26",
+                color: "#ffffff",
+                border: "1px solid #1e3347",
+                borderRadius: "8px",
+                padding: "6px 12px",
+                fontSize: "14px",
+                fontWeight: 800,
+                cursor: "pointer",
+                outline: "none",
+              }}
+              title="Switch Active League"
+            >
+              {allLeagues.length > 0 ? (
+                allLeagues.map((l) => (
+                  <option key={l.id} value={l.id} style={{ background: "#081017", color: "#fff" }}>
+                    {l.name}
+                  </option>
+                ))
+              ) : (
+                <option value={league.id} style={{ background: "#081017", color: "#fff" }}>{league.name}</option>
+              )}
+            </select>
+
+            <span
+              style={{
+                fontSize: "10px",
+                fontWeight: 800,
+                color: primaryColor,
+                letterSpacing: "0.5px",
+                background: "rgba(255, 255, 255, 0.06)",
+                padding: "3px 8px",
+                borderRadius: "4px",
+                textTransform: "uppercase",
+                whiteSpace: "nowrap",
+              }}
+            >
+              COMMISSIONER HUB
             </span>
           </div>
-
-          {/* Interactive League Selector Dropdown */}
-          <select
-            value={league.id}
-            onChange={(e) => router.push(`/admin/league/${e.target.value}`)}
-            style={{
-              background: "#0d1b26",
-              color: "#f0f4f8",
-              border: "1px solid #1e3347",
-              borderRadius: "8px",
-              padding: "6px 10px",
-              fontSize: "12.5px",
-              fontWeight: 700,
-              cursor: "pointer",
-              outline: "none",
-              marginLeft: "6px",
-            }}
-            title="Switch Active League"
-          >
-            {allLeagues.length > 0 ? (
-              allLeagues.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))
-            ) : (
-              <option value={league.id}>{league.name}</option>
-            )}
-          </select>
         </div>
 
         {/* Right Tools: Public Schedule & Settings per Video 1 */}
@@ -578,7 +572,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
             target="_blank"
             rel="noreferrer"
             className="button button-sm button-outline"
-            style={{ fontSize: "12px", padding: "7px 14px", textDecoration: "none" }}
+            style={{ fontSize: "12px", padding: "7px 14px", textDecoration: "none", whiteSpace: "nowrap" }}
             title="Open the front-end schedule for this league"
           >
             Public Schedule ↗
@@ -588,7 +582,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
             type="button"
             onClick={() => setTab("settings")}
             style={{
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
               gap: "6px",
               padding: "7px 14px",
@@ -600,6 +594,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               fontWeight: 700,
               cursor: "pointer",
               transition: "all 0.15s ease",
+              whiteSpace: "nowrap",
             }}
             title="League Settings & Branding"
           >
