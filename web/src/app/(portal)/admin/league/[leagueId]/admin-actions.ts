@@ -471,3 +471,44 @@ export async function updateGameStatusAction({
   revalidatePath("/schedule");
   return { success: true, message: `Game status updated to ${status}.` };
 }
+
+export async function recordGameGoalAction({
+  leagueId,
+  gameId,
+  teamEntryId,
+  playerId,
+  period = 1,
+}: {
+  leagueId: string;
+  gameId: string;
+  teamEntryId: string;
+  playerId?: string;
+  period?: number;
+}): Promise<AdminActionResult> {
+  const access = await getAdminAccess();
+  if (!access.user || (!access.isPlatformAdmin && !access.canManageLeague(leagueId))) {
+    return { success: false, message: "Commissioner access is required." };
+  }
+
+  const supabase = await createSupabaseServerClient(true);
+  const { error } = await supabase.from("game_events").insert({
+    game_id: gameId,
+    league_id: leagueId,
+    client_event_id: crypto.randomUUID(),
+    event_kind: "goal",
+    team_entry_id: teamEntryId,
+    period: period || 1,
+    clock_seconds_remaining: 1200,
+    player_id: playerId || null,
+    recorded_by: access.user.id,
+  });
+
+  if (error) return { success: false, message: error.message };
+
+  // Set game status to in_progress if scheduled
+  await supabase.from("games").update({ status: "in_progress" }).eq("id", gameId).eq("status", "scheduled");
+
+  revalidatePath(`/admin/league/${leagueId}`);
+  revalidatePath("/schedule");
+  return { success: true, message: "Goal recorded successfully!" };
+}

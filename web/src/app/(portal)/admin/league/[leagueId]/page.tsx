@@ -36,6 +36,7 @@ export default async function LeagueBackendPage({
     regsRes,
     rosterMembersRes,
     overridesRes,
+    eventsRes,
   ] = await Promise.all([
     supabase.from("seasons").select("id, name").eq("league_id", leagueId).order("name"),
     supabase.from("divisions").select("id, name, season_id, seasons(name)").eq("league_id", leagueId),
@@ -48,6 +49,7 @@ export default async function LeagueBackendPage({
     supabase.from("player_registrations").select("id, status, position, user_id, player_id, created_at").eq("league_id", leagueId),
     supabase.from("roster_memberships").select("id, player_id, team_entry_id, jersey_number, position, status").eq("league_id", leagueId),
     supabase.from("player_eligibility_overrides").select("id, reason, granted_at").eq("league_id", leagueId).is("revoked_at", null),
+    supabase.from("game_events").select("id, game_id, team_entry_id, event_kind, period, player_id, recorded_at").eq("league_id", leagueId).order("recorded_at", { ascending: true }),
   ]);
 
   const seasons = seasonsRes.data || [];
@@ -69,14 +71,24 @@ export default async function LeagueBackendPage({
   const teamNameMap = new Map(teams.map((t) => [t.entry_id, t.name]));
   const rinkNameMap = new Map((rinksRes.data || []).map((r) => [r.id, r.name]));
 
-  const games = (gamesRes.data || []).map((g: any) => ({
-    id: g.id,
-    starts_at: g.starts_at,
-    status: g.status,
-    home_name: teamNameMap.get(g.home_entry_id) || "Home Team",
-    away_name: teamNameMap.get(g.away_entry_id) || "Away Team",
-    rink_name: rinkNameMap.get(g.rink_id) || "Rink 1",
-  }));
+  const rawEvents = eventsRes.data || [];
+  const games = (gamesRes.data || []).map((g: any) => {
+    const gameGoals = rawEvents.filter((e: any) => e.game_id === g.id && e.event_kind === "goal");
+    const homeScore = gameGoals.filter((e: any) => e.team_entry_id === g.home_entry_id).length;
+    const awayScore = gameGoals.filter((e: any) => e.team_entry_id === g.away_entry_id).length;
+    return {
+      id: g.id,
+      starts_at: g.starts_at,
+      status: g.status,
+      home_entry_id: g.home_entry_id,
+      away_entry_id: g.away_entry_id,
+      home_name: teamNameMap.get(g.home_entry_id) || "Home Team",
+      away_name: teamNameMap.get(g.away_entry_id) || "Away Team",
+      home_score: homeScore,
+      away_score: awayScore,
+      rink_name: rinkNameMap.get(g.rink_id) || "Rink 1",
+    };
+  });
 
   const staff = (!staffRes.error && Array.isArray(staffRes.data)) ? staffRes.data : [];
   const settings = settingsRes.data?.[0] || null;
@@ -128,6 +140,7 @@ export default async function LeagueBackendPage({
     teams,
     rosterPlayers,
     games,
+    gameEvents: rawEvents,
     venues: venuesRes.data || [],
     rinks: rinksRes.data || [],
     staff,

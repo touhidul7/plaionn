@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ScheduleImporter } from "@/components/schedule-importer";
@@ -17,6 +17,7 @@ import {
   updateTeamAction,
   createRosterPlayerAction,
   updateGameStatusAction,
+  recordGameGoalAction,
   saveLeagueBrandingAction,
   createGameAction,
 } from "@/app/(portal)/admin/league/[leagueId]/admin-actions";
@@ -46,10 +47,15 @@ export interface LeagueAdminData {
     id: string;
     starts_at: string;
     status: string;
+    home_entry_id?: string;
+    away_entry_id?: string;
     home_name: string;
     away_name: string;
+    home_score?: number;
+    away_score?: number;
     rink_name: string;
   }[];
+  gameEvents?: any[];
   venues: any[];
   rinks: any[];
   staff: { user_id: string; email: string; role: string }[];
@@ -79,7 +85,23 @@ const BRAND_COLOR_PRESETS = [
 export function LeagueAdminShell({ data, initialTab = "overview", children }: LeagueAdminShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const activeTab = searchParams.get("tab") || initialTab;
+
+  // Instant client-side tab state so buttons never feel static or lag
+  const [activeTab, setActiveTab] = useState<string>(searchParams.get("tab") || initialTab);
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  const setTab = (key: string) => {
+    setActiveTab(key);
+    if (typeof window !== "undefined") {
+      window.history.pushState(null, "", `/admin/league/${league.id}?tab=${key}`);
+    }
+  };
 
   const {
     league,
@@ -89,6 +111,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
     teams,
     rosterPlayers = [],
     games,
+    gameEvents = [],
     venues,
     rinks,
     staff,
@@ -159,6 +182,14 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
   const [gameStatusPending, setGameStatusPending] = useState(false);
   const [gameStatusMsg, setGameStatusMsg] = useState<string | null>(null);
 
+  // Popup Modal for Recording Events/Plays per Video 2
+  const [showRecordPlayModal, setShowRecordPlayModal] = useState(false);
+  const [recordEventTeamEntryId, setRecordEventTeamEntryId] = useState<string>("");
+  const [recordEventPlayerId, setRecordEventPlayerId] = useState<string>("");
+  const [recordEventPeriod, setRecordEventPeriod] = useState<number>(1);
+  const [recordEventPending, setRecordEventPending] = useState(false);
+  const [recordEventMsg, setRecordEventMsg] = useState<string | null>(null);
+
   // Staff form state
   const [staffEmail, setStaffEmail] = useState("");
   const [staffRole, setStaffRole] = useState("commissioner");
@@ -192,10 +223,6 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
     { key: "rosters", label: "Rosters", icon: "👥", badge: rosterPlayers.length || rosterCount },
     { key: "schedule", label: "Schedule", icon: "📅", badge: games.length },
   ];
-
-  const setTab = (key: string) => {
-    router.push(`/admin/league/${league.id}?tab=${key}`);
-  };
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -421,10 +448,32 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
     const res = await updateGameStatusAction({ leagueId: league.id, gameId, status });
     setGameStatusPending(false);
     if (res.success) {
-      setGameStatusMsg(`✓ Game status updated to ${status.toUpperCase()}`);
+      setGameStatusMsg(`✓ Match status updated to ${status.toUpperCase()}`);
       router.refresh();
     } else {
       setGameStatusMsg(res.message);
+    }
+  };
+
+  const handleRecordPlay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeSelectedGame || !recordEventTeamEntryId) return;
+    setRecordEventPending(true);
+    setRecordEventMsg(null);
+    const res = await recordGameGoalAction({
+      leagueId: league.id,
+      gameId: activeSelectedGame.id,
+      teamEntryId: recordEventTeamEntryId,
+      playerId: recordEventPlayerId || undefined,
+      period: recordEventPeriod,
+    });
+    setRecordEventPending(false);
+    if (res.success) {
+      setShowRecordPlayModal(false);
+      setRecordEventPlayerId("");
+      router.refresh();
+    } else {
+      setRecordEventMsg(res.message);
     }
   };
 
@@ -454,6 +503,18 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
 
   const activeSelectedGame = games.find((g) => g.id === selectedGameId) || games[0] || null;
 
+  // Selected game goals & events
+  const selectedGameEvents = activeSelectedGame
+    ? gameEvents.filter((e) => e.game_id === activeSelectedGame.id)
+    : [];
+
+  const homeTeamPlayers = activeSelectedGame?.home_entry_id
+    ? rosterPlayers.filter((p) => p.teamEntryId === activeSelectedGame.home_entry_id)
+    : [];
+  const awayTeamPlayers = activeSelectedGame?.away_entry_id
+    ? rosterPlayers.filter((p) => p.teamEntryId === activeSelectedGame.away_entry_id)
+    : [];
+
   return (
     <div
       style={{
@@ -468,15 +529,16 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
         style={{
           background: "#081017",
           borderBottom: "1px solid #162634",
-          padding: "12px 24px",
+          padding: "14px 24px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           gap: "16px",
+          flexWrap: "nowrap",
         }}
       >
         {/* Left: League Crest + League Selector */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
           <Link
             href="/admin"
             title="Return to Central Leagues Console"
@@ -488,22 +550,23 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               textDecoration: "none",
               fontSize: "12px",
               fontWeight: 700,
-              padding: "6px 12px",
+              padding: "7px 12px",
               background: "#101d27",
               border: "1px solid #1e3347",
-              borderRadius: "6px",
+              borderRadius: "8px",
               whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             ← Leagues
           </Link>
 
-          <div style={{ width: "1px", height: "24px", background: "#162634" }} />
+          <div style={{ width: "1px", height: "24px", background: "#162634", flexShrink: 0 }} />
 
           <div
             style={{
-              width: "32px",
-              height: "32px",
+              width: "36px",
+              height: "36px",
               borderRadius: "8px",
               background: primaryColor,
               color: "#081017",
@@ -511,41 +574,42 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               alignItems: "center",
               justifyContent: "center",
               fontWeight: 900,
-              fontSize: "15px",
+              fontSize: "16px",
               flexShrink: 0,
             }}
           >
             {league.name.charAt(0).toUpperCase()}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {/* Interactive League Selector Dropdown */}
-            <select
-              value={league.id}
-              onChange={(e) => router.push(`/admin/league/${e.target.value}`)}
-              style={{
-                background: "#0d1b26",
-                color: "#ffffff",
-                border: "1px solid #1e3347",
-                borderRadius: "8px",
-                padding: "6px 12px",
-                fontSize: "14px",
-                fontWeight: 800,
-                cursor: "pointer",
-                outline: "none",
-              }}
-              title="Switch Active League"
-            >
-              {allLeagues.length > 0 ? (
-                allLeagues.map((l) => (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+            {allLeagues.length > 1 ? (
+              <select
+                value={league.id}
+                onChange={(e) => router.push(`/admin/league/${e.target.value}`)}
+                style={{
+                  background: "#0d1b26",
+                  color: "#ffffff",
+                  border: "1px solid #1e3347",
+                  borderRadius: "8px",
+                  padding: "6px 12px",
+                  fontSize: "15px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+                title="Switch Active League"
+              >
+                {allLeagues.map((l) => (
                   <option key={l.id} value={l.id} style={{ background: "#081017", color: "#fff" }}>
                     {l.name}
                   </option>
-                ))
-              ) : (
-                <option value={league.id} style={{ background: "#081017", color: "#fff" }}>{league.name}</option>
-              )}
-            </select>
+                ))}
+              </select>
+            ) : (
+              <span style={{ fontSize: "16px", fontWeight: 800, color: "#ffffff", whiteSpace: "nowrap" }}>
+                {league.name}
+              </span>
+            )}
 
             <span
               style={{
@@ -558,6 +622,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                 borderRadius: "4px",
                 textTransform: "uppercase",
                 whiteSpace: "nowrap",
+                flexShrink: 0,
               }}
             >
               COMMISSIONER HUB
@@ -566,7 +631,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
         </div>
 
         {/* Right Tools: Public Schedule & Settings per Video 1 */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
           <a
             href={`/api/switch-league?league=${league.id}&redirect=%2Fschedule`}
             target="_blank"
@@ -701,7 +766,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               <h3 style={{ margin: "0 0 14px", fontSize: "15px", color: "#f0f4f8" }}>
                 Commissioner Navigation Shortcuts
               </h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "12px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "14px" }}>
                 <button
                   type="button"
                   onClick={() => setTab("schedule")}
@@ -711,8 +776,8 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                     alignItems: "flex-start",
                     justifyContent: "center",
                     gap: "6px",
-                    padding: "14px 16px",
-                    minHeight: "72px",
+                    padding: "16px 18px",
+                    minHeight: "76px",
                     background: "#10202c",
                     border: "1px solid #1c3344",
                     borderRadius: "10px",
@@ -720,11 +785,12 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                     textAlign: "left",
                     whiteSpace: "normal",
                     width: "100%",
+                    boxSizing: "border-box",
                     transition: "all 0.15s ease",
                   }}
                 >
-                  <strong style={{ color: primaryColor, fontSize: "13.5px", fontWeight: 700 }}>📅 Match Schedule</strong>
-                  <span style={{ fontSize: "11.5px", color: "var(--muted)", lineHeight: 1.3 }}>Add fixtures &amp; bulk import</span>
+                  <strong style={{ color: primaryColor, fontSize: "14px", fontWeight: 700 }}>📅 Match Schedule</strong>
+                  <span style={{ fontSize: "12px", color: "var(--muted)", lineHeight: 1.35 }}>Add fixtures &amp; bulk import</span>
                 </button>
                 <button
                   type="button"
@@ -735,8 +801,8 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                     alignItems: "flex-start",
                     justifyContent: "center",
                     gap: "6px",
-                    padding: "14px 16px",
-                    minHeight: "72px",
+                    padding: "16px 18px",
+                    minHeight: "76px",
                     background: "#10202c",
                     border: "1px solid #1c3344",
                     borderRadius: "10px",
@@ -744,11 +810,12 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                     textAlign: "left",
                     whiteSpace: "normal",
                     width: "100%",
+                    boxSizing: "border-box",
                     transition: "all 0.15s ease",
                   }}
                 >
-                  <strong style={{ color: primaryColor, fontSize: "13.5px", fontWeight: 700 }}>🏒 Teams Directory</strong>
-                  <span style={{ fontSize: "11.5px", color: "var(--muted)", lineHeight: 1.3 }}>Add &amp; manage club entries</span>
+                  <strong style={{ color: primaryColor, fontSize: "14px", fontWeight: 700 }}>🏒 Teams Directory</strong>
+                  <span style={{ fontSize: "12px", color: "var(--muted)", lineHeight: 1.35 }}>Add &amp; manage club entries</span>
                 </button>
                 <button
                   type="button"
@@ -759,8 +826,8 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                     alignItems: "flex-start",
                     justifyContent: "center",
                     gap: "6px",
-                    padding: "14px 16px",
-                    minHeight: "72px",
+                    padding: "16px 18px",
+                    minHeight: "76px",
                     background: "#10202c",
                     border: "1px solid #1c3344",
                     borderRadius: "10px",
@@ -768,11 +835,12 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                     textAlign: "left",
                     whiteSpace: "normal",
                     width: "100%",
+                    boxSizing: "border-box",
                     transition: "all 0.15s ease",
                   }}
                 >
-                  <strong style={{ color: primaryColor, fontSize: "13.5px", fontWeight: 700 }}>👥 Player Rosters</strong>
-                  <span style={{ fontSize: "11.5px", color: "var(--muted)", lineHeight: 1.3 }}>Clearance statuses &amp; waivers</span>
+                  <strong style={{ color: primaryColor, fontSize: "14px", fontWeight: 700 }}>👥 Player Rosters</strong>
+                  <span style={{ fontSize: "12px", color: "var(--muted)", lineHeight: 1.35 }}>Clearance statuses &amp; waivers</span>
                 </button>
                 <button
                   type="button"
@@ -783,8 +851,8 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                     alignItems: "flex-start",
                     justifyContent: "center",
                     gap: "6px",
-                    padding: "14px 16px",
-                    minHeight: "72px",
+                    padding: "16px 18px",
+                    minHeight: "76px",
                     background: "#10202c",
                     border: "1px solid #1c3344",
                     borderRadius: "10px",
@@ -792,11 +860,12 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                     textAlign: "left",
                     whiteSpace: "normal",
                     width: "100%",
+                    boxSizing: "border-box",
                     transition: "all 0.15s ease",
                   }}
                 >
-                  <strong style={{ color: primaryColor, fontSize: "13.5px", fontWeight: 700 }}>⚙️ Branding &amp; Rules</strong>
-                  <span style={{ fontSize: "11.5px", color: "var(--muted)", lineHeight: 1.3 }}>Color palette &amp; tiebreakers</span>
+                  <strong style={{ color: primaryColor, fontSize: "14px", fontWeight: 700 }}>⚙️ Branding &amp; Rules</strong>
+                  <span style={{ fontSize: "12px", color: "var(--muted)", lineHeight: 1.35 }}>Color palette &amp; tiebreakers</span>
                 </button>
               </div>
             </div>
@@ -819,22 +888,33 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                       <th>MATCHUP</th>
                       <th>RINK / VENUE</th>
                       <th style={{ width: "100px", textAlign: "right" }}>STATUS</th>
-                      <th style={{ width: "120px", textAlign: "right" }}>SCOREKEEPER</th>
+                      <th style={{ width: "130px", textAlign: "right" }}>ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {games.slice(0, 5).map((g) => (
                       <tr key={g.id}>
                         <td>{new Date(g.starts_at).toLocaleDateString()} {new Date(g.starts_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                        <td><strong>{g.away_name}</strong> @ <strong>{g.home_name}</strong></td>
+                        <td><strong>{g.away_name}</strong> ({g.away_score ?? 0}) @ <strong>{g.home_name}</strong> ({g.home_score ?? 0})</td>
                         <td style={{ color: "var(--muted)" }}>{g.rink_name}</td>
                         <td style={{ textAlign: "right" }}>
                           <span className="badge" style={{ fontSize: "9.5px" }}>{g.status.toUpperCase()}</span>
                         </td>
                         <td style={{ textAlign: "right" }}>
-                          <Link href={`/schedule/${g.id}/scorekeeping`} className="button button-sm button-outline" style={{ fontSize: "11px", padding: "3px 8px" }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedGameId(g.id);
+                              setTab("schedule");
+                              setTimeout(() => {
+                                document.getElementById("game-centre-console")?.scrollIntoView({ behavior: "smooth" });
+                              }, 100);
+                            }}
+                            className="button button-sm button-outline"
+                            style={{ fontSize: "11px", padding: "3px 8px" }}
+                          >
                             ⏱️ Game Centre
-                          </Link>
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1240,7 +1320,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
               </select>
             </div>
 
-            {/* Rosters Table (Cleaned up, redundant buttons removed per Video 1) */}
+            {/* Rosters Table */}
             <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "12px", overflow: "hidden" }}>
               <table className="table" style={{ width: "100%", margin: 0, fontSize: "12.5px" }}>
                 <thead>
@@ -1378,7 +1458,7 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                     <th>AWAY TEAM</th>
                     <th>ARENA / RINK</th>
                     <th style={{ width: "100px", textAlign: "right" }}>STATUS</th>
-                    <th style={{ width: "140px", textAlign: "right" }}>GAME CENTRE</th>
+                    <th style={{ width: "150px", textAlign: "right" }}>GAME CENTRE</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1388,14 +1468,17 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                       <tr
                         key={g.id}
                         style={{
-                          background: isSelected ? "rgba(255, 255, 255, 0.04)" : "transparent",
+                          background: isSelected ? "rgba(255, 255, 255, 0.05)" : "transparent",
                           cursor: "pointer",
                         }}
-                        onClick={() => setSelectedGameId(g.id)}
+                        onClick={() => {
+                          setSelectedGameId(g.id);
+                          document.getElementById("game-centre-console")?.scrollIntoView({ behavior: "smooth" });
+                        }}
                       >
                         <td>{new Date(g.starts_at).toLocaleDateString()} · {new Date(g.starts_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                        <td><strong>{g.home_name}</strong></td>
-                        <td><strong>{g.away_name}</strong></td>
+                        <td><strong>{g.home_name}</strong> ({g.home_score ?? 0})</td>
+                        <td><strong>{g.away_name}</strong> ({g.away_score ?? 0})</td>
                         <td style={{ color: "var(--muted)" }}>{g.rink_name}</td>
                         <td style={{ textAlign: "right" }}>
                           <span
@@ -1415,11 +1498,12 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedGameId(g.id);
+                              document.getElementById("game-centre-console")?.scrollIntoView({ behavior: "smooth" });
                             }}
-                            className="button button-sm button-outline"
-                            style={{ fontSize: "11px", padding: "3px 8px" }}
+                            className={`button button-sm ${isSelected ? "primary" : "button-outline"}`}
+                            style={{ fontSize: "11px", padding: "4px 10px" }}
                           >
-                            ⏱️ Select Game
+                            ⏱️ Open Game Centre
                           </button>
                         </td>
                       </tr>
@@ -1438,46 +1522,86 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
 
             {/* Embedded Game Centre Console per Video 2 */}
             {activeSelectedGame && (
-              <div style={{ background: "#0c1822", border: "1px solid #162634", borderRadius: "12px", padding: "20px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+              <div
+                id="game-centre-console"
+                style={{
+                  background: "#0c1822",
+                  border: `2px solid ${primaryColor}`,
+                  borderRadius: "14px",
+                  padding: "22px",
+                  scrollMarginTop: "24px",
+                }}
+              >
+                {/* Header Controls & Game Selector Dropdown per Video 2 */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
                   <div>
-                    <span style={{ fontSize: "11px", fontWeight: 700, color: primaryColor, textTransform: "uppercase", letterSpacing: "1px" }}>
-                      EMBEDDED GAME CENTRE CONSOLE
+                    <span style={{ fontSize: "11px", fontWeight: 800, color: primaryColor, textTransform: "uppercase", letterSpacing: "1px" }}>
+                      ⏱️ EMBEDDED GAME CENTRE &amp; LIVE CONSOLE
                     </span>
-                    <h3 style={{ margin: "2px 0 0", fontSize: "18px" }}>
-                      {activeSelectedGame.away_name} @ {activeSelectedGame.home_name}
-                    </h3>
-                    <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--muted)" }}>
-                      {new Date(activeSelectedGame.starts_at).toLocaleDateString()} · {activeSelectedGame.rink_name}
-                    </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px" }}>
+                      <select
+                        value={activeSelectedGame.id}
+                        onChange={(e) => setSelectedGameId(e.target.value)}
+                        style={{
+                          background: "#081017",
+                          color: "#ffffff",
+                          border: "1px solid #1e3347",
+                          borderRadius: "8px",
+                          padding: "6px 12px",
+                          fontSize: "15px",
+                          fontWeight: 800,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {games.map((g) => (
+                          <option key={g.id} value={g.id}>
+                            {g.away_name} @ {g.home_name} ({new Date(g.starts_at).toLocaleDateString()})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
-                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                    <label style={{ fontSize: "12px", color: "var(--muted)", marginRight: "4px" }}>Match Status:</label>
-                    <select
-                      value={activeSelectedGame.status}
-                      disabled={gameStatusPending}
-                      onChange={(e) => handleUpdateGameStatus(activeSelectedGame.id, e.target.value as any)}
-                      style={{
-                        background: "#081017",
-                        color: activeSelectedGame.status === "final" ? "#10b981" : activeSelectedGame.status === "in_progress" ? "#f87171" : "#f0f4f8",
-                        border: "1px solid #1e3347",
-                        borderRadius: "8px",
-                        padding: "6px 10px",
-                        fontSize: "12.5px",
-                        fontWeight: 700,
-                        cursor: "pointer",
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <label style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>Match Status:</label>
+                      <select
+                        value={activeSelectedGame.status}
+                        disabled={gameStatusPending}
+                        onChange={(e) => handleUpdateGameStatus(activeSelectedGame.id, e.target.value as any)}
+                        style={{
+                          background: "#081017",
+                          color: activeSelectedGame.status === "final" ? "#10b981" : activeSelectedGame.status === "in_progress" ? "#f87171" : "#f0f4f8",
+                          border: "1px solid #1e3347",
+                          borderRadius: "8px",
+                          padding: "6px 12px",
+                          fontSize: "12.5px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <option value="scheduled">Scheduled</option>
+                        <option value="in_progress">Live / In Progress</option>
+                        <option value="final">Played (Locked)</option>
+                      </select>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecordEventTeamEntryId(activeSelectedGame.home_entry_id || teams[0]?.entry_id || "");
+                        setShowRecordPlayModal(true);
                       }}
+                      className="button button-sm primary"
+                      style={{ fontSize: "12px", padding: "7px 14px", fontWeight: 700 }}
                     >
-                      <option value="scheduled">Scheduled</option>
-                      <option value="in_progress">Live / In Progress</option>
-                      <option value="final">Played (Locked)</option>
-                    </select>
+                      + Record Play / Event
+                    </button>
 
                     <Link
                       href={`/schedule/${activeSelectedGame.id}/scorekeeping`}
-                      className="button button-sm primary"
-                      style={{ fontSize: "12px", padding: "6px 12px", fontWeight: 700, textDecoration: "none" }}
+                      className="button button-sm button-outline"
+                      style={{ fontSize: "12px", padding: "7px 14px", textDecoration: "none" }}
                     >
                       Launch Live Scorekeeper ↗
                     </Link>
@@ -1485,19 +1609,84 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                 </div>
 
                 {gameStatusMsg && (
-                  <p style={{ fontSize: "12px", color: gameStatusMsg.startsWith("✓") ? "#10b981" : "#f87171", margin: "0 0 12px" }}>
+                  <p style={{ fontSize: "12.5px", color: gameStatusMsg.startsWith("✓") ? "#10b981" : "#f87171", margin: "0 0 14px", fontWeight: 600 }}>
                     {gameStatusMsg}
                   </p>
                 )}
 
-                <div style={{ background: "#081017", padding: "14px", borderRadius: "8px", border: "1px solid #162634", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ fontSize: "12px", color: "var(--muted)" }}>
-                    {activeSelectedGame.status === "final" ? (
-                      <span>🔒 <strong>Game Locked:</strong> Result is marked Played. Scores are locked against standard timekeeper edits unless overridden by commissioner.</span>
-                    ) : (
-                      <span>⏱️ <strong>Active Match:</strong> Timekeepers can record goals, penalties, and period clocks in the Scorekeeper console.</span>
-                    )}
+                {/* Scoreboard Display */}
+                <div style={{ background: "#081017", padding: "18px 24px", borderRadius: "10px", border: "1px solid #162634", marginBottom: "16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+                    <div style={{ flex: 1, minWidth: "180px" }}>
+                      <span style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase" }}>AWAY TEAM</span>
+                      <h4 style={{ margin: "2px 0 0", fontSize: "20px", fontWeight: 900 }}>{activeSelectedGame.away_name}</h4>
+                    </div>
+
+                    <div style={{ textAlign: "center", padding: "0 20px" }}>
+                      <div style={{ fontSize: "32px", fontWeight: 900, color: primaryColor, letterSpacing: "2px" }}>
+                        {activeSelectedGame.away_score ?? 0} — {activeSelectedGame.home_score ?? 0}
+                      </div>
+                      <span
+                        className="badge"
+                        style={{
+                          fontSize: "10.5px",
+                          marginTop: "4px",
+                          background: activeSelectedGame.status === "final" ? "rgba(16, 185, 129, 0.2)" : activeSelectedGame.status === "in_progress" ? "rgba(239, 68, 68, 0.2)" : "rgba(255,255,255,0.08)",
+                          color: activeSelectedGame.status === "final" ? "#10b981" : activeSelectedGame.status === "in_progress" ? "#f87171" : "var(--muted)",
+                        }}
+                      >
+                        {activeSelectedGame.status === "final" ? "FINAL · LOCKED" : activeSelectedGame.status === "in_progress" ? "LIVE · IN PROGRESS" : "SCHEDULED"}
+                      </span>
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: "180px", textAlign: "right" }}>
+                      <span style={{ fontSize: "11px", color: "var(--muted)", textTransform: "uppercase" }}>HOME TEAM</span>
+                      <h4 style={{ margin: "2px 0 0", fontSize: "20px", fontWeight: 900 }}>{activeSelectedGame.home_name}</h4>
+                    </div>
                   </div>
+                </div>
+
+                {/* Recorded Plays / Events Feed */}
+                <div style={{ background: "#081017", borderRadius: "10px", border: "1px solid #162634", padding: "14px 18px" }}>
+                  <h5 style={{ margin: "0 0 10px", fontSize: "13px", color: "#f0f4f8" }}>
+                    Recorded Game Events ({selectedGameEvents.length})
+                  </h5>
+                  {selectedGameEvents.length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {selectedGameEvents.map((evt, idx) => {
+                        const evtTeam = teams.find((t) => t.entry_id === evt.team_entry_id);
+                        const evtPlayer = rosterPlayers.find((p) => p.playerId === evt.player_id);
+                        return (
+                          <div
+                            key={evt.id || idx}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: "8px 12px",
+                              background: "#0c1822",
+                              borderRadius: "6px",
+                              fontSize: "12px",
+                            }}
+                          >
+                            <div>
+                              <strong style={{ color: primaryColor }}>P{evt.period} GOAL</strong>
+                              <span style={{ marginLeft: "8px" }}>
+                                {evtPlayer?.playerName || "Player"} ({evtTeam?.name || "Team"})
+                              </span>
+                            </div>
+                            <span style={{ color: "var(--muted)", fontSize: "11px" }}>
+                              {new Date(evt.recorded_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: "12px", color: "var(--muted)" }}>
+                      No events recorded for this match yet. Click &quot;+ Record Play / Event&quot; to log goals.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -2125,6 +2314,95 @@ export function LeagueAdminShell({ data, initialTab = "overview", children }: Le
                 </button>
                 <button type="submit" disabled={gameActionPending} className="button primary" style={{ fontSize: "12px", fontWeight: 700 }}>
                   {gameActionPending ? "Scheduling…" : "Save Match"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 9: Record Play / Event Modal per Video 2 */}
+      {showRecordPlayModal && activeSelectedGame && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "20px" }}>
+          <div style={{ background: "#0c1822", border: `2px solid ${primaryColor}`, borderRadius: "14px", padding: "24px", maxWidth: "460px", width: "100%" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <h3 style={{ margin: 0, fontSize: "17px" }}>+ Record Goal / Play</h3>
+              <span className="badge" style={{ fontSize: "11px", background: primaryColor, color: "#081017", fontWeight: 800 }}>LIVE</span>
+            </div>
+            <p style={{ margin: "0 0 16px", fontSize: "12.5px", color: "var(--muted)" }}>
+              {activeSelectedGame.away_name} @ {activeSelectedGame.home_name}
+            </p>
+
+            <form onSubmit={handleRecordPlay}>
+              <label style={{ display: "block", marginBottom: "12px" }}>
+                <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>Scoring Team</span>
+                <select
+                  value={recordEventTeamEntryId}
+                  onChange={(e) => {
+                    setRecordEventTeamEntryId(e.target.value);
+                    setRecordEventPlayerId("");
+                  }}
+                  required
+                  style={{ width: "100%", background: "#081017", border: "1px solid #1e3347", borderRadius: "8px", padding: "8px 12px", color: "#f0f4f8", fontSize: "13px" }}
+                >
+                  <option value={activeSelectedGame.home_entry_id}>HOME: {activeSelectedGame.home_name}</option>
+                  <option value={activeSelectedGame.away_entry_id}>AWAY: {activeSelectedGame.away_name}</option>
+                </select>
+              </label>
+
+              <label style={{ display: "block", marginBottom: "12px" }}>
+                <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>Goal Scorer (Player)</span>
+                <select
+                  value={recordEventPlayerId}
+                  onChange={(e) => setRecordEventPlayerId(e.target.value)}
+                  style={{ width: "100%", background: "#081017", border: "1px solid #1e3347", borderRadius: "8px", padding: "8px 12px", color: "#f0f4f8", fontSize: "13px" }}
+                >
+                  <option value="">Unassisted / Unknown Player</option>
+                  {(recordEventTeamEntryId === activeSelectedGame.home_entry_id ? homeTeamPlayers : awayTeamPlayers).map((p) => (
+                    <option key={p.playerId} value={p.playerId}>
+                      #{p.jerseyNumber || "0"} {p.playerName} ({p.position})
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "14px" }}>
+                <label>
+                  <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>Period</span>
+                  <select
+                    value={recordEventPeriod}
+                    onChange={(e) => setRecordEventPeriod(parseInt(e.target.value, 10))}
+                    style={{ width: "100%", background: "#081017", border: "1px solid #1e3347", borderRadius: "8px", padding: "8px 12px", color: "#f0f4f8", fontSize: "13px" }}
+                  >
+                    <option value={1}>1st Period</option>
+                    <option value={2}>2nd Period</option>
+                    <option value={3}>3rd Period</option>
+                    <option value={4}>Overtime (OT)</option>
+                    <option value={5}>Shootout (SO)</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span style={{ display: "block", fontSize: "12px", marginBottom: "6px" }}>Event Type</span>
+                  <input
+                    type="text"
+                    disabled
+                    value="GOAL (Even Strength)"
+                    style={{ width: "100%", background: "#081017", border: "1px solid #1e3347", borderRadius: "8px", padding: "8px 12px", color: "var(--muted)", fontSize: "12px" }}
+                  />
+                </label>
+              </div>
+
+              {recordEventMsg && (
+                <p style={{ fontSize: "12px", color: "#f87171", margin: "0 0 12px" }}>{recordEventMsg}</p>
+              )}
+
+              <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                <button type="button" onClick={() => setShowRecordPlayModal(false)} className="button button-outline" style={{ fontSize: "12px" }}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={recordEventPending} className="button primary" style={{ fontSize: "12px", fontWeight: 700 }}>
+                  {recordEventPending ? "Recording…" : "Save Goal Event"}
                 </button>
               </div>
             </form>
