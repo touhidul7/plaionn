@@ -2,10 +2,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { getLeagueContext } from "@/lib/supabase/session";
-import { getAdminAccess } from "@/lib/supabase/admin";
+import { getAdminAccess, createServiceClient } from "@/lib/supabase/admin";
 import { PlayerForm, RosterForm, EligibilityCard } from "@/components/roster-forms";
 import { RosterCsvImportModal } from "@/components/roster-csv-import";
 import { TeamCaptainManager, type TeamMemberItem } from "@/components/team-captain-manager";
+import {
+  computeClearanceStatus,
+  listLeagueWaiverConfirmations,
+  listTeamJoinRequests,
+  listTeamPendingSpots,
+  type PendingRosterSpot,
+  type TeamJoinRequest,
+} from "@/lib/roster-invites";
 import { teamEligibilitySchema, type PlayerOption, type RosterRow } from "@/lib/roster-schema";
 import { sanitizeLeagueName, sanitizeSeasonName, sanitizePlayerName } from "@/lib/sanitize";
 
@@ -101,36 +109,63 @@ export default async function TeamRosterPage({
   let eligibilityList: any[] = [];
   let overrideHistory: any[] = [];
   let rosterLimit = 25;
+  let billingModel = "team";
   let billingSummary: any = null;
+  let pendingSpots: PendingRosterSpot[] = [];
+  let joinRequests: TeamJoinRequest[] = [];
+  let waiverConfirmedIds = new Set<string>();
+  let regByPlayerId = new Map<string, string>();
 
   try {
-    const [rosterRes, linksRes, settingsRes, billingRes] = await Promise.all([
-      supabase
+    const db = canManage ? createServiceClient() : supabase;
+    const [rosterRes, linksRes, settingsRes, billingRes, spotsRes, reqsRes, waiverIdsRes, regsRes] = await Promise.all([
+      db
         .from("roster_memberships")
         .select("id,player_id,jersey_number,position,status,revision")
         .eq("team_entry_id", entryId)
         .order("jersey_number"),
-      supabase
+      db
         .from("league_players")
         .select("player_id")
         .eq("league_id", realLeagueId),
       targetSeasonId
-        ? supabase
+        ? db
             .from("season_settings")
-            .select("roster_limit")
+            .select("roster_limit, billing_model")
             .eq("season_id", targetSeasonId)
             .maybeSingle()
         : Promise.resolve({ data: null }),
       canManage
         ? supabase.rpc("get_team_billing_summary", { target_entry: entryId })
         : Promise.resolve({ data: null }),
+      canManage ? listTeamPendingSpots(entryId) : Promise.resolve([]),
+      canManage ? listTeamJoinRequests(entryId) : Promise.resolve([]),
+      canManage ? listLeagueWaiverConfirmations(realLeagueId) : Promise.resolve(new Set<string>()),
+      canManage && targetSeasonId
+        ? db
+            .from("player_registrations")
+            .select("id, player_id, user_id")
+            .eq("season_id", targetSeasonId)
+        : Promise.resolve({ data: [] }),
     ]);
+
+    pendingSpots = spotsRes;
+    joinRequests = reqsRes;
+    waiverConfirmedIds = waiverIdsRes;
+    if (regsRes.data) {
+      for (const r of regsRes.data as any[]) {
+        if (r.player_id) regByPlayerId.set(r.player_id, r.id);
+      }
+    }
 
     if (rosterRes.data) {
       rosterData = rosterRes.data as RosterRow[];
     }
     if (settingsRes.data?.roster_limit) {
       rosterLimit = settingsRes.data.roster_limit;
+    }
+    if ((settingsRes.data as any)?.billing_model) {
+      billingModel = (settingsRes.data as any).billing_model;
     }
     if (billingRes.data && Array.isArray(billingRes.data) && billingRes.data.length > 0) {
       billingSummary = billingRes.data[0];
@@ -241,6 +276,23 @@ export default async function TeamRosterPage({
   const teamMembers: TeamMemberItem[] = rosterData.map((r) => {
     const profile = allPlayersList.find((p) => p.id === r.player_id);
     const hasOverride = overrideSet.has(r.id);
+    const regId = regByPlayerId.get(r.player_id);
+    const hasWaiver =
+      hasOverride ||
+      waiverConfirmedIds.has(r.player_id) ||
+      (regId ? waiverConfirmedIds.has(regId) : false);
+    const hasPaid =
+      billingModel === "team" ||
+      (billingSummary ? Number(billingSummary.balance_cents || 0) <= 0 : true);
+
+    const clearanceStatus = computeClearanceStatus({
+      isPendingInvite: false,
+      hasWaiver,
+      hasPaid,
+      billingModel,
+      hasOverride,
+    });
+
     return {
       id: r.id,
       playerId: r.player_id,
@@ -248,8 +300,13 @@ export default async function TeamRosterPage({
       jersey: r.jersey_number,
       position: r.position ?? "F",
       status: (r.status as "active" | "inactive") ?? "active",
-      isCleared: hasOverride || r.status === "active",
-      clearanceReason: hasOverride ? overrideReasonMap.get(r.id) : "Active on team roster",
+      isCleared: clearanceStatus === "Cleared to play",
+      clearanceStatus,
+      clearanceReason: hasOverride
+        ? overrideReasonMap.get(r.id)
+        : clearanceStatus === "Cleared to play"
+        ? "Cleared to play"
+        : clearanceStatus,
       overrideId: hasOverride ? (overrideHistory.find((o: any) => o.roster_membership_id === r.id)?.id ?? null) : null,
     };
   });
@@ -321,6 +378,9 @@ export default async function TeamRosterPage({
           seasonName={seasonName}
           canManage={canManage}
           roster={teamMembers}
+          pendingSpots={pendingSpots}
+          joinRequests={joinRequests}
+          billingModel={billingModel}
         />
       )}
 

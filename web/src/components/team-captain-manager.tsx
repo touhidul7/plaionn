@@ -3,10 +3,19 @@
 import React, { useState } from "react";
 import {
   addRosterSpotAction,
+  approveJoinRequestAction,
   bringBackSeasonRosterAction,
+  declineJoinRequestAction,
   grantClearanceOverrideAction,
+  removePendingSpotAction,
+  updateAndResendSpotInviteAction,
   updateRosterStatusAction,
 } from "@/app/(portal)/teams/[entryId]/captain-actions";
+import type {
+  PendingRosterSpot,
+  RosterClearanceStatus,
+  TeamJoinRequest,
+} from "@/lib/roster-invites";
 
 export interface TeamMemberItem {
   id: string; // roster_membership_id
@@ -16,6 +25,7 @@ export interface TeamMemberItem {
   position: string;
   status: "active" | "inactive";
   isCleared: boolean;
+  clearanceStatus?: RosterClearanceStatus;
   clearanceReason?: string;
   overrideId?: string | null;
 }
@@ -29,6 +39,9 @@ interface TeamCaptainManagerProps {
   previousSeasonName?: string;
   canManage: boolean;
   roster: TeamMemberItem[];
+  pendingSpots?: PendingRosterSpot[];
+  joinRequests?: TeamJoinRequest[];
+  billingModel?: string;
 }
 
 export function TeamCaptainManager({
@@ -40,10 +53,16 @@ export function TeamCaptainManager({
   previousSeasonName = "Previous Season",
   canManage,
   roster,
+  pendingSpots = [],
+  joinRequests = [],
+  billingModel = "team",
 }: TeamCaptainManagerProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedPlayerId, setCopiedPlayerId] = useState<string | null>(null);
+  const [editingSpotId, setEditingSpotId] = useState<string | null>(null);
+  const [editSpotEmail, setEditSpotEmail] = useState("");
+  const [matchSpotMap, setMatchSpotMap] = useState<Record<string, string>>({});
 
   // New spot form state
   const [newName, setNewName] = useState("");
@@ -58,9 +77,9 @@ export function TeamCaptainManager({
     return `${window.location.origin}/teams/join?team=${entryId}`;
   };
 
-  const getPlayerClaimUrl = (playerId: string) => {
+  const getPlayerClaimUrl = (token: string) => {
     if (typeof window === "undefined") return "";
-    return `${window.location.origin}/claim?player=${playerId}&team=${entryId}`;
+    return `${window.location.origin}/claim?token=${token}`;
   };
 
   const handleCopyTeamLink = () => {
@@ -70,10 +89,10 @@ export function TeamCaptainManager({
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  const handleCopyClaimLink = (playerId: string) => {
-    const url = getPlayerClaimUrl(playerId);
+  const handleCopyClaimLink = (token: string, spotId: string) => {
+    const url = getPlayerClaimUrl(token);
     navigator.clipboard.writeText(url);
-    setCopiedPlayerId(playerId);
+    setCopiedPlayerId(spotId);
     setTimeout(() => setCopiedPlayerId(null), 2500);
   };
 
@@ -87,6 +106,7 @@ export function TeamCaptainManager({
     const res = await addRosterSpotAction({
       entryId,
       leagueId,
+      seasonId: seasonId || null,
       name: newName.trim(),
       jersey: newJersey ? parseInt(newJersey, 10) : null,
       position: newPosition,
@@ -321,35 +341,47 @@ export function TeamCaptainManager({
                       </button>
                     </td>
                     <td>
-                      {item.isCleared ? (
-                        <span
-                          className="badge"
-                          style={{
-                            background: "rgba(16, 185, 129, 0.15)",
+                      {(() => {
+                        const st = item.clearanceStatus || (item.isCleared ? "Cleared to play" : "Waiver needed");
+                        const badgeStyles: Record<string, { bg: string; color: string; border: string }> = {
+                          "Cleared to play": {
+                            bg: "rgba(16, 185, 129, 0.15)",
                             color: "#34d399",
-                            border: "1px solid rgba(16, 185, 129, 0.3)",
-                            fontSize: "11px",
-                            fontWeight: 700,
-                          }}
-                          title={item.clearanceReason || "Player meets all eligibility rules"}
-                        >
-                          🟢 Cleared to Play
-                        </span>
-                      ) : (
-                        <span
-                          className="badge"
-                          style={{
-                            background: "rgba(249, 115, 22, 0.15)",
+                            border: "rgba(16, 185, 129, 0.3)",
+                          },
+                          "Waiver needed": {
+                            bg: "rgba(249, 115, 22, 0.15)",
                             color: "#fb923c",
-                            border: "1px solid rgba(249, 115, 22, 0.3)",
-                            fontSize: "11px",
-                            fontWeight: 700,
-                          }}
-                          title={item.clearanceReason || "Waiver or registration pending"}
-                        >
-                          🟠 Waiver Needed (GHL)
-                        </span>
-                      )}
+                            border: "rgba(249, 115, 22, 0.3)",
+                          },
+                          "Payment due": {
+                            bg: "rgba(234, 179, 8, 0.15)",
+                            color: "#facc15",
+                            border: "rgba(234, 179, 8, 0.3)",
+                          },
+                          "Invited": {
+                            bg: "rgba(59, 130, 246, 0.15)",
+                            color: "#60a5fa",
+                            border: "rgba(59, 130, 246, 0.3)",
+                          },
+                        };
+                        const s = badgeStyles[st] || badgeStyles["Waiver needed"];
+                        return (
+                          <span
+                            className="badge"
+                            style={{
+                              background: s.bg,
+                              color: s.color,
+                              border: `1px solid ${s.border}`,
+                              fontSize: "11px",
+                              fontWeight: 700,
+                            }}
+                            title={item.clearanceReason || st}
+                          >
+                            {st}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td style={{ textAlign: "right" }}>
                       <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
@@ -364,15 +396,6 @@ export function TeamCaptainManager({
                             ✓ Clear Player
                           </button>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => handleCopyClaimLink(item.playerId)}
-                          className="button button-sm button-outline"
-                          style={{ fontSize: "11px", padding: "3px 8px" }}
-                          title="Copy secure single-use claim link for this player"
-                        >
-                          {copiedPlayerId === item.playerId ? "✓ Copied" : "🔗 Claim Link"}
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -396,6 +419,240 @@ export function TeamCaptainManager({
             No players currently assigned to this team. Click <strong>+ Add Player Spot</strong> or <strong>Bring Back Last Season&apos;s Roster</strong> to populate.
           </p>
         </div>
+      )}
+
+      {/* Pending Roster Spots (Invited) */}
+      {pendingSpots.length > 0 && (
+        <section
+          className="panel"
+          style={{ padding: 0, overflow: "hidden", marginBottom: "24px", border: "1px solid #1f394d" }}
+        >
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--line)", background: "#0a141d", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)" }}>
+              Pending Roster Spots ({pendingSpots.length} Invited — Awaiting Player Claim)
+            </span>
+            <span style={{ fontSize: "11px", color: "var(--muted)" }}>
+              Single-use invite links · Editing email invalidates previous link
+            </span>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table className="table" style={{ width: "100%", margin: 0, fontSize: "12.5px" }}>
+              <thead>
+                <tr>
+                  <th style={{ width: "60px" }}>#</th>
+                  <th>PLAYER NAME</th>
+                  <th style={{ width: "70px" }}>POS</th>
+                  <th>INVITED EMAIL</th>
+                  <th style={{ width: "130px" }}>STATUS</th>
+                  <th style={{ width: "280px", textAlign: "right" }}>INVITE ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingSpots.map((spot) => (
+                  <tr key={spot.id}>
+                    <td style={{ fontWeight: 800, color: "var(--lime)" }}>
+                      {spot.jersey !== null ? `#${spot.jersey}` : "—"}
+                    </td>
+                    <td>
+                      <strong style={{ color: "var(--text)" }}>{spot.name}</strong>
+                    </td>
+                    <td style={{ color: "var(--muted)" }}>{spot.position}</td>
+                    <td>
+                      {editingSpotId === spot.id ? (
+                        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                          <input
+                            type="email"
+                            value={editSpotEmail}
+                            onChange={(e) => setEditSpotEmail(e.target.value)}
+                            placeholder="corrected@email.com"
+                            style={{ background: "#081017", border: "1px solid #1f394d", borderRadius: "6px", color: "var(--text)", padding: "4px 8px", fontSize: "12px" }}
+                          />
+                          <button
+                            type="button"
+                            disabled={isSubmitting}
+                            onClick={async () => {
+                              setIsSubmitting(true);
+                              const res = await updateAndResendSpotInviteAction({
+                                spotId: spot.id,
+                                entryId,
+                                leagueId,
+                                email: editSpotEmail,
+                              });
+                              setIsSubmitting(false);
+                              setEditingSpotId(null);
+                              setStatusMessage({ type: res.success ? "success" : "error", text: res.message });
+                            }}
+                            className="button button-sm primary"
+                            style={{ fontSize: "11px", padding: "3px 8px" }}
+                          >
+                            Resend
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingSpotId(null)}
+                            className="button button-sm button-outline"
+                            style={{ fontSize: "11px", padding: "3px 6px" }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{ color: "var(--muted)" }}>{spot.email || "No email (share link manually)"}</span>
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        className="badge"
+                        style={{
+                          background: "rgba(59, 130, 246, 0.15)",
+                          color: "#60a5fa",
+                          border: "1px solid rgba(59, 130, 246, 0.3)",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        Invited
+                      </span>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyClaimLink(spot.token, spot.id)}
+                          className="button button-sm button-outline"
+                          style={{ fontSize: "11px", padding: "3px 8px" }}
+                          title="Copy single-use claim link"
+                        >
+                          {copiedPlayerId === spot.id ? "✓ Copied" : "🔗 Copy Claim Link"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingSpotId(spot.id);
+                            setEditSpotEmail(spot.email || "");
+                          }}
+                          className="button button-sm button-outline"
+                          style={{ fontSize: "11px", padding: "3px 8px" }}
+                          title="Fix typo & resend invite (invalidates old link)"
+                        >
+                          ✎ Edit/Resend
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setIsSubmitting(true);
+                            const res = await removePendingSpotAction({ spotId: spot.id, entryId, leagueId });
+                            setIsSubmitting(false);
+                            setStatusMessage({ type: res.success ? "success" : "error", text: res.message });
+                          }}
+                          className="button button-sm button-outline"
+                          style={{ fontSize: "11px", padding: "3px 8px", color: "#f87171" }}
+                          title="Remove pending spot"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* Team Group Chat Join Requests */}
+      {joinRequests.length > 0 && (
+        <section
+          className="panel"
+          style={{ padding: 0, overflow: "hidden", marginBottom: "24px", border: "1px solid #1f394d" }}
+        >
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--line)", background: "#0a141d", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)" }}>
+              Team Link Join Requests ({joinRequests.length} Pending Approval)
+            </span>
+            <span style={{ fontSize: "11px", color: "var(--muted)" }}>
+              Match to an invited spot or approve as a new addition
+            </span>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table className="table" style={{ width: "100%", margin: 0, fontSize: "12.5px" }}>
+              <thead>
+                <tr>
+                  <th>PLAYER</th>
+                  <th>EMAIL</th>
+                  <th>POS / #</th>
+                  <th>MATCH TO PENDING SPOT</th>
+                  <th style={{ textAlign: "right" }}>DECISION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {joinRequests.map((req) => (
+                  <tr key={req.id}>
+                    <td><strong style={{ color: "var(--text)" }}>{req.displayName}</strong></td>
+                    <td style={{ color: "var(--muted)" }}>{req.userEmail}</td>
+                    <td style={{ color: "var(--muted)" }}>{req.position}{req.jersey !== null ? ` · #${req.jersey}` : ""}</td>
+                    <td>
+                      <select
+                        value={matchSpotMap[req.id] || ""}
+                        onChange={(e) => setMatchSpotMap((prev) => ({ ...prev, [req.id]: e.target.value }))}
+                        style={{ background: "#081017", border: "1px solid #1f394d", borderRadius: "6px", color: "var(--text)", padding: "4px 8px", fontSize: "12px" }}
+                      >
+                        <option value="">Approve as new addition</option>
+                        {pendingSpots.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            Match to: {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <div style={{ display: "inline-flex", gap: "6px" }}>
+                        <button
+                          type="button"
+                          disabled={isSubmitting}
+                          onClick={async () => {
+                            setIsSubmitting(true);
+                            const res = await approveJoinRequestAction({
+                              requestId: req.id,
+                              entryId,
+                              leagueId,
+                              matchedSpotId: matchSpotMap[req.id] || null,
+                            });
+                            setIsSubmitting(false);
+                            setStatusMessage({ type: res.success ? "success" : "error", text: res.message });
+                          }}
+                          className="button button-sm primary"
+                          style={{ fontSize: "11px", padding: "3px 10px" }}
+                        >
+                          ✓ Approve
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isSubmitting}
+                          onClick={async () => {
+                            setIsSubmitting(true);
+                            const res = await declineJoinRequestAction({
+                              requestId: req.id,
+                              entryId,
+                              leagueId,
+                            });
+                            setIsSubmitting(false);
+                            setStatusMessage({ type: res.success ? "success" : "error", text: res.message });
+                          }}
+                          className="button button-sm button-outline"
+                          style={{ fontSize: "11px", padding: "3px 8px", color: "#f87171" }}
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {/* Add Player Spot Modal */}
