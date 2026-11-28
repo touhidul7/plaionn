@@ -44,8 +44,9 @@ export default async function TeamRosterPage({
   const context = await getLeagueContext();
   const { supabase, user } = context;
 
-  // Resolve team directly from team_entries (prevents cookie mismatch)
-  const { data: dbEntry, error: dbEntryErr } = await supabase
+  // Resolve team directly from team_entries using service client (bypasses anon RLS)
+  const serviceDb = createServiceClient();
+  const { data: dbEntry, error: dbEntryErr } = await serviceDb
     .from("team_entries")
     .select(`
       id,
@@ -117,7 +118,7 @@ export default async function TeamRosterPage({
   let regByPlayerId = new Map<string, string>();
 
   try {
-    const db = canManage ? createServiceClient() : supabase;
+    const db = serviceDb;
     const [rosterRes, linksRes, settingsRes, billingRes, spotsRes, reqsRes, waiverIdsRes, regsRes] = await Promise.all([
       db
         .from("roster_memberships")
@@ -177,7 +178,7 @@ export default async function TeamRosterPage({
     const allUniqueIds = Array.from(new Set([...teamPlayerIds, ...leaguePlayerIds]));
 
     if (allUniqueIds.length > 0) {
-      const { data: pData } = await supabase
+      const { data: pData } = await db
         .from("players")
         .select("id,display_name")
         .in("id", allUniqueIds)
